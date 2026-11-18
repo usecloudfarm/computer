@@ -1,0 +1,7 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+
+# Dependencies allowed to run install scripts (pnpm 10 blocks these by default).
+onlyBuiltDependencies:
+  - esbuild
