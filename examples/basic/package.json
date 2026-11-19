@@ -10,7 +10,7 @@
     "clean": "rm -rf .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@unsandbox/core": "workspace:^"
+    "@unsandbox/firecracker": "workspace:^"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

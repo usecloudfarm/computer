@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/utils" },
-    { "path": "./packages/core" },
+    { "path": "./packages/firecracker" },
     { "path": "./examples/basic" }
   ]
 }

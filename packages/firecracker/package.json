@@ -1,7 +1,7 @@
 {
-  "name": "@unsandbox/core",
+  "name": "@unsandbox/firecracker",
   "version": "0.1.0",
-  "description": "Core unsandbox library",
+  "description": "Typed driver for Firecracker microVMs: API client, process supervisor, lifecycle and snapshots",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -21,6 +21,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -34,6 +37,7 @@
     "@unsandbox/utils": "workspace:^"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.1"

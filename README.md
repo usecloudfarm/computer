@@ -6,11 +6,14 @@ A pnpm + Turborepo monorepo for TypeScript libraries.
 
 ```
 packages/
-  core/      @unsandbox/core   – the published library
-  utils/     @unsandbox/utils  – shared utilities, consumed by core
+  firecracker/  @unsandbox/firecracker  – Firecracker microVM driver
+  utils/        @unsandbox/utils        – shared utilities
 examples/
-  basic/     private consumer app used to smoke-test the public API
+  basic/        private consumer app used to smoke-test the public API
 ```
+
+`@unsandbox/firecracker` needs a Linux host with KVM to boot anything; its
+tests run anywhere. See [its README](packages/firecracker/README.md).
 
 Each library package builds dual ESM + CJS output with type declarations via
 [tsup](https://tsup.egoist.dev/), is tested with [Vitest](https://vitest.dev/), and is versioned
@@ -41,7 +44,7 @@ pnpm test
 Target a single package with Turborepo filters:
 
 ```bash
-pnpm build --filter @unsandbox/core
+pnpm build --filter @unsandbox/firecracker
 pnpm test --filter @unsandbox/utils...
 ```
 
