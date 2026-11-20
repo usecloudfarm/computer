@@ -200,7 +200,6 @@ export const SAMPLES: Record<string, CodeSample[]> = {
   v8: jsSamples,
   cpython: pythonSamples,
   bash: shellSamples,
-  dash: shellSamples,
 };
 
 export function samplesFor(runtimeId: string): CodeSample[] {

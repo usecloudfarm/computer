@@ -1,6 +1,6 @@
 # @unsandbox/runtimes
 
-Five sandbox engines behind one interface, plus the code samples the studio
+Four sandbox engines behind one interface, plus the code samples the studio
 shows for each.
 
 | Runtime    | id        | Isolation        | What it is                                                                       |
@@ -9,12 +9,12 @@ shows for each.
 | V8 isolate | `v8`      | `v8-isolate`     | Node's own V8 in a worker thread: full speed, killable, weaker boundary.         |
 | CPython    | `cpython` | `wasm`           | Real CPython 3.14 via Pyodide. Full stdlib and genuine tracebacks.               |
 | bash       | `bash`    | `js-interpreter` | `just-bash`: bash reimplemented in TypeScript over a virtual filesystem.         |
-| dash       | `dash`    | `host-process`   | The real `/bin/dash` in a temp directory. Ground truth, not a sandbox.           |
 
 The `isolation` field is the honest part of this table. Only `wasm` and
 `v8-isolate` are boundaries; `js-interpreter` is a simulation on the host
-heap, and `host-process` is a real process with an empty environment. The UI
-shows this per runtime so a comparison never implies safety it does not have.
+heap. The UI shows this per runtime so a comparison never implies safety it
+does not have. The contract still models `host-process` for engines that
+shell out, but nothing here uses it.
 
 ## Adding a runtime
 
@@ -53,12 +53,12 @@ QuickJS, V8 and CPython run inside a **warm worker per engine**
   the only dependable way to stop synchronous wasm. The engine is respawned
   on the next run, so a runaway guest costs one cold start.
 
-`bash` runs in-process with iteration caps (`just-bash` has no wall clock),
-and `dash` is a child process killed with `SIGKILL` on timeout.
+`bash` runs in-process with iteration caps, since `just-bash` has no wall
+clock of its own.
 
 ## Workspace
 
 Every runtime mounts the same text-only workspace at `/work` and returns it
-afterwards, so the server can diff what changed. Shell runtimes get `/work` as
-their working directory, which is why the shell samples use relative paths and
-run unchanged on both engines.
+afterwards, so the server can diff what changed. The shell runtime gets
+`/work` as its working directory, which is why the shell samples use paths
+relative to it.

@@ -7,7 +7,7 @@ A pnpm + Turborepo monorepo for TypeScript libraries.
 ```
 packages/
   sandbox-core/ @unsandbox/sandbox-core – runtime contract + in-memory VFS
-  runtimes/     @unsandbox/runtimes     – QuickJS, V8, CPython, bash, dash
+  runtimes/     @unsandbox/runtimes     – QuickJS, V8, CPython, bash
   firecracker/  @unsandbox/firecracker  – Firecracker microVM driver
   utils/        @unsandbox/utils        – shared utilities
 apps/
@@ -19,7 +19,7 @@ examples/
 
 ## The playground
 
-Five engines behind one interface, sharing one virtual filesystem:
+Four engines behind one interface, sharing one virtual filesystem:
 
 ```sh
 pnpm install
@@ -27,13 +27,12 @@ pnpm build
 pnpm --filter @unsandbox/server start   # http://localhost:8787
 ```
 
-| Runtime      | Isolation      | Notes                          |
-| ------------ | -------------- | ------------------------------ |
-| QuickJS      | wasm           | memory cap, interruptible      |
-| V8 isolate   | v8-isolate     | worker thread, killable        |
-| CPython 3.14 | wasm           | Pyodide, warm interpreter      |
-| bash         | js-interpreter | `just-bash`, no host process   |
-| dash         | host-process   | real `/bin/dash`, ground truth |
+| Runtime      | Isolation      | Notes                        |
+| ------------ | -------------- | ---------------------------- |
+| QuickJS      | wasm           | memory cap, interruptible    |
+| V8 isolate   | v8-isolate     | worker thread, killable      |
+| CPython 3.14 | wasm           | Pyodide, warm interpreter    |
+| bash         | js-interpreter | `just-bash`, no host process |
 
 See [packages/runtimes](packages/runtimes/README.md) for the runtime contract
 and [apps/server](apps/server/README.md) for the HTTP API.

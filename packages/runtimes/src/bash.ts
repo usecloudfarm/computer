@@ -51,8 +51,8 @@ export const bashRuntime: SandboxRuntime = {
     const entry = request.entryPath ?? bashRuntime.defaultEntry;
     const files: FileMap = { ...request.files, [entry]: request.code };
 
-    // cwd matches the dash adapter's working directory, so one shell sample
-    // runs unchanged on both engines.
+    // Shell samples use paths relative to the workspace root, so cwd is
+    // /work rather than /.
     const bash = new Bash({
       files,
       cwd: WORKSPACE,

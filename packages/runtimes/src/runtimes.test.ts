@@ -96,9 +96,9 @@ describe("failure reporting", () => {
   });
 
   it("passes through a shell exit code", async () => {
-    const dash = ALL_RUNTIMES.find((runtime) => runtime.id === "dash")!;
+    const bash = ALL_RUNTIMES.find((runtime) => runtime.id === "bash")!;
 
-    const { exit } = await execute(dash, "exit 3");
+    const { exit } = await execute(bash, "exit 3");
 
     expect(exit).toMatchObject({ code: 3 });
   });
