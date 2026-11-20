@@ -7,28 +7,20 @@
       "inputs": ["src/**", "tsconfig*.json", "tsup.config.ts", "package.json"],
       "outputs": ["dist/**"]
     },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
+    "dev": { "cache": false, "persistent": true },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "vitest.config.*", "package.json"],
+      "inputs": ["src/**", "vitest.config.*", "package.json"],
       "outputs": []
     },
-    "test:watch": {
-      "cache": false,
-      "persistent": true
-    },
-    "typecheck": {
+    "test:workers": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "vitest.workers.config.*", "wrangler.jsonc", "package.json"],
       "outputs": []
     },
-    "lint": {
-      "inputs": ["src/**", "eslint.config.js", "package.json"]
-    },
-    "clean": {
-      "cache": false
-    }
+    "test:watch": { "cache": false, "persistent": true },
+    "typecheck": { "dependsOn": ["^build"], "outputs": [] },
+    "lint": { "inputs": ["src/**", "eslint.config.js", "package.json"] },
+    "clean": { "cache": false }
   }
 }

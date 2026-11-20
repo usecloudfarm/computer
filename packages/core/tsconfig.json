@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // Web standards only: fetch, streams, URL, TextEncoder. No "node" in
+    // `types` and no @types/node dependency, so `node:*` and `process` cannot
+    // typecheck here. ESLint also bans the browser-only globals DOM drags in.
+    "lib": ["ES2023", "DOM"],
+    // No "node" here, and no @types/node dependency: `node:*` and `process`
+    // cannot typecheck inside core. That is the isomorphism contract.
+    "types": [],
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

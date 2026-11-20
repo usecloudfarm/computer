@@ -25,3 +25,5 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+      # Proves @cloudfarm/core is isomorphic: the same suite under workerd.
+      - run: pnpm test:workers

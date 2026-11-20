@@ -1,8 +1,0 @@
-{
-  "files": [],
-  "references": [
-    { "path": "./packages/utils" },
-    { "path": "./packages/firecracker" },
-    { "path": "./examples/basic" }
-  ]
-}

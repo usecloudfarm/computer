@@ -1,95 +1,113 @@
-# unsandbox
+# cloudfarm
 
-A pnpm + Turborepo monorepo for TypeScript libraries.
+**Computer** — a fast computer with the right tools for every agent.
 
-## Layout
+A Computer gives an agent a workspace: a filesystem for its state, a shell,
+apps as plugins, and _code mode_ — where the agent searches for a capability,
+gets typed signatures back, and writes code that runs in an isolate.
 
+```ts
+import { Computer } from "@cloudfarm/core";
+import { JustBash } from "@cloudfarm/bash";
+import { quickjs } from "@cloudfarm/quickjs";
+import { slack } from "@cloudfarm/slack";
+import { AISDKToolset } from "@cloudfarm/ai";
+
+const computer = new Computer({
+  toolset: new AISDKToolset(),
+  provider: new JustBash(), // the default shell
+  codeEngine: quickjs(), // code mode, in WebAssembly
+  apps: [slack({ apiKey: process.env.SLACK_TOKEN })],
+});
+
+const workspace = await computer.createWorkspace("user_id");
+
+const result = await generateText({
+  model,
+  tools: await workspace.tools(),
+  prompt: "Summarise #eng and save it to /notes/eng.md",
+});
 ```
-packages/
-  sandbox-core/ @unsandbox/sandbox-core – runtime contract + in-memory VFS
-  runtimes/     @unsandbox/runtimes     – QuickJS, V8, CPython, bash
-  firecracker/  @unsandbox/firecracker  – Firecracker microVM driver
-  utils/        @unsandbox/utils        – shared utilities
-apps/
-  server/       @unsandbox/server       – Hono API + SSE streaming
-  studio/       @unsandbox/studio       – VS Code-style playground UI
-examples/
-  basic/        private consumer app used to smoke-test the public API
+
+## Why code mode
+
+An agent with ten apps installed does not get a hundred tools. It gets **six**,
+and the list does not grow:
+
+| tool                               | what it does                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| `search`                           | find capabilities by intent; returns signatures, examples and a scoped `.d.ts` |
+| `code`                             | run JavaScript that calls several capabilities in one go                       |
+| `run`                              | call one capability directly — cheaper and auditable                           |
+| `bash`                             | run a shell command in the workspace                                           |
+| `fs_read` / `fs_write` / `fs_list` | the workspace filesystem                                                       |
+
+Adding an app adds zero tokens to the system prompt. The model finds what it
+needs, then writes a script:
+
+```js
+const { channels } = slack.listChannels({ limit: 10 });
+for (const channel of channels) {
+  slack.sendMessage({ channel: channel.name, text: "v1 is out" });
+}
+return channels.length;
 ```
 
-## The playground
+Capabilities are **synchronous** in code mode. The isolate suspends its whole
+stack across a host call, so generated code never touches a promise — which
+removes the job-queue machinery, and with it an entire class of bug.
 
-Four engines behind one interface, sharing one virtual filesystem:
+## Packages
+
+| package              | what it is                                                                   | runs on              |
+| -------------------- | ---------------------------------------------------------------------------- | -------------------- |
+| `@cloudfarm/core`    | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
+| `@cloudfarm/bash`    | the default sandbox: bash in TypeScript, no infrastructure                   | Node and Workers     |
+| `@cloudfarm/quickjs` | code mode in a WebAssembly isolate                                           | Node and Workers     |
+| `@cloudfarm/ai`      | tools for the Vercel AI SDK                                                  | Node and Workers     |
+| `@cloudfarm/slack`   | Slack as an app plugin                                                       | Node and Workers     |
+
+`@cloudfarm/core` is isomorphic by construction, not by discipline: it has no
+`@types/node`, ESLint refuses `node:*` imports inside it, and **its entire test
+suite runs under workerd in CI** as well as Node. That last one is the actual
+guarantee.
+
+## Getting started
 
 ```sh
 pnpm install
 pnpm build
-pnpm --filter @unsandbox/server start   # http://localhost:8787
+pnpm --filter @cloudfarm/example-node-agent demo   # runs offline, no keys
 ```
 
-| Runtime      | Isolation      | Notes                        |
-| ------------ | -------------- | ---------------------------- |
-| QuickJS      | wasm           | memory cap, interruptible    |
-| V8 isolate   | v8-isolate     | worker thread, killable      |
-| CPython 3.14 | wasm           | Pyodide, warm interpreter    |
-| bash         | js-interpreter | `just-bash`, no host process |
+The demo walks through the filesystem, the shell, capability search, code mode
+chaining several calls, and a runaway loop being stopped at its deadline.
 
-See [packages/runtimes](packages/runtimes/README.md) for the runtime contract
-and [apps/server](apps/server/README.md) for the HTTP API.
+## Design notes
 
-`@unsandbox/firecracker` is the separate microVM track: it needs a Linux host
-with KVM to boot anything, though its tests run anywhere. See
-[its README](packages/firecracker/README.md).
+**Zod defines the data.** Every value that crosses a boundary is a Zod schema
+with its TypeScript type inferred from it, and app authors write capability
+schemas the same way. One definition does three jobs: it validates the model's
+arguments host-side, it generates the JSON Schema a tool definition needs, and
+it renders the TypeScript the model writes against.
 
-Each library package builds dual ESM + CJS output with type declarations via
-[tsup](https://tsup.egoist.dev/), is tested with [Vitest](https://vitest.dev/), and is versioned
-and published with [Changesets](https://github.com/changesets/changesets).
+**Credentials are unreachable, not merely hidden.** An app applies its token in
+`authorize()`; capability handlers get an already-authorised `fetch` and never
+see a value. Generated code is further removed — the isolate's only authority
+is one host function, so there is no object graph connecting guest memory to a
+token. On top of that, every model-facing value passes a redactor, and each app
+declares an egress allowlist so a URL arriving in a model's arguments cannot
+redirect a credentialed request.
 
-## Getting started
-
-```bash
-pnpm install
-pnpm build
-pnpm test
-```
+**Limits return results, not exceptions.** A run that hits its deadline or its
+host-call cap reports `status`, which limit it hit, what it logged and which
+calls it made, so an agent can see partial work and decide what to do next.
 
 ## Scripts
 
-| Command           | What it does                                  |
-| ----------------- | --------------------------------------------- |
-| `pnpm build`      | Builds every package in dependency order      |
-| `pnpm dev`        | Watch-mode builds across packages             |
-| `pnpm test`       | Runs all unit tests once                      |
-| `pnpm test:watch` | Runs tests in watch mode                      |
-| `pnpm typecheck`  | Type-checks every package                     |
-| `pnpm lint`       | ESLint across every package                   |
-| `pnpm format`     | Formats the repo with Prettier                |
-| `pnpm changeset`  | Records a version bump for the next release   |
-| `pnpm release`    | Builds packages and publishes with Changesets |
-
-Target a single package with Turborepo filters:
-
-```bash
-pnpm build --filter @unsandbox/firecracker
-pnpm test --filter @unsandbox/utils...
-```
-
-Run the example against the local build:
-
-```bash
-pnpm --filter @unsandbox/example-basic start
-```
-
-## Adding a package
-
-1. `mkdir -p packages/<name>/src`
-2. Copy `package.json`, `tsconfig.json`, `tsup.config.ts`, and `vitest.config.ts` from
-   `packages/utils`, then change the package `name`.
-3. Add a `{ "path": "./packages/<name>" }` reference to the root `tsconfig.json`.
-4. `pnpm install`
-
-## Releasing
-
-1. `pnpm changeset` — pick the affected packages and a semver bump, and describe the change.
-2. Merge to `main`. The release workflow opens a "version packages" PR.
-3. Merge that PR; the workflow publishes to npm using the `NPM_TOKEN` secret.
+| command                                        | does                                    |
+| ---------------------------------------------- | --------------------------------------- |
+| `pnpm build`                                   | build every package in dependency order |
+| `pnpm test`                                    | run all tests under Node                |
+| `pnpm test:workers`                            | run core's suite under workerd          |
+| `pnpm typecheck` / `pnpm lint` / `pnpm format` | the usual                               |

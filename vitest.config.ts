@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Shared defaults; each package extends this via `vitest.config.ts`.
+/** Shared Node-pool defaults. Each package re-exports this from its own config. */
 export default defineConfig({
   test: {
     include: ["src/**/*.test.ts"],

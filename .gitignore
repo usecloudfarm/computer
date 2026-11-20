@@ -5,6 +5,8 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 *.log
+.dev.vars
+.wrangler/
 .env
 .env.*
 !.env.example

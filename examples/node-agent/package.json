@@ -1,0 +1,24 @@
+{
+  "name": "@cloudfarm/example-node-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The brief's snippet, typechecked in CI and runnable against real services",
+  "scripts": {
+    "start": "node --experimental-strip-types src/main.ts",
+    "demo": "node --experimental-strip-types src/demo.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@cloudfarm/ai": "workspace:^",
+    "@cloudfarm/bash": "workspace:^",
+    "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/quickjs": "workspace:^",
+    "@cloudfarm/slack": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,473 @@
+import { clampForModel, toLargeRef } from "./clamp.js";
+import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
+import {
+  CapabilityFailedError,
+  EgressDeniedError,
+  InvalidArgumentsError,
+  UnknownRefError,
+} from "./errors.js";
+import { CapabilityRegistry, parseInput, summarize } from "./registry.js";
+import { Redactor } from "./redact.js";
+import { codeModeSpecs, RawToolset } from "./tools.js";
+import { renderDeclarations } from "./typegen.js";
+import { MemoryStorage } from "./vfs.js";
+import type {
+  App,
+  CodeEngine,
+  ComputerHost,
+  FileSystem,
+  MemoryStore,
+  Sandbox,
+  SandboxProvider,
+  StorageProvider,
+  Toolset,
+} from "./ports.js";
+import type {
+  CodeLimits,
+  CodeResult,
+  ExecOptions,
+  ExecResult,
+  Json,
+  SearchResult,
+  ToolSpec,
+  WorkspaceInfo,
+} from "./schemas.js";
+
+export interface ComputerOptions<T = unknown> {
+  /** Adapts tool specs to an agent framework. Defaults to handing back raw specs. */
+  toolset?: Toolset<T>;
+  /** Where bash runs. Defaults to none — install @cloudfarm/bash for the built-in shell. */
+  provider?: SandboxProvider;
+  /** Where workspace files live. Defaults to memory. */
+  storage?: StorageProvider;
+  /** Runs code mode. Without one, the `code` tool is simply absent. */
+  codeEngine?: CodeEngine;
+  memory?: MemoryStore;
+  apps?: readonly App[];
+  limits?: Partial<CodeLimits>;
+  /** Literal secrets to scrub from anything the model reads. */
+  secrets?: readonly string[];
+  now?: () => number;
+}
+
+export interface CreateWorkspaceOptions {
+  userId: string;
+  workspaceId?: string;
+  metadata?: Record<string, Json>;
+}
+
+/**
+ * A computer: storage, a shell, apps and code mode, scoped per workspace.
+ *
+ * `Computer` itself also exposes the workspace surface, delegating to a lazily
+ * created default workspace, so single-tenant scripts never have to think
+ * about workspaces. Anything serving more than one user should call
+ * `createWorkspace(userId)` and use the returned object.
+ */
+export class Computer<T = unknown> {
+  readonly #options: ComputerOptions<T>;
+  readonly #storage: StorageProvider;
+  readonly #toolset: Toolset<T>;
+  readonly #registry: CapabilityRegistry;
+  readonly #workspaces = new Map<string, Workspace<T>>();
+  #defaultWorkspace: Promise<Workspace<T>> | undefined;
+
+  constructor(options: ComputerOptions<T> = {}) {
+    this.#options = options;
+    this.#storage = options.storage ?? new MemoryStorage();
+    this.#toolset = options.toolset ?? (new RawToolset() as unknown as Toolset<T>);
+    this.#registry = new CapabilityRegistry(options.apps ?? []);
+  }
+
+  get apps(): readonly App[] {
+    return this.#options.apps ?? [];
+  }
+
+  /** Resume-or-create. Cheap: the sandbox connects on first use, not here. */
+  async createWorkspace(userId: string): Promise<Workspace<T>>;
+  async createWorkspace(options: CreateWorkspaceOptions): Promise<Workspace<T>>;
+  async createWorkspace(input: string | CreateWorkspaceOptions): Promise<Workspace<T>> {
+    const options = typeof input === "string" ? { userId: input } : input;
+    const workspaceId = options.workspaceId ?? "default";
+    const key = `${options.userId}/${workspaceId}`;
+
+    const existing = this.#workspaces.get(key);
+    if (existing) return existing;
+
+    const info: WorkspaceInfo = {
+      id: workspaceId,
+      userId: options.userId,
+      createdAt: (this.#options.now ?? Date.now)(),
+      metadata: options.metadata ?? {},
+    };
+    const fs = await this.#storage.open({ userId: options.userId, workspaceId });
+    const workspace = new Workspace<T>({
+      info,
+      fs,
+      registry: this.#registry,
+      toolset: this.#toolset,
+      options: this.#options,
+    });
+    this.#workspaces.set(key, workspace);
+    return workspace;
+  }
+
+  getWorkspace(userId: string, workspaceId = "default"): Workspace<T> | undefined {
+    return this.#workspaces.get(`${userId}/${workspaceId}`);
+  }
+
+  async closeAll(): Promise<void> {
+    await Promise.all([...this.#workspaces.values()].map((workspace) => workspace.close()));
+    this.#workspaces.clear();
+    this.#defaultWorkspace = undefined;
+  }
+
+  // --- single-tenant convenience, delegating to one default workspace -------
+
+  async tools(): Promise<T> {
+    return (await this.#default()).tools();
+  }
+  async run(ref: string, args?: Json): Promise<Json> {
+    return (await this.#default()).run(ref, args);
+  }
+  async search(useCase: string, options?: { limit?: number }): Promise<SearchResult> {
+    return (await this.#default()).search(useCase, options);
+  }
+  async code(source: string, options?: { limits?: Partial<CodeLimits> }): Promise<CodeResult> {
+    return (await this.#default()).code(source, options);
+  }
+  async exec(command: string, options?: ExecOptions): Promise<ExecResult> {
+    return (await this.#default()).exec(command, options);
+  }
+  async fs(): Promise<FileSystem> {
+    return (await this.#default()).fs;
+  }
+
+  #default(): Promise<Workspace<T>> {
+    this.#defaultWorkspace ??= this.createWorkspace({ userId: "default" });
+    return this.#defaultWorkspace;
+  }
+}
+
+interface WorkspaceInit<T> {
+  info: WorkspaceInfo;
+  fs: FileSystem;
+  registry: CapabilityRegistry;
+  toolset: Toolset<T>;
+  options: ComputerOptions<unknown>;
+}
+
+/** One user's computer: their files, their shell, their app calls. */
+export class Workspace<T = unknown> {
+  readonly info: WorkspaceInfo;
+  readonly fs: FileSystem;
+
+  readonly #registry: CapabilityRegistry;
+  readonly #toolset: Toolset<T>;
+  readonly #options: ComputerOptions<unknown>;
+  readonly #redactor = new Redactor();
+  readonly #controller = new AbortController();
+  #sandbox: Promise<Sandbox> | undefined;
+  #runCounter = 0;
+
+  constructor(init: WorkspaceInit<T>) {
+    this.info = init.info;
+    this.fs = init.fs;
+    this.#registry = init.registry;
+    this.#toolset = init.toolset;
+    this.#options = init.options;
+    for (const secret of init.options.secrets ?? []) this.#redactor.add(secret);
+  }
+
+  /** The tools to hand a model. Six of them, however many apps are installed. */
+  async tools(): Promise<T> {
+    const specs = this.toolSpecs();
+    return this.#toolset.materialize(specs, (ref, args) => this.run(ref, args));
+  }
+
+  toolSpecs(): readonly ToolSpec[] {
+    return codeModeSpecs({
+      hasSandbox: this.#options.provider !== undefined,
+      hasCode: this.#options.codeEngine !== undefined && this.#registry.size > 0,
+    });
+  }
+
+  /** Find capabilities by intent, with the types needed to call them. */
+  async search(useCase: string, options: { limit?: number } = {}): Promise<SearchResult> {
+    const hits = this.#registry.search(useCase, options.limit ?? 8);
+    return {
+      capabilities: hits.map((hit) => summarize(hit.entry, hit.score, true)),
+      types: renderDeclarations(
+        hits.map((hit) => ({
+          appId: hit.entry.app.id,
+          appName: hit.entry.app.name,
+          appDescription: hit.entry.app.description,
+          capability: hit.entry.capability,
+          authenticated: true,
+        })),
+      ),
+    };
+  }
+
+  /** Dispatch one ref. Built-in namespaces first, then apps. */
+  async run(ref: string, args?: Json): Promise<Json> {
+    const [namespace = "", member] = splitRef(ref);
+
+    switch (namespace) {
+      case "bash":
+        return (await this.exec(
+          stringField(args, "cmd"),
+          optionalExecOptions(args),
+        )) as unknown as Json;
+      case "search":
+        return (await this.search(stringField(args, "useCase"))) as unknown as Json;
+      case "run": {
+        // The generic `run` tool carries the real ref in its arguments.
+        const record = (args ?? {}) as Record<string, Json>;
+        return this.run(stringField(args, "ref"), record["args"] ?? null);
+      }
+      case "code":
+        return (await this.code(stringField(args, "source"))) as unknown as Json;
+      case "fs":
+        return this.#runFs(member ?? "", args);
+      case "memory":
+        return this.#runMemory(member ?? "", args);
+      default:
+        return this.#runCapability(ref, args);
+    }
+  }
+
+  /** Run a shell command. The returned result is already clamped for a model. */
+  async exec(command: string, options: ExecOptions = {}): Promise<ExecResult> {
+    const provider = this.#options.provider;
+    if (!provider) {
+      throw new UnknownRefError("bash", [
+        "install @cloudfarm/bash and pass `provider` to get a shell",
+      ]);
+    }
+    const sandbox = await this.#connectSandbox(provider);
+    const handle = sandbox.exec(command, options);
+    const result = await handle.result();
+
+    const limit = options.maxInlineBytes ?? 32_768;
+    const runId = `run-${++this.#runCounter}`;
+    const stdout = await clampForModel(result.stdout, limit, {
+      fs: this.fs,
+      path: `/.cloudfarm/output/${runId}.stdout.txt`,
+    });
+    const stderr = await clampForModel(result.stderr, limit, {
+      fs: this.fs,
+      path: `/.cloudfarm/output/${runId}.stderr.txt`,
+    });
+
+    return {
+      ...result,
+      stdout: this.#redactor.text(stdout.text),
+      stderr: this.#redactor.text(stderr.text),
+      ...((stdout.truncated ?? stderr.truncated)
+        ? { truncated: stdout.truncated ?? stderr.truncated! }
+        : {}),
+    };
+  }
+
+  /** Run generated code against the capability proxies. */
+  async code(source: string, options: { limits?: Partial<CodeLimits> } = {}): Promise<CodeResult> {
+    const engine = this.#options.codeEngine;
+    const limits = resolveLimits({ ...this.#options.limits, ...options.limits });
+    const bridge = new CapabilityBridge({
+      invoke: (ref, args) => this.run(ref, args),
+      limits,
+      redactor: this.#redactor,
+    });
+
+    if (!engine) {
+      return finishResult({
+        status: "error",
+        error: {
+          name: "NoCodeEngineError",
+          message: "No code engine configured; pass `codeEngine` (see @cloudfarm/quickjs).",
+        },
+        bridge,
+        durationMs: 0,
+        redactor: this.#redactor,
+      });
+    }
+
+    if (new TextEncoder().encode(source).byteLength > limits.maxSourceBytes) {
+      return finishResult({
+        status: "limit_exceeded",
+        error: {
+          name: "SourceTooLargeError",
+          message: `Source exceeds ${limits.maxSourceBytes} bytes`,
+        },
+        bridge,
+        durationMs: 0,
+        redactor: this.#redactor,
+        extraLimits: ["maxSourceBytes"],
+      });
+    }
+
+    return engine.evaluate(
+      {
+        source,
+        prelude: buildPrelude(this.#namespaces()),
+        limits,
+        runId: `code-${++this.#runCounter}`,
+      },
+      bridge,
+    );
+  }
+
+  async close(): Promise<void> {
+    this.#controller.abort();
+    const sandbox = this.#sandbox;
+    this.#sandbox = undefined;
+    if (sandbox) await (await sandbox).close();
+  }
+
+  /** Everything needed to rehydrate this workspace elsewhere. */
+  serialize(): Json {
+    return { info: this.info as unknown as Json };
+  }
+
+  // --- internals ------------------------------------------------------------
+
+  #namespaces(): Map<string, string[]> {
+    const namespaces = new Map<string, string[]>();
+    for (const entry of this.#registry.entries()) {
+      const members = namespaces.get(entry.namespace) ?? [];
+      members.push(entry.member);
+      namespaces.set(entry.namespace, members);
+    }
+    return namespaces;
+  }
+
+  #connectSandbox(provider: SandboxProvider): Promise<Sandbox> {
+    this.#sandbox ??= provider.connect(this.#host());
+    return this.#sandbox;
+  }
+
+  #host(): ComputerHost {
+    return {
+      workspace: this.info,
+      fetch: globalThis.fetch.bind(globalThis),
+      fs: this.fs,
+      signal: this.#controller.signal,
+    };
+  }
+
+  async #runCapability(ref: string, args?: Json): Promise<Json> {
+    const entry = this.#registry.get(ref);
+    const parsed = parseInput(entry.capability.input, args ?? {});
+    if (!parsed.ok) throw new InvalidArgumentsError(ref, parsed.issues);
+
+    const app = entry.app;
+    // Egress is scoped to the hosts the app declared, so a prompt-injected URL
+    // argument cannot redirect a credentialed request somewhere else.
+    const authorizedFetch = async (input: string | URL, init?: RequestInit): Promise<Response> => {
+      const url = new URL(typeof input === "string" ? input : input.toString());
+      if (!isAllowed(url.hostname, app.allowedHosts)) {
+        throw new EgressDeniedError(url.hostname, app.allowedHosts);
+      }
+      return globalThis.fetch(app.authorize(new Request(url, init)));
+    };
+
+    try {
+      const output = await entry.capability.handler(parsed.value, {
+        fetch: authorizedFetch,
+        workspace: this.info,
+        signal: this.#controller.signal,
+        ref: (data, mime) =>
+          toLargeRef(data, {
+            fs: this.fs,
+            path: `/.cloudfarm/refs/${ref}-${++this.#runCounter}`,
+            ...(mime !== undefined ? { mime } : {}),
+          }),
+      });
+      return this.#redactor.value(output) as Json;
+    } catch (error) {
+      if (error instanceof EgressDeniedError || error instanceof InvalidArgumentsError) throw error;
+      throw new CapabilityFailedError(
+        ref,
+        this.#redactor.text(error instanceof Error ? error.message : String(error)),
+        error,
+      );
+    }
+  }
+
+  async #runFs(member: string, args?: Json): Promise<Json> {
+    switch (member) {
+      case "read":
+        return this.fs.readText(stringField(args, "path"));
+      case "write": {
+        const stat = await this.fs.write(stringField(args, "path"), stringField(args, "content"));
+        return stat as unknown as Json;
+      }
+      case "list": {
+        const entries: Json[] = [];
+        for await (const entry of this.fs.list(optionalString(args, "prefix") ?? "/")) {
+          entries.push(entry as unknown as Json);
+        }
+        return entries;
+      }
+      case "remove":
+        await this.fs.remove(stringField(args, "path"), { recursive: true });
+        return null;
+      default:
+        throw new UnknownRefError(`fs.${member}`, ["fs.read", "fs.write", "fs.list", "fs.remove"]);
+    }
+  }
+
+  async #runMemory(member: string, args?: Json): Promise<Json> {
+    const memory = this.#options.memory;
+    if (!memory) {
+      throw new UnknownRefError(`memory.${member}`, ["no memory store is configured"]);
+    }
+    switch (member) {
+      case "remember":
+        return (await memory.remember(stringField(args, "text"))) as unknown as Json;
+      case "search":
+        return (await memory.search(stringField(args, "query"))) as unknown as Json;
+      case "forget":
+        await memory.forget(stringField(args, "id"));
+        return null;
+      default:
+        throw new UnknownRefError(`memory.${member}`, ["memory.remember", "memory.search"]);
+    }
+  }
+}
+
+function splitRef(ref: string): [string, string | undefined] {
+  const index = ref.indexOf(".");
+  return index === -1 ? [ref, undefined] : [ref.slice(0, index), ref.slice(index + 1)];
+}
+
+/** `*.slack.com` matches a subdomain; a bare host matches exactly. */
+function isAllowed(hostname: string, allowed: readonly string[]): boolean {
+  return allowed.some((pattern) =>
+    pattern.startsWith("*.")
+      ? hostname === pattern.slice(2) || hostname.endsWith(pattern.slice(1))
+      : hostname === pattern,
+  );
+}
+
+function stringField(args: Json | undefined, field: string): string {
+  const value = (args as Record<string, unknown> | undefined)?.[field];
+  if (typeof value !== "string") {
+    throw new InvalidArgumentsError(field, [`${field} must be a string`]);
+  }
+  return value;
+}
+
+function optionalString(args: Json | undefined, field: string): string | undefined {
+  const value = (args as Record<string, unknown> | undefined)?.[field];
+  return typeof value === "string" ? value : undefined;
+}
+
+function optionalExecOptions(args: Json | undefined): ExecOptions {
+  const record = (args ?? {}) as Record<string, unknown>;
+  return {
+    ...(typeof record["cwd"] === "string" ? { cwd: record["cwd"] } : {}),
+    ...(typeof record["timeoutMs"] === "number" ? { timeoutMs: record["timeoutMs"] } : {}),
+  };
+}
