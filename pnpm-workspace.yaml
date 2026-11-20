@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "apps/*"
   - "examples/*"
 
 # Dependencies allowed to run install scripts (pnpm 10 blocks these by default).

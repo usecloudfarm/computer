@@ -6,14 +6,41 @@ A pnpm + Turborepo monorepo for TypeScript libraries.
 
 ```
 packages/
+  sandbox-core/ @unsandbox/sandbox-core – runtime contract + in-memory VFS
+  runtimes/     @unsandbox/runtimes     – QuickJS, V8, CPython, bash, dash
   firecracker/  @unsandbox/firecracker  – Firecracker microVM driver
   utils/        @unsandbox/utils        – shared utilities
+apps/
+  server/       @unsandbox/server       – Hono API + SSE streaming
+  studio/       @unsandbox/studio       – VS Code-style playground UI
 examples/
   basic/        private consumer app used to smoke-test the public API
 ```
 
-`@unsandbox/firecracker` needs a Linux host with KVM to boot anything; its
-tests run anywhere. See [its README](packages/firecracker/README.md).
+## The playground
+
+Five engines behind one interface, sharing one virtual filesystem:
+
+```sh
+pnpm install
+pnpm build
+pnpm --filter @unsandbox/server start   # http://localhost:8787
+```
+
+| Runtime      | Isolation      | Notes                          |
+| ------------ | -------------- | ------------------------------ |
+| QuickJS      | wasm           | memory cap, interruptible      |
+| V8 isolate   | v8-isolate     | worker thread, killable        |
+| CPython 3.14 | wasm           | Pyodide, warm interpreter      |
+| bash         | js-interpreter | `just-bash`, no host process   |
+| dash         | host-process   | real `/bin/dash`, ground truth |
+
+See [packages/runtimes](packages/runtimes/README.md) for the runtime contract
+and [apps/server](apps/server/README.md) for the HTTP API.
+
+`@unsandbox/firecracker` is the separate microVM track: it needs a Linux host
+with KVM to boot anything, though its tests run anywhere. See
+[its README](packages/firecracker/README.md).
 
 Each library package builds dual ESM + CJS output with type declarations via
 [tsup](https://tsup.egoist.dev/), is tested with [Vitest](https://vitest.dev/), and is versioned
