@@ -281,48 +281,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <div className="titlebar">
-        <span className="lights">
-          <i /> <i /> <i />
-        </span>
-        <span className="title">
-          <b>unsandbox studio</b> — {runtime ? runtime.label : "loading…"}
-        </span>
-        <span className="spacer" />
-        <span className="title" style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
-          session {sessionId()}
-        </span>
-      </div>
-
       <div className="body">
-        <nav className="activity-bar">
-          <button className="active" title="Explorer">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M3 5.5h6l1.5 2H21v11H3z" />
-            </svg>
-          </button>
-          <button title="Runtimes" onClick={() => setPanelTab("about")}>
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <circle cx="12" cy="12" r="8" />
-              <path d="M12 8v8M8 12h8" />
-            </svg>
-          </button>
-        </nav>
-
         <aside className="sidebar">
           <div className="sidebar-section">
             <div className="sidebar-header">
@@ -533,6 +492,7 @@ export default function App() {
         <span className="item">{openPath ?? "scratch buffer"}</span>
         <span className="spacer" />
         {running && <span className="item">running…</span>}
+        <span className="item">session {sessionId()}</span>
         <span className="item">{runtime?.editorLanguage ?? "plaintext"}</span>
         <span className="item">UTF-8</span>
       </footer>
