@@ -17,5 +17,7 @@ merged into the same parameter; `http` and `allowedHosts` may be functions of
 it. The credential is never placed on `ActionContext`: only the scheme sees it.
 `app.auth` publishes the scheme's kind and schemas, never its values.
 
+The deprecated `Slack` class is removed; use `slack({ apiKey })`.
+
 `oauth()` defines the credential shape and signs with the access token; the
 flow itself — consent, refresh — is still not implemented.

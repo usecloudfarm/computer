@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Computer } from "@cloudfarm/core";
-import { Slack, slack } from "./index.js";
+import { slack } from "./index.js";
 
 /** Replaces global fetch so no test ever reaches the network. */
 function mockFetch(handler: (request: Request) => Response | Promise<Response>) {
@@ -27,7 +27,7 @@ describe("Slack", () => {
   it("requires an api key, and says how to pass one", () => {
     // The message comes from the auth scheme now, not from hand-written
     // validation inside the integration.
-    expect(() => new Slack({ apiKey: "" })).toThrow(/invalid credentials.*slack\({ apiKey }\)/s);
+    expect(() => slack({ apiKey: "" })).toThrow(/invalid credentials.*slack\({ apiKey }\)/s);
   });
 
   it("publishes its auth shape without exposing the credential", () => {

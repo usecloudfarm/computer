@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { apiKey, createAction, createApp, UpstreamRejectedError } from "@cloudfarm/core";
-import type { App, HttpConfig } from "@cloudfarm/core";
 
 const BASE = "https://slack.com/api";
 
@@ -181,40 +180,3 @@ export const slack = createApp({
 
 /** What `slack(…)` takes: the auth scheme's input plus the options schema. */
 export type SlackOptions = Parameters<typeof slack>[0];
-
-/**
- * `new Slack({ apiKey })`, for callers who prefer it. It forwards to the
- * factory, so there is exactly one definition of what Slack is.
- */
-export class Slack implements App {
-  readonly #app: App;
-
-  constructor(options: SlackOptions) {
-    this.#app = slack(options);
-  }
-
-  get id(): string {
-    return this.#app.id;
-  }
-  get name(): string {
-    return this.#app.name;
-  }
-  get description(): string {
-    return this.#app.description;
-  }
-  get allowedHosts(): readonly string[] {
-    return this.#app.allowedHosts;
-  }
-  get http(): HttpConfig | undefined {
-    return this.#app.http;
-  }
-  get auth(): App["auth"] {
-    return this.#app.auth;
-  }
-  authorize(request: Request): Request {
-    return this.#app.authorize(request);
-  }
-  actions() {
-    return this.#app.actions();
-  }
-}
