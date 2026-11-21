@@ -20,6 +20,7 @@
     "@cloudfarm/ai": "workspace:^",
     "@cloudfarm/bash": "workspace:^",
     "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/hackernews": "workspace:^",
     "@cloudfarm/quickjs": "workspace:^",
     "@cloudfarm/slack": "workspace:^",
     "@hono/node-server": "^1.15.0",

@@ -13,6 +13,7 @@ import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
 import { AISDKToolset } from "@cloudfarm/ai";
+import { hackernews } from "@cloudfarm/hackernews";
 import { reports } from "./reports.ts";
 
 const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
@@ -27,7 +28,12 @@ if (!process.env["ANTHROPIC_API_KEY"]) {
   process.exit(1);
 }
 
-const computer = new Computer({ toolset: new AISDKToolset(), apps: [reports] });
+// Hacker News needs no credentials, so the playground has a real third-party
+// app out of the box — not a stub pretending to be one.
+const computer = new Computer({
+  toolset: new AISDKToolset(),
+  apps: [reports, hackernews({})],
+});
 
 /**
  * One workspace for the whole process.

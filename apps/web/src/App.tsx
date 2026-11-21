@@ -4,10 +4,11 @@ import { DefaultChatTransport } from "ai";
 import { Message } from "./components/Message.tsx";
 
 const PROMPTS = [
+  "What's on the Hacker News front page right now? Give me the top 5 with scores.",
+  "Find the top HN story, read its comments, and summarise what people think.",
   "Read /data/sales.csv, total it by region, and tell me which region won.",
   "Write a short markdown summary of the sales data to /out/summary.md, then publish it.",
   "What can you do? Search for the actions available to you.",
-  "Run `ls -la /data` and show me what is there.",
 ];
 
 export function App() {
