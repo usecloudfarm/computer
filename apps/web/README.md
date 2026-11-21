@@ -28,13 +28,31 @@ filesystem, the bash sandbox and the QuickJS isolate. The browser gets a chat
 endpoint and nothing else — handing a Computer to the client would be handing
 the client a Computer to drive.
 
-| file                          | what it does                                               |
-| ----------------------------- | ---------------------------------------------------------- |
-| `server/index.ts`             | Hono, one workspace, `streamText` with `workspace.tools()` |
-| `server/reports.ts`           | a real app plugin, so there is a write-shaped action       |
-| `src/App.tsx`                 | `useChat`, composer, suggested prompts                     |
-| `src/components/Message.tsx`  | parts in order: markdown and tool calls interleaved        |
-| `src/components/ToolCall.tsx` | the accordion                                              |
+| file                            | what it does                                               |
+| ------------------------------- | ---------------------------------------------------------- |
+| `server/index.ts`               | Hono, one workspace, `streamText` with `workspace.tools()` |
+| `server/reports.ts`             | a real app plugin, so there is a write-shaped action       |
+| `src/App.tsx`                   | `useChat`, composer, suggested prompts                     |
+| `src/components/Message.tsx`    | parts in order: markdown and tool calls interleaved        |
+| `src/components/ToolCall.tsx`   | the accordion                                              |
+| `src/components/LeftPanel.tsx`  | file explorer and installed apps, as tabs                  |
+| `src/components/RightPanel.tsx` | the tool list, and this session's call history             |
+| `src/components/FileViewer.tsx` | a file's contents, over the thread                         |
+
+## The panels
+
+- **Left — Files / Apps.** The filesystem is refetched after each turn, so a
+  file appearing there is the clearest evidence a tool call did what it said.
+  Click one to read it. The Apps tab lists what is installed, the computer
+  included, with each action's **full ref** — the string you would pass to
+  `run`.
+- **Right — Tools / History.** Tools is what the model is actually handed, with
+  its arguments. History is derived from the transcript rather than tracked
+  separately: the messages already are the record, and a second copy would be
+  a second thing to keep correct. Clicking a row scrolls the thread to that
+  call.
+- Below 1100px the right panel goes, below 820px both do. They are context,
+  not content, and squeezing the transcript to keep them is the wrong trade.
 
 ## Notes
 

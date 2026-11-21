@@ -183,7 +183,12 @@ export const AppSummary = z.object({
   id: z.string().describe("Namespace half of every ref this app contributes."),
   name: z.string(),
   description: z.string(),
-  /** Action names, not refs: the id is right there, and refs would double its length. */
+  /**
+   * Full refs, ready to pass to `run`. Names alone would be shorter, but the
+   * computer's own actions are not all `id.member` — `bash` and `code` have
+   * no namespace — so a caller reconstructing a ref from id + name would
+   * build `computer.bash`, which does not exist.
+   */
   actions: z.array(z.string()),
   /**
    * The auth scheme's kind — "apiKey", "oauth2", "none". Every installed app

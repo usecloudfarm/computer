@@ -322,7 +322,7 @@ describe("Workspace.tools", () => {
     // The computer lists itself first: `run` treats the shell and the
     // filesystem as things you run, so they are listed as things you have.
     expect(result.value.apps.map((app) => app.id)).toEqual(["computer", "slack", "notes"]);
-    expect(result.value.apps[1]).toMatchObject({ name: "Slack", actions: ["sendMessage"] });
+    expect(result.value.apps[1]).toMatchObject({ name: "Slack", actions: ["slack.sendMessage"] });
     expect(result.value.apps[0]?.actions).toContain("fs.read");
   });
 

@@ -110,14 +110,14 @@ export class ActionRegistry {
     for (const entry of this.#entries.values()) {
       const existing = byApp.get(entry.app.id);
       if (existing) {
-        existing.actions.push(entry.member);
+        existing.actions.push(entry.ref);
         continue;
       }
       byApp.set(entry.app.id, {
         id: entry.app.id,
         name: entry.app.name,
         description: entry.app.description,
-        actions: [entry.member],
+        actions: [entry.ref],
         // createApp validates credentials at construction, so an app that
         // reached the registry is usable. This reports which *kind* of scheme
         // it declared, which is the part a reader cannot infer.

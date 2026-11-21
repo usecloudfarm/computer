@@ -38,14 +38,14 @@ const PENDING = new Set<AnyToolPart["state"]>([
   "approval-responded",
 ]);
 
-export function ToolCall({ part, name }: { part: AnyToolPart; name: string }) {
+export function ToolCall({ id, part, name }: { id: string; part: AnyToolPart; name: string }) {
   // `code` is the interesting one, so it opens itself; the rest stay out of
   // the way until asked for.
   const [open, setOpen] = useState(name === "code");
   const failed = part.state === "output-error" || isErrorEnvelope(part.output);
 
   return (
-    <div className={`tool tool--${failed ? "failed" : part.state}`}>
+    <div id={id} className={`tool tool--${failed ? "failed" : part.state}`}>
       <button className="tool__head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className={`tool__chevron ${open ? "is-open" : ""}`} aria-hidden="true">
           ▸

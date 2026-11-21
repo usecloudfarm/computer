@@ -84,6 +84,37 @@ app.post("/api/chat", async (context) => {
   return result.toUIMessageStreamResponse();
 });
 
+/**
+ * Everything the side panels show, in one round trip.
+ *
+ * The filesystem changes as the agent works, so the UI refetches this after
+ * each turn rather than trying to mirror writes it only partly observes.
+ */
+app.get("/api/workspace", async (context) => {
+  const [files, apps] = await Promise.all([
+    workspace.run("fs.list", { prefix: "/" }),
+    workspace.run("apps.list", {}),
+  ]);
+
+  return context.json({
+    files: files.status === "ok" ? files.value : [],
+    apps: apps.status === "ok" ? (apps.value as { apps: unknown[] }).apps : [],
+    tools: workspace.toolSpecs(),
+  });
+});
+
+/** One file's contents, for the explorer's preview. */
+app.get("/api/file", async (context) => {
+  const path = context.req.query("path");
+  if (!path) return context.json({ error: "path is required" }, 400);
+
+  const result = await workspace.run("fs.read", { path });
+  if (result.status !== "ok") {
+    return context.json({ error: result.error.message }, 404);
+  }
+  return context.json({ path, content: result.value });
+});
+
 /** Lets the UI name the model it is talking to without hardcoding it. */
 app.get("/api/info", (context) => context.json({ model: MODEL, workspace: workspace.info.id }));
 

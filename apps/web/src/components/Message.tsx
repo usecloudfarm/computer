@@ -39,7 +39,14 @@ export function Message({ message, streaming }: { message: UIMessage; streaming:
           );
         }
         if (isToolUIPart(part)) {
-          return <ToolCall key={index} part={part} name={getToolName(part)} />;
+          return (
+            <ToolCall
+              key={index}
+              id={`call-${message.id}-${index}`}
+              part={part}
+              name={getToolName(part)}
+            />
+          );
         }
         return null;
       })}
