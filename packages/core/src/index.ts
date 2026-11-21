@@ -19,6 +19,7 @@ export type {
   OAuthCredentials,
   OAuthOptions,
 } from "./auth.js";
+export { execHandle, toExecResult } from "./exec.js";
 export { createHttpClient } from "./http.js";
 export type { HttpClient, HttpConfig, HttpOptions } from "./http.js";
 export type { AppDefinition, ActionSpec, DefinedAction } from "./define.js";
