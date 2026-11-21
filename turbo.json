@@ -26,9 +26,8 @@
       "persistent": true
     },
     "typecheck": {
-      "dependsOn": ["^build"],
-      "outputs": [],
-      "inputs": ["src/**", "tsconfig*.json", "package.json"]
+      "inputs": ["src/**", "tsconfig*.json", "package.json"],
+      "outputs": []
     },
     "lint": {
       "inputs": ["src/**", "package.json"]

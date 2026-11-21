@@ -14,17 +14,21 @@
   "exports": {
     ".": {
       "workerd": {
+        "@cloudfarm/source": "./src/workers.ts",
         "types": "./dist/workers.d.ts",
         "import": "./dist/workers.js"
       },
+      "@cloudfarm/source": "./src/node.ts",
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
     },
     "./workers": {
+      "@cloudfarm/source": "./src/workers.ts",
       "types": "./dist/workers.d.ts",
       "import": "./dist/workers.js"
     },
     "./engine": {
+      "@cloudfarm/source": "./src/engine.ts",
       "types": "./dist/engine.d.ts",
       "import": "./dist/engine.js"
     }

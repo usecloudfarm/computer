@@ -13,10 +13,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "@cloudfarm/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./testing": {
+      "@cloudfarm/source": "./src/testing.ts",
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     }

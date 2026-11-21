@@ -129,6 +129,14 @@ pnpm check                                         # the gate: format, lint,
 pnpm --filter @cloudfarm/example-node-agent demo   # offline, no keys needed
 ```
 
+Typecheck resolves `@cloudfarm/*` from `src`, not `dist`: every package
+exports a `@cloudfarm/source` condition and `tsconfig.base.json` selects it
+through `customConditions`. So `tsc` works on a fresh clone with nothing built,
+and so does your editor. Node and bundlers ignore that condition and still get
+`dist`. If you add a package, give its `exports` the source condition too, and
+do not add `references` / `composite` back — that is what used to pin typecheck
+to build output.
+
 Run `pnpm check` after every change of substance, not only before committing.
 It spans `examples/` as well as `packages/`, which is what catches a core
 change that compiles in isolation but breaks a consumer.
