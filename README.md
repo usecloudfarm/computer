@@ -101,7 +101,7 @@ calls made  0
 | `@cloudfarm/slack`   | Slack as an app plugin                                                       | Node and Workers     |
 
 `@cloudfarm/core` is isomorphic by construction, not by discipline: it has no
-`@types/node`, ESLint refuses `node:*` imports inside it, and **its entire test
+`@types/node`, oxlint refuses `node:*` imports inside it, and **its entire test
 suite runs under workerd in CI** as well as Node. That last one is the actual
 guarantee.
 
@@ -155,4 +155,9 @@ calls it made, so an agent can see partial work and decide what to do next.
 | `pnpm build`                                   | build every package in dependency order |
 | `pnpm test`                                    | run all tests under Node                |
 | `pnpm test:workers`                            | run core's suite under workerd          |
-| `pnpm typecheck` / `pnpm lint` / `pnpm format` | the usual                               |
+| `pnpm typecheck` / `pnpm lint` / `pnpm format` | the usual (`lint` is oxlint)            |
+| `pnpm check`                                   | all of the above, packages and examples |
+
+`pnpm check` is the gate: run it after any change of substance. It covers
+`examples/` too, so a change that breaks the brief's own snippet fails here
+rather than in CI.

@@ -45,7 +45,7 @@ describe("AISDKToolset", () => {
 
     // What tool() produces: no hand-rolled `type` field, a branded schema,
     // and an execute the SDK will call.
-    expect(Object.keys(bash).sort()).toEqual(["description", "execute", "inputSchema"]);
+    expect(Object.keys(bash).toSorted()).toEqual(["description", "execute", "inputSchema"]);
     expect(typeof bash["execute"]).toBe("function");
   });
 

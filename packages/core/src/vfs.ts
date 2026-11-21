@@ -90,10 +90,10 @@ export class MemoryFileSystem implements FileSystem {
 
     // Directories first, then files, each alphabetical: a stable order that
     // does not depend on insertion sequence.
-    for (const [path, mtime] of [...directories].sort(([a], [b]) => a.localeCompare(b))) {
+    for (const [path, mtime] of [...directories].toSorted(([a], [b]) => a.localeCompare(b))) {
       yield { path, size: 0, mtime, type: "directory" };
     }
-    for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
+    for (const file of files.toSorted((a, b) => a.path.localeCompare(b.path))) {
       yield file;
     }
   }

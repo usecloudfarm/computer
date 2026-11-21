@@ -111,7 +111,7 @@ export interface DeclarationEntry {
  */
 export function renderDeclarations(entries: readonly DeclarationEntry[]): string {
   const overloads = [...entries]
-    .sort(
+    .toSorted(
       (a, b) =>
         a.appId.localeCompare(b.appId) || a.capability.name.localeCompare(b.capability.name),
     )

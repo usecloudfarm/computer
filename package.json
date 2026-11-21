@@ -14,23 +14,23 @@
     "test": "turbo run test",
     "test:workers": "turbo run test:workers",
     "test:watch": "turbo run test:watch",
-    "lint": "turbo run lint",
+    "lint": "oxlint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "turbo run clean && rm -rf node_modules",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "lint:fix": "oxlint --fix",
+    "check": "pnpm format:check && turbo run lint typecheck build test test:workers"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
     "@types/node": "^26.6.6",
-    "eslint": "^10.15.0",
-    "eslint-config-prettier": "^10.1.8",
+    "oxlint": "^1.94.0",
     "prettier": "^3.10.1",
     "tsup": "^9.0.0",
     "turbo": "^2.11.12",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.73.0",
     "vitest": "^5.1.1"
   }
 }

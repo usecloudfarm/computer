@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node --experimental-strip-types src/main.ts",
     "demo": "node --experimental-strip-types src/demo.ts",
-    "lint": "eslint src",
+    "lint": "oxlint src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "clean": "rm -rf .turbo *.tsbuildinfo",
     "agent": "node --experimental-strip-types src/agent.ts"

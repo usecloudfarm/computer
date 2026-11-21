@@ -242,7 +242,7 @@ export function finishResult(args: {
     logs: args.bridge.logs,
     calls: args.bridge.calls,
     durationMs: args.durationMs,
-    limitsHit: [...limitsHit].sort(),
+    limitsHit: [...limitsHit].toSorted(),
     diagnostics: [...(args.diagnostics ?? [])],
   };
 }

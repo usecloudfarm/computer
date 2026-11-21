@@ -1,0 +1,59 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    // Sequential awaits are deliberate here, not an oversight: filesystem
+    // walks apply in order, and the code-mode bridge serialises host calls
+    // because the isolate cannot be re-entered while suspended.
+    "no-await-in-loop": "off",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error"
+  },
+  "overrides": [
+    {
+      // The isomorphism gate. @cloudfarm/core must run unchanged on Workers,
+      // so nothing in it may reach for a Node built-in or a browser global.
+      // The real guarantee is `pnpm test:workers`, which runs its whole suite
+      // under workerd; this just fails faster and with a better message.
+      "files": ["packages/core/src/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["node:*"],
+                "message": "@cloudfarm/core is isomorphic: put platform code in a leaf package."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "process",
+            "message": "@cloudfarm/core is isomorphic: take env through options."
+          },
+          { "name": "Buffer", "message": "@cloudfarm/core is isomorphic: use Uint8Array." },
+          { "name": "window", "message": "Not available on Workers or Node." },
+          { "name": "document", "message": "Not available on Workers or Node." },
+          { "name": "localStorage", "message": "Not available on Workers or Node." },
+          { "name": "sessionStorage", "message": "Not available on Workers or Node." },
+          { "name": "XMLHttpRequest", "message": "Use fetch." }
+        ]
+      }
+    },
+    {
+      // Test doubles and fixtures say what they mean with loose shapes.
+      "files": ["**/*.test.ts", "**/testing.ts"],
+      "rules": { "typescript/no-explicit-any": "off" }
+    }
+  ],
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/coverage/**", "**/.wrangler/**"]
+}

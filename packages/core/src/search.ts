@@ -164,7 +164,7 @@ export class Bm25CapabilityIndex implements CapabilityIndex {
       .map((document) => ({ ref: document.ref, score: this.#score(document, terms) }))
       .filter((hit) => hit.score > 0)
       // Sort by score, then ref: iteration order must never decide ranking.
-      .sort((a, b) => b.score - a.score || a.ref.localeCompare(b.ref));
+      .toSorted((a, b) => b.score - a.score || a.ref.localeCompare(b.ref));
 
     // Typing a ref verbatim always wins, whatever BM25 thinks of the rest.
     const exactIndex = ranked.findIndex((hit) => hit.ref === exact);

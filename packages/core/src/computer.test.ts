@@ -156,33 +156,33 @@ describe("Workspace.run", () => {
   });
 });
 
-describe("egress guard", () => {
-  /** An app whose handler fetches a URL taken from its own arguments. */
-  function fetcher(): App {
-    return {
-      id: "fetcher",
-      name: "Fetcher",
-      description: "Fetches a url.",
-      allowedHosts: ["good.example"],
-      authorize: (request) => request,
-      capabilities: () => [
-        {
-          name: "get",
-          summary: "Fetch a url.",
-          useCases: ["fetch a url"],
-          input: z.object({ url: z.string() }),
-          output: z.object({ status: z.number() }),
-          example: 'fetcher.get({ url: "https://good.example/a" })',
-          sideEffects: "read",
-          handler: async (input, context) => {
-            const response = await context.fetch((input as { url: string }).url);
-            return { status: response.status };
-          },
+/** An app whose handler fetches a URL taken from its own arguments. */
+function fetcher(): App {
+  return {
+    id: "fetcher",
+    name: "Fetcher",
+    description: "Fetches a url.",
+    allowedHosts: ["good.example"],
+    authorize: (request) => request,
+    capabilities: () => [
+      {
+        name: "get",
+        summary: "Fetch a url.",
+        useCases: ["fetch a url"],
+        input: z.object({ url: z.string() }),
+        output: z.object({ status: z.number() }),
+        example: 'fetcher.get({ url: "https://good.example/a" })',
+        sideEffects: "read",
+        handler: async (input, context) => {
+          const response = await context.fetch((input as { url: string }).url);
+          return { status: response.status };
         },
-      ],
-    };
-  }
+      },
+    ],
+  };
+}
 
+describe("egress guard", () => {
   it("blocks a url that arrives in a model's arguments", async () => {
     const workspace = await new Computer({ apps: [fetcher()] }).createWorkspace("u1");
 

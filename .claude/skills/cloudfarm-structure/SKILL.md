@@ -109,7 +109,7 @@ mechanically rather than by discipline:
 
 - it has no `@types/node` dependency and `"types": []` in its tsconfig, so
   `node:*` imports and `process` do not typecheck;
-- ESLint bans `node:` imports and browser-only globals inside `packages/core/src`;
+- oxlint bans `node:` imports and browser-only globals inside `packages/core/src`;
 - `pnpm test:workers` runs core's **entire** suite inside workerd, and CI runs
   it alongside the Node suite.
 
@@ -123,10 +123,15 @@ package that only works on Node constrains every consumer that wanted Workers.
 ## Verifying a change
 
 ```sh
-pnpm build && pnpm test && pnpm test:workers && pnpm lint && pnpm typecheck
-pnpm format:check
+pnpm check                                         # the gate: format, lint,
+                                                   # typecheck, build, test,
+                                                   # test:workers — examples too
 pnpm --filter @cloudfarm/example-node-agent demo   # offline, no keys needed
 ```
+
+Run `pnpm check` after every change of substance, not only before committing.
+It spans `examples/` as well as `packages/`, which is what catches a core
+change that compiles in isolation but breaks a consumer.
 
 The demo is the fastest end-to-end signal: it exercises the filesystem, the
 shell, capability search, code mode chaining several calls, and a runaway loop
