@@ -54,3 +54,55 @@ export class CapabilityFailedError extends CloudfarmError {
     super(`${ref} failed: ${message}`);
   }
 }
+
+/** A capability the workspace reached but which refused the call. */
+export class UnauthorizedError extends CloudfarmError {
+  override name = "UnauthorizedError";
+  constructor(
+    readonly ref: string,
+    message: string,
+  ) {
+    super(`${ref} is not authorized: ${message}`);
+  }
+}
+
+/** Maps an error from dispatch onto the vocabulary a model sees. */
+export function classifyError(error: unknown): {
+  code:
+    | "unknown_ref"
+    | "invalid_args"
+    | "not_authenticated"
+    | "egress_denied"
+    | "upstream_error"
+    | "internal";
+  retryable: boolean;
+  hint?: string;
+} {
+  if (error instanceof UnknownRefError) {
+    return {
+      code: "unknown_ref",
+      retryable: false,
+      ...(error.suggestions.length > 0
+        ? { hint: `Did you mean: ${error.suggestions.join(", ")}?` }
+        : { hint: "Use `search` to find the right ref." }),
+    };
+  }
+  if (error instanceof InvalidArgumentsError) {
+    return { code: "invalid_args", retryable: false, hint: "Check the signature from `search`." };
+  }
+  if (error instanceof UnauthorizedError) {
+    return { code: "not_authenticated", retryable: false };
+  }
+  if (error instanceof EgressDeniedError) {
+    return {
+      code: "egress_denied",
+      retryable: false,
+      hint: "The app only reaches hosts it declares; a url from the task cannot redirect it.",
+    };
+  }
+  if (error instanceof CapabilityFailedError) {
+    // The upstream service answered, badly. Worth retrying, unlike a typo.
+    return { code: "upstream_error", retryable: true };
+  }
+  return { code: "internal", retryable: false };
+}

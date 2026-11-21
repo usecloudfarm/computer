@@ -81,7 +81,7 @@ describe("Workspace.run", () => {
 
     const result = await workspace.run("slack.sendMessage", { channel: "#general", text: "hi" });
 
-    expect(result).toEqual({ ts: "1700000000.000100" });
+    expect(result).toEqual({ status: "ok", value: { ts: "1700000000.000100" } });
     expect(calls[0]?.input).toEqual({ channel: "#general", text: "hi" });
   });
 
@@ -89,18 +89,24 @@ describe("Workspace.run", () => {
     const computer = new Computer({ apps: [slackish()] });
     const workspace = await computer.createWorkspace("u1");
 
-    await expect(workspace.run("slack.sendMessage", { channel: "#general" })).rejects.toThrow(
-      /Invalid arguments for "slack.sendMessage": text/,
-    );
+    expect(await workspace.run("slack.sendMessage", { channel: "#general" })).toMatchObject({
+      status: "error",
+      error: {
+        code: "invalid_args",
+        message: expect.stringContaining('Invalid arguments for "slack.sendMessage": text'),
+        retryable: false,
+      },
+    });
   });
 
   it("suggests near misses for an unknown ref", async () => {
     const computer = new Computer({ apps: [slackish()] });
     const workspace = await computer.createWorkspace("u1");
 
-    await expect(workspace.run("slack.sendMesage", {})).rejects.toThrow(
-      /Unknown ref "slack.sendMesage". Did you mean: slack.sendMessage/,
-    );
+    expect(await workspace.run("slack.sendMesage", {})).toMatchObject({
+      status: "error",
+      error: { code: "unknown_ref", hint: expect.stringContaining("slack.sendMessage") },
+    });
   });
 
   it("reads and writes the workspace through fs refs", async () => {
@@ -109,10 +115,14 @@ describe("Workspace.run", () => {
 
     await workspace.run("fs.write", { path: "/a.txt", content: "hello" });
 
-    expect(await workspace.run("fs.read", { path: "/a.txt" })).toBe("hello");
-    expect(await workspace.run("fs.list", { prefix: "/" })).toEqual([
-      expect.objectContaining({ path: "/a.txt", type: "file" }),
-    ]);
+    expect(await workspace.run("fs.read", { path: "/a.txt" })).toEqual({
+      status: "ok",
+      value: "hello",
+    });
+    expect(await workspace.run("fs.list", { prefix: "/" })).toMatchObject({
+      status: "ok",
+      value: [expect.objectContaining({ path: "/a.txt", type: "file" })],
+    });
   });
 
   it("runs bash through the configured provider", async () => {
@@ -122,20 +132,27 @@ describe("Workspace.run", () => {
 
     const result = await workspace.run("bash", { cmd: "echo hi" });
 
-    expect(result).toMatchObject({ stdout: "hi\n", exitCode: 0, status: "completed" });
+    expect(result).toMatchObject({
+      status: "ok",
+      value: { stdout: "hi\n", exitCode: 0, status: "completed" },
+    });
     expect(provider.commands).toEqual(["echo hi"]);
   });
 
   it("explains how to get a shell when no provider is configured", async () => {
     const workspace = await new Computer().createWorkspace("u1");
-    await expect(workspace.run("bash", { cmd: "ls" })).rejects.toThrow(/install @cloudfarm\/bash/);
+    expect(await workspace.run("bash", { cmd: "ls" })).toMatchObject({
+      status: "error",
+      error: { code: "unknown_ref", message: expect.stringContaining("install @cloudfarm/bash") },
+    });
   });
 
   it("says so when no memory store is configured", async () => {
     const workspace = await new Computer().createWorkspace("u1");
-    await expect(workspace.run("memory.search", { query: "x" })).rejects.toThrow(
-      /no memory store is configured/,
-    );
+    expect(await workspace.run("memory.search", { query: "x" })).toMatchObject({
+      status: "error",
+      error: { message: expect.stringContaining("no memory store is configured") },
+    });
   });
 });
 
@@ -170,17 +187,24 @@ describe("egress guard", () => {
     const workspace = await new Computer({ apps: [fetcher()] }).createWorkspace("u1");
 
     // The classic prompt-injection shape: the host never chose this address.
-    await expect(
-      workspace.run("fetcher.get", { url: "https://evil.example/steal" }),
-    ).rejects.toThrow(/Blocked request to evil.example; allowed hosts: good.example/);
+    expect(await workspace.run("fetcher.get", { url: "https://evil.example/steal" })).toMatchObject(
+      {
+        status: "error",
+        error: {
+          code: "egress_denied",
+          message: expect.stringContaining("Blocked request to evil.example"),
+        },
+      },
+    );
   });
 
   it("names the capability when a handler fails for any other reason", async () => {
     const workspace = await new Computer({ apps: [fetcher()] }).createWorkspace("u1");
 
-    await expect(workspace.run("fetcher.get", { url: "not-a-url" })).rejects.toThrow(
-      /fetcher.get failed:/,
-    );
+    expect(await workspace.run("fetcher.get", { url: "not-a-url" })).toMatchObject({
+      status: "error",
+      error: { code: "upstream_error", message: expect.stringContaining("fetcher.get failed:") },
+    });
   });
 });
 
@@ -250,7 +274,8 @@ describe("Workspace.tools", () => {
       required: ["useCase"],
     });
     await expect(invoke("slack.sendMessage", { channel: "#a", text: "b" })).resolves.toEqual({
-      ts: "1700000000.000100",
+      status: "ok",
+      value: { ts: "1700000000.000100" },
     });
   });
 });

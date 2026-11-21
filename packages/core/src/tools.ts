@@ -33,13 +33,14 @@ export const CodeInput = z.object({
   source: z
     .string()
     .describe(
-      "JavaScript to run. Call capabilities with run(ref, input) — the same refs the " +
-        "`run` tool takes: run('slack.sendMessage', { channel: '#general', text: 'hi' }), " +
-        "run('fs.read', { path }), run('fs.write', { path, content }), run('fs.list', {}), " +
-        "run('bash', { cmd }). Everything is SYNCHRONOUS: no `await`, no promises. " +
-        "Use `return` to report a value back; console.log is captured. The source is " +
-        "validated before it runs, so unknown refs and syntax errors come back without " +
-        "executing anything.",
+      "JavaScript to run. Call capabilities with run(ref, input) — the same refs and the " +
+        "same result shape as the `run` tool: run('slack.sendMessage', { channel: '#general', " +
+        "text: 'hi' }), run('fs.read', { path }), run('fs.write', { path, content }), " +
+        "run('bash', { cmd }). Every call returns { status: 'ok', value } or " +
+        "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
+        "Everything is SYNCHRONOUS: no `await`, no promises. Use `return` to report a value " +
+        "back; console.log is captured. The source is validated before it runs, so unknown " +
+        "refs and syntax errors come back without executing anything.",
     ),
 });
 
@@ -51,7 +52,7 @@ const DESCRIPTIONS = {
   bash: "Run a shell command in the workspace. Use for file manipulation, text processing and anything the shell does well.",
   search:
     "Find capabilities by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`.",
-  run: "Call one capability directly by reference. Cheaper and more auditable than `code` for a single call.",
+  run: "Call one capability directly by reference. Cheaper and more auditable than `code` for a single call. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
   code: "Run JavaScript that calls several capabilities at once. Prefer this over many `run` calls when steps depend on each other. Capabilities are synchronous here: no `await`.",
   fs_read: "Read a text file from the workspace.",
   fs_write: "Write a text file to the workspace.",

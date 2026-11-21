@@ -57,7 +57,7 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code("return 6 * 7;");
 
-    expect(result).toMatchObject({ status: "ok", value: 42 });
+    expect(result).toMatchObject({ outcome: "ok", value: 42 });
   });
 
   it("calls a capability through the bridge", async () => {
@@ -66,10 +66,10 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code(`
       const sent = run("slack.sendMessage", { channel: "#general", text: "hello" });
-      return sent.ts;
+      return sent.value.ts;
     `);
 
-    expect(result).toMatchObject({ status: "ok", value: "ts-1" });
+    expect(result).toMatchObject({ outcome: "ok", value: "ts-1" });
     expect(calls).toEqual([{ channel: "#general", text: "hello" }]);
   });
 
@@ -78,14 +78,14 @@ describe("QuickJSEngine", () => {
     const ws = await workspace({ calls });
 
     const result = await ws.code(`
-      const { channels } = run("slack.listChannels", {});
+      const { channels } = run("slack.listChannels", {}).value;
       for (const channel of channels) {
         run("slack.sendMessage", { channel, text: "broadcast" });
       }
       return channels.length;
     `);
 
-    expect(result.status).toBe("ok");
+    expect(result.outcome).toBe("ok");
     expect(result.value).toBe(2);
     expect(calls).toHaveLength(2);
     // Every call is recorded, in order: the audit trail.
@@ -109,23 +109,20 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code(`throw new Error("deliberate");`);
 
-    expect(result).toMatchObject({ status: "error", error: { message: "deliberate" } });
+    expect(result).toMatchObject({ outcome: "error", error: { message: "deliberate" } });
   });
 
-  it("surfaces a capability error to the guest so it can catch it", async () => {
+  it("hands the guest the same envelope the run tool returns", async () => {
     const ws = await workspace();
 
     const result = await ws.code(`
-      try {
-        run("slack.sendMessage", { channel: 123 });
-        return "no error";
-      } catch (error) {
-        return "caught: " + error.name;
-      }
+      const bad = run("slack.sendMessage", { channel: 123 });
+      if (bad.status === "error") return { code: bad.error.code, retryable: bad.error.retryable };
+      return "unexpectedly ok";
     `);
 
-    expect(result.status).toBe("ok");
-    expect(result.value).toBe("caught: invalid_args");
+    expect(result.outcome).toBe("ok");
+    expect(result.value).toEqual({ code: "invalid_args", retryable: false });
   });
 
   it("stops a runaway loop at the deadline and still reports logs", async () => {
@@ -136,7 +133,7 @@ describe("QuickJSEngine", () => {
       limits: { cpuTimeoutMs: 300, timeoutMs: 2000 },
     });
 
-    expect(result.status).toBe("timeout");
+    expect(result.outcome).toBe("timeout");
     expect(result.limitsHit).toContain("cpuTimeoutMs");
     expect(result.logs).toContain("before the loop");
     expect(Date.now() - started).toBeLessThan(2000);
@@ -149,20 +146,17 @@ describe("QuickJSEngine", () => {
     const result = await ws.code(
       `
       let sent = 0;
-      try {
-        for (let i = 0; i < 10; i++) {
-          run("slack.sendMessage", { channel: "#c", text: String(i) });
-          sent++;
-        }
-      } catch (error) {
-        return { sent, stoppedBy: error.name };
+      for (let i = 0; i < 10; i++) {
+        const result = run("slack.sendMessage", { channel: "#c", text: String(i) });
+        if (result.status === "error") return { sent, stoppedBy: result.error.code };
+        sent++;
       }
       return { sent, stoppedBy: null };
       `,
       { limits: { maxHostCalls: 3 } },
     );
 
-    expect(result.status).toBe("ok");
+    expect(result.outcome).toBe("ok");
     expect(result.value).toEqual({ sent: 3, stoppedBy: "limit_exceeded" });
     expect(result.limitsHit).toContain("maxHostCalls");
   }, 20_000);
@@ -196,7 +190,7 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code(`fetch("https://example.com");`);
 
-    expect(result.status).toBe("invalid");
+    expect(result.outcome).toBe("invalid");
     expect(result.diagnostics[0]).toMatchObject({
       code: "forbidden_construct",
       message: expect.stringContaining("no network access"),
@@ -210,7 +204,7 @@ describe("QuickJSEngine", () => {
       limits: { maxSourceBytes: 100 },
     });
 
-    expect(result).toMatchObject({ status: "limit_exceeded" });
+    expect(result).toMatchObject({ outcome: "limit_exceeded" });
     expect(result.limitsHit).toContain("maxSourceBytes");
   });
 
@@ -229,7 +223,7 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code(`const x = await run("slack.listChannels", {}); return x;`);
 
-    expect(result.status).toBe("invalid");
+    expect(result.outcome).toBe("invalid");
     expect(result.diagnostics[0]).toMatchObject({ code: "forbidden_construct" });
     expect(result.diagnostics[0]?.message).toContain("synchronous");
   });
@@ -240,13 +234,13 @@ describe("QuickJSEngine", () => {
     await ws.fs.write("/data/input.txt", "alpha\nbeta\ngamma\n");
 
     const result = await ws.code(`
-      const text = run("fs.read", { path: "/data/input.txt" });
+      const text = run("fs.read", { path: "/data/input.txt" }).value;
       const lines = text.trim().split("\\n").map(line => line.toUpperCase());
       run("fs.write", { path: "/data/output.txt", content: lines.join("\\n") + "\\n" });
       return lines.length;
     `);
 
-    expect(result).toMatchObject({ status: "ok", value: 3 });
+    expect(result).toMatchObject({ outcome: "ok", value: 3 });
     expect(await ws.fs.readText("/data/output.txt")).toBe("ALPHA\nBETA\nGAMMA\n");
   });
 
@@ -259,7 +253,7 @@ describe("QuickJSEngine", () => {
       run("slack.sendMesage", { channel: "#b", text: "typo" });
     `);
 
-    expect(result.status).toBe("invalid");
+    expect(result.outcome).toBe("invalid");
     expect(result.diagnostics[0]).toMatchObject({
       code: "unknown_ref",
       ref: "slack.sendMesage",
@@ -275,7 +269,7 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code(`const a = 1;\nconst b = ;\nreturn a;`);
 
-    expect(result.status).toBe("invalid");
+    expect(result.outcome).toBe("invalid");
     expect(result.diagnostics[0]).toMatchObject({ code: "syntax_error", line: 2 });
   });
 

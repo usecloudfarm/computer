@@ -122,7 +122,9 @@ export class CapabilityBridge implements HostBridge {
 
     const started = Date.now();
     try {
-      const value = (await this.#options.invoke(request.capability, request.args as Json)) ?? null;
+      const envelope = await this.#options.invoke(request.capability, request.args as Json);
+      const value = envelope as unknown as Json;
+      const callFailed = envelope.status === "error";
       const serialized = JSON.stringify(value) ?? "null";
       const bytes = encoder.encode(serialized).byteLength;
 
@@ -149,7 +151,9 @@ export class CapabilityBridge implements HostBridge {
         };
       }
 
-      this.#record(request.capability, true, started);
+      // The envelope carries success or failure; the frame is "ok" either way,
+      // because the host call itself completed. The call trace records which.
+      this.#record(request.capability, !callFailed, started);
       return { v: 1, seq, ok: true, value: this.#options.redactor.value(value) as Json, bytes };
     } catch (error) {
       this.#record(request.capability, false, started);
@@ -211,7 +215,7 @@ export function resolveLimits(overrides?: Partial<CodeLimits>): CodeLimits {
 
 /** Assembles the final result, applying redaction to everything model-facing. */
 export function finishResult(args: {
-  status: CodeResult["status"];
+  outcome: CodeResult["outcome"];
   value?: Json;
   error?: { name: string; message: string; stack?: string };
   bridge: CapabilityBridge;
@@ -222,7 +226,7 @@ export function finishResult(args: {
 }): CodeResult {
   const limitsHit = new Set([...args.bridge.limitsHit, ...(args.extraLimits ?? [])]);
   return {
-    status: args.status,
+    outcome: args.outcome,
     ...(args.value !== undefined ? { value: args.redactor.value(args.value) } : {}),
     ...(args.error !== undefined
       ? {

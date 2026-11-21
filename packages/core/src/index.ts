@@ -14,13 +14,16 @@ export { RawToolset, codeModeSpecs } from "./tools.js";
 export { renderDeclarations, renderSignature, renderType, toJsonSchema } from "./typegen.js";
 export type { JsonSchema, DeclarationEntry } from "./typegen.js";
 
+export { ok, failed } from "./schemas.js";
 export {
+  classifyError,
   CloudfarmError,
   UnknownRefError,
   InvalidArgumentsError,
   EgressDeniedError,
   NamespaceConflictError,
   CapabilityFailedError,
+  UnauthorizedError,
 } from "./errors.js";
 
 export type {
@@ -63,6 +66,9 @@ export {
   LargeRef,
   MemoryRecord,
   Ref,
+  RunError,
+  RunErrorCode,
+  RunResult,
   SearchResult,
   SideEffects,
   ToolSpec,

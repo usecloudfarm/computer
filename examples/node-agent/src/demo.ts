@@ -73,22 +73,23 @@ console.log(
 
 heading("5. code mode: several capabilities in one run");
 const result = await workspace.code(`
-  const { channels } = run("slack.listChannels", { limit: 10 });
-  console.log("found " + channels.length + " channels");
+  const listed = run("slack.listChannels", { limit: 10 });
+  if (listed.status === "error") return { failed: listed.error.code };
+  console.log("found " + listed.value.channels.length + " channels");
 
   const posted = [];
-  for (const channel of channels) {
+  for (const channel of listed.value.channels) {
     const sent = run("slack.sendMessage", { channel: channel.name, text: "v1 is out" });
-    posted.push(channel.name + " @ " + sent.ts);
+    if (sent.status === "ok") posted.push(channel.name + " @ " + sent.value.ts);
   }
 
-  // The workspace filesystem and shell are reachable through the same run().
+  // The workspace filesystem and shell answer with the same envelope.
   run("fs.write", { path: "/out/posted.txt", content: posted.join("\\n") + "\\n" });
   const counted = run("bash", { cmd: "wc -l < /out/posted.txt" });
 
-  return { posted, lines: Number(counted.stdout.trim()) };
+  return { posted, lines: Number(counted.value.stdout.trim()) };
 `);
-console.log(`  status   ${result.status}`);
+console.log(`  outcome  ${result.outcome}`);
 console.log(`  value    ${JSON.stringify(result.value)}`);
 console.log(`  logs     ${result.logs}`);
 if (result.error) console.log(`  error    ${result.error.name}: ${result.error.message}`);
@@ -99,7 +100,7 @@ const rejected = await workspace.code(`
   run("slack.sendMessage", { channel: "#general", text: "this would have been sent" });
   run("slack.sendMesage", { channel: "#general", text: "typo on the second call" });
 `);
-console.log(`  status      ${rejected.status}`);
+console.log(`  outcome     ${rejected.outcome}`);
 for (const diagnostic of rejected.diagnostics) {
   console.log(`  line ${diagnostic.line}      ${diagnostic.message} ${diagnostic.hint ?? ""}`);
 }
@@ -107,7 +108,7 @@ console.log(`  calls made  ${rejected.calls.length}  (the valid first call never
 
 heading("7. limits are enforced, not advisory");
 const runaway = await workspace.code("while (true) {}", { limits: { cpuTimeoutMs: 250 } });
-console.log(`  runaway loop → ${runaway.status}, hit ${runaway.limitsHit.join(", ")}`);
+console.log(`  runaway loop → ${runaway.outcome}, hit ${runaway.limitsHit.join(", ")}`);
 
 await computer.closeAll();
 server.close();

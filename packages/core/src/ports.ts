@@ -13,6 +13,7 @@ import type {
   LargeRef,
   MemoryRecord,
   Ref,
+  RunResult,
   SideEffects,
   ToolSpec,
   WorkspaceInfo,
@@ -169,7 +170,8 @@ export interface CodeEngine extends Described {
 
 // --- toolsets ---------------------------------------------------------------
 
-export type Invoke = (ref: Ref, args?: Json) => Promise<Json>;
+/** Every dispatch path answers with the same envelope — see `RunResult`. */
+export type Invoke = (ref: Ref, args?: Json) => Promise<RunResult>;
 
 /**
  * Turns library-free tool specs into whatever an agent framework expects.

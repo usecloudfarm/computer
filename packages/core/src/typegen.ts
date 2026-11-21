@@ -130,7 +130,7 @@ export function renderDeclarations(entries: readonly DeclarationEntry[]): string
       ]
         .filter((line): line is string => line !== null)
         .join("\n");
-      return `${docs}\ndeclare function run(ref: ${JSON.stringify(ref)}, input: ${input}): ${output};`;
+      return `${docs}\ndeclare function run(ref: ${JSON.stringify(ref)}, input: ${input}): Ok<${output}> | Failed;`;
     });
 
   return ["// Everything is synchronous: call run() directly, with no `await`.", ...overloads].join(

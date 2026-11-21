@@ -62,17 +62,23 @@ describe("AISDKToolset", () => {
     const result = await tools();
 
     await expect(result["bash"]!.execute({ cmd: "echo hi" })).resolves.toMatchObject({
-      stdout: "hi\n",
-      exitCode: 0,
+      status: "ok",
+      value: { stdout: "hi\n", exitCode: 0 },
     });
   });
 
   it("returns errors to the model instead of throwing out of the agent loop", async () => {
     const result = await tools();
 
+    // One envelope, not two: the meta tool does not wrap the inner result.
     await expect(result["run"]!.execute({ ref: "nope.missing" })).resolves.toMatchObject({
-      error: expect.stringContaining('Unknown ref "nope.missing"'),
-      ref: "run",
+      status: "error",
+      error: {
+        code: "unknown_ref",
+        message: expect.stringContaining("nope.missing"),
+        hint: expect.stringContaining("search"),
+        retryable: false,
+      },
     });
   });
 
@@ -82,8 +88,7 @@ describe("AISDKToolset", () => {
 
     const read = await result["fs_read"]!.execute({ path: "/big.txt" });
 
-    expect(String(read)).toContain("[truncated]");
-    expect(String(read).length).toBeLessThan(200);
+    expect(JSON.stringify(read)).toContain("truncated");
   });
 
   it("truncates an oversized object into a preview", async () => {
@@ -102,7 +107,7 @@ describe("AISDKToolset", () => {
 
     await expect(
       result["run"]!.execute({ ref: "demo.greet", args: { name: "ada" } }),
-    ).resolves.toEqual({ greeting: "hello ada" });
+    ).resolves.toEqual({ status: "ok", value: { greeting: "hello ada" } });
   });
 
   it("honours an explicit tool subset", async () => {

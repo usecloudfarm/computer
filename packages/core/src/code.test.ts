@@ -149,7 +149,7 @@ describe("finishResult", () => {
     host.limitsHit.add("maxResultBytes");
 
     const result = finishResult({
-      status: "timeout",
+      outcome: "timeout",
       bridge: host,
       durationMs: 5,
       redactor: new Redactor(),
@@ -157,7 +157,7 @@ describe("finishResult", () => {
     });
 
     expect(result.limitsHit).toEqual(["cpuTimeoutMs", "maxResultBytes"]);
-    expect(result.status).toBe("timeout");
+    expect(result.outcome).toBe("timeout");
   });
 
   it("applies defaults for every unset limit", () => {

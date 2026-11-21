@@ -3,6 +3,7 @@ import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./c
 import { validateSource } from "./validate.js";
 import {
   CapabilityFailedError,
+  classifyError,
   EgressDeniedError,
   InvalidArgumentsError,
   UnknownRefError,
@@ -11,6 +12,7 @@ import { CapabilityRegistry, parseInput, summarize } from "./registry.js";
 import { Redactor } from "./redact.js";
 import { codeModeSpecs, RawToolset } from "./tools.js";
 import { renderDeclarations } from "./typegen.js";
+import { failed, ok } from "./schemas.js";
 import { MemoryStorage } from "./vfs.js";
 import type {
   App,
@@ -29,6 +31,7 @@ import type {
   ExecOptions,
   ExecResult,
   Json,
+  RunResult,
   SearchResult,
   ToolSpec,
   WorkspaceInfo,
@@ -128,7 +131,7 @@ export class Computer<T = unknown> {
   async tools(): Promise<T> {
     return (await this.#default()).tools();
   }
-  async run(ref: string, args?: Json): Promise<Json> {
+  async run(ref: string, args?: Json): Promise<RunResult> {
     return (await this.#default()).run(ref, args);
   }
   async search(useCase: string, options?: { limit?: number }): Promise<SearchResult> {
@@ -210,8 +213,40 @@ export class Workspace<T = unknown> {
     };
   }
 
-  /** Dispatch one ref. Built-in namespaces first, then apps. */
-  async run(ref: string, args?: Json): Promise<Json> {
+  /**
+   * Dispatch one ref, always answering with the same envelope.
+   *
+   * Nothing here throws for an expected failure — an unknown ref, bad
+   * arguments or an upstream refusal all come back as `{ status: "error" }`
+   * with a code the model can branch on. A model should never have to learn
+   * that some calls throw and others return, nor guess whether a bare value
+   * meant success.
+   */
+  async run(ref: string, args?: Json): Promise<RunResult> {
+    try {
+      // These two already answer in the envelope's own terms; wrapping again
+      // would hand the model `{ status: "ok", value: { status: ... } }`.
+      if (ref === "run") {
+        const record = (args ?? {}) as Record<string, Json>;
+        return this.run(stringField(args, "ref"), record["args"] ?? null);
+      }
+      if (ref === "code") {
+        return toEnvelope(await this.code(stringField(args, "source")));
+      }
+      return ok(await this.#dispatch(ref, args));
+    } catch (error) {
+      const { code, retryable, hint } = classifyError(error);
+      return failed({
+        code,
+        message: this.#redactor.text(error instanceof Error ? error.message : String(error)),
+        retryable,
+        ...(hint !== undefined ? { hint } : {}),
+      });
+    }
+  }
+
+  /** The raw dispatch. Throws; `run` is the wrapper that never does. */
+  async #dispatch(ref: string, args?: Json): Promise<Json> {
     const [namespace = "", member] = splitRef(ref);
 
     switch (namespace) {
@@ -222,11 +257,7 @@ export class Workspace<T = unknown> {
         )) as unknown as Json;
       case "search":
         return (await this.search(stringField(args, "useCase"))) as unknown as Json;
-      case "run": {
-        // The generic `run` tool carries the real ref in its arguments.
-        const record = (args ?? {}) as Record<string, Json>;
-        return this.run(stringField(args, "ref"), record["args"] ?? null);
-      }
+
       case "code":
         return (await this.code(stringField(args, "source"))) as unknown as Json;
       case "fs":
@@ -283,7 +314,7 @@ export class Workspace<T = unknown> {
 
     if (!engine) {
       return finishResult({
-        status: "error",
+        outcome: "error",
         error: {
           name: "NoCodeEngineError",
           message: "No code engine configured; pass `codeEngine` (see @cloudfarm/quickjs).",
@@ -296,7 +327,7 @@ export class Workspace<T = unknown> {
 
     if (new TextEncoder().encode(source).byteLength > limits.maxSourceBytes) {
       return finishResult({
-        status: "limit_exceeded",
+        outcome: "limit_exceeded",
         error: {
           name: "SourceTooLargeError",
           message: `Source exceeds ${limits.maxSourceBytes} bytes`,
@@ -320,7 +351,7 @@ export class Workspace<T = unknown> {
 
     if (diagnostics.length > 0) {
       return finishResult({
-        status: "invalid",
+        outcome: "invalid",
         error: {
           name: "ValidationError",
           message: diagnostics.map((d) => `${d.message}${d.hint ? ` ${d.hint}` : ""}`).join(" "),
@@ -465,6 +496,24 @@ export class Workspace<T = unknown> {
         throw new UnknownRefError(`memory.${member}`, ["memory.remember", "memory.search"]);
     }
   }
+}
+
+/**
+ * A code run becomes a call like any other: rejected source is a failed call
+ * carrying its diagnostics, anything that actually executed is a success whose
+ * value says how it ended.
+ */
+function toEnvelope(result: CodeResult): RunResult {
+  if (result.outcome === "invalid") {
+    return failed({
+      code: "invalid_code",
+      message: result.error?.message ?? "The source was rejected before it ran.",
+      retryable: false,
+      hint: "Fix the reported lines and send it again; nothing was executed.",
+      details: result.diagnostics as unknown as Json,
+    });
+  }
+  return ok(result as unknown as Json);
 }
 
 function splitRef(ref: string): [string, string | undefined] {

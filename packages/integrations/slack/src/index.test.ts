@@ -55,7 +55,10 @@ describe("Slack", () => {
 
     const result = await ws.run("slack.sendMessage", { channel: "#general", text: "hi" });
 
-    expect(result).toEqual({ ts: "1700000000.000100", channel: "C123" });
+    expect(result).toEqual({
+      status: "ok",
+      value: { ts: "1700000000.000100", channel: "C123" },
+    });
     expect(seen[0]?.headers.get("authorization")).toBe("Bearer xoxb-test-token-value-1234");
     expect(await seen[0]?.clone().json()).toEqual({ channel: "#general", text: "hi" });
   });
@@ -64,18 +67,21 @@ describe("Slack", () => {
     mockFetch(() => new Response(JSON.stringify({ ok: false, error: "channel_not_found" })));
     const ws = await workspace();
 
-    await expect(ws.run("slack.sendMessage", { channel: "#nope", text: "hi" })).rejects.toThrow(
-      /channel_not_found/,
-    );
+    expect(await ws.run("slack.sendMessage", { channel: "#nope", text: "hi" })).toMatchObject({
+      status: "error",
+      // The upstream answered, so it is worth retrying — unlike a typo.
+      error: { code: "upstream_error", retryable: true, message: /channel_not_found/ },
+    });
   });
 
   it("validates arguments before any request is made", async () => {
     const spy = mockFetch(() => ok({}));
     const ws = await workspace();
 
-    await expect(ws.run("slack.sendMessage", { channel: "#general" })).rejects.toThrow(
-      /Invalid arguments/,
-    );
+    expect(await ws.run("slack.sendMessage", { channel: "#general" })).toMatchObject({
+      status: "error",
+      error: { code: "invalid_args" },
+    });
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -89,8 +95,11 @@ describe("Slack", () => {
     const ws = await workspace();
 
     expect(await ws.run("slack.listChannels", { limit: 1 })).toEqual({
-      channels: [{ id: "C1", name: "general", isPrivate: false }],
-      cursor: "page2",
+      status: "ok",
+      value: {
+        channels: [{ id: "C1", name: "general", isPrivate: false }],
+        cursor: "page2",
+      },
     });
   });
 
@@ -114,10 +123,10 @@ describe("Slack", () => {
     });
     const ws = await computer.createWorkspace("u1");
 
-    const failure = await ws.run("slack.sendMessage", { channel: "#a", text: "b" }).catch((e) => e);
+    const failure = await ws.run("slack.sendMessage", { channel: "#a", text: "b" });
 
-    expect(String(failure)).not.toContain("xoxb-test-token-value-1234");
-    expect(String(failure)).toContain("redacted");
+    expect(JSON.stringify(failure)).not.toContain("xoxb-test-token-value-1234");
+    expect(JSON.stringify(failure)).toContain("redacted");
   });
 
   it("is discoverable by intent", async () => {

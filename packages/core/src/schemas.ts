@@ -104,6 +104,58 @@ export const ExecOptions = z.object({
 });
 export type ExecOptions = z.input<typeof ExecOptions>;
 
+// --- the result envelope ----------------------------------------------------
+
+/**
+ * Why a call failed, in a form a model can act on. These are the same codes
+ * the code-mode bridge reports, so one vocabulary covers both paths.
+ */
+export const RunErrorCode = z.enum([
+  "unknown_ref",
+  "invalid_args",
+  "invalid_code",
+  "not_authenticated",
+  "egress_denied",
+  "rate_limited",
+  "upstream_error",
+  "limit_exceeded",
+  "cancelled",
+  "internal",
+]);
+export type RunErrorCode = z.infer<typeof RunErrorCode>;
+
+export const RunError = z.object({
+  code: RunErrorCode,
+  message: z.string(),
+  /** What to do about it, when there is something useful to say. */
+  hint: z.string().optional(),
+  /** True when the same call might succeed later. */
+  retryable: z.boolean(),
+  /** Structured extras: validation diagnostics, for instance. */
+  details: Json.optional(),
+});
+export type RunError = z.infer<typeof RunError>;
+
+/**
+ * Every call returns this, whether it came from the `run` tool or from
+ * `run()` inside code mode. One shape to check means a model never has to
+ * guess whether a bare value means success, and never has to learn that some
+ * tools throw while others return an error object.
+ */
+export const RunResult = z.union([
+  z.object({ status: z.literal("ok"), value: Json.optional() }),
+  z.object({ status: z.literal("error"), error: RunError }),
+]);
+export type RunResult = z.infer<typeof RunResult>;
+
+export function ok(value?: Json): RunResult {
+  return value === undefined ? { status: "ok" } : { status: "ok", value };
+}
+
+export function failed(error: RunError): RunResult {
+  return { status: "error", error };
+}
+
 // --- capabilities -----------------------------------------------------------
 
 export const SideEffects = z.enum(["read", "write", "destructive"]);
@@ -235,8 +287,12 @@ export const Diagnostic = z.object({
 export type Diagnostic = z.infer<typeof Diagnostic>;
 
 export const CodeResult = z.object({
-  /** `invalid` means validation rejected the source and nothing ran. */
-  status: z.enum(["ok", "invalid", "error", "timeout", "limit_exceeded"]),
+  /**
+   * How the run ended. Deliberately not called `status`: that word belongs to
+   * the envelope every call is wrapped in, and two nested `status` keys
+   * meaning different things is exactly the confusion worth avoiding.
+   */
+  outcome: z.enum(["ok", "invalid", "error", "timeout", "limit_exceeded"]),
   value: Json.optional(),
   error: z
     .object({ name: z.string(), message: z.string(), stack: z.string().optional() })

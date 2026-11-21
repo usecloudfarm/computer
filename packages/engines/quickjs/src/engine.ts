@@ -163,7 +163,7 @@ export class QuickJSEngine implements CodeEngine {
       evaluated.value.dispose();
 
       return finishResult({
-        status: "ok",
+        outcome: "ok",
         ...(value !== undefined ? { value } : {}),
         bridge: bridge as CapabilityBridge,
         durationMs: Date.now() - started,
@@ -217,7 +217,7 @@ export class QuickJSEngine implements CodeEngine {
     const usedAwait = error.name === "SyntaxError" && /\bawait\b/.test(source);
 
     return finishResult({
-      status: timedOut ? "timeout" : outOfMemory ? "limit_exceeded" : "error",
+      outcome: timedOut ? "timeout" : outOfMemory ? "limit_exceeded" : "error",
       error: timedOut
         ? { name: "TimeoutError", message: "The run exceeded its time limit and was stopped." }
         : usedAwait
@@ -274,11 +274,11 @@ function installHostBridge(
   const installed = context.evalCode(`
     globalThis.__host = (capability, input) => {
       const response = JSON.parse(__host_raw(capability, JSON.stringify(input ?? null)));
+      // A completed host call already carries the { status, value | error }
+      // envelope. A failed frame — a limit, a cancellation — is wrapped in the
+      // same shape, so guest code only ever checks one thing.
       if (response.ok) return response.value;
-      const error = new Error(response.error.message);
-      error.name = response.error.code;
-      error.retryable = response.error.retryable;
-      throw error;
+      return { status: "error", error: response.error };
     };
   `);
   if (installed.error) installed.error.dispose();
