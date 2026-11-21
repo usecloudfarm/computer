@@ -4,7 +4,15 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "tsconfig*.json", "tsup.config.ts", "package.json"],
+      "inputs": [
+        "src/**",
+        "server/**",
+        "index.html",
+        "tsconfig*.json",
+        "tsup.config.ts",
+        "vite.config.ts",
+        "package.json"
+      ],
       "outputs": ["dist/**"]
     },
     "dev": {
@@ -26,11 +34,11 @@
       "persistent": true
     },
     "typecheck": {
-      "inputs": ["src/**", "tsconfig*.json", "package.json"],
+      "inputs": ["src/**", "server/**", "tsconfig*.json", "package.json"],
       "outputs": []
     },
     "lint": {
-      "inputs": ["src/**", "package.json"]
+      "inputs": ["src/**", "server/**", "package.json"]
     },
     "clean": {
       "cache": false

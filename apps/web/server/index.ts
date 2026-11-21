@@ -1,0 +1,86 @@
+/**
+ * The agent's half of the playground.
+ *
+ * Everything that matters runs here: the API key, the workspace filesystem,
+ * the bash sandbox and the QuickJS isolate. The browser gets a chat endpoint
+ * and nothing else — a Computer handed to the client would be a Computer the
+ * client could drive directly.
+ */
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { anthropic } from "@ai-sdk/anthropic";
+import { convertToModelMessages, streamText, stepCountIs } from "ai";
+import type { UIMessage } from "ai";
+import { Computer } from "@cloudfarm/core";
+import { AISDKToolset } from "@cloudfarm/ai";
+import { reports } from "./reports.ts";
+
+const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
+const PORT = Number(process.env["PORT"] ?? 8787);
+
+if (!process.env["ANTHROPIC_API_KEY"]) {
+  console.error(
+    "Set ANTHROPIC_API_KEY first:\n" +
+      '  echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" > apps/web/.env\n' +
+      "  pnpm --filter @cloudfarm/web dev",
+  );
+  process.exit(1);
+}
+
+const computer = new Computer({ toolset: new AISDKToolset(), apps: [reports] });
+
+/**
+ * One workspace for the whole process.
+ *
+ * A real deployment keys this by user — `computer.createWorkspace(userId)` —
+ * so two people never share a filesystem. The playground is single-user by
+ * design, because seeing your own file survive between turns is the point.
+ */
+const workspace = await computer.createWorkspace("playground");
+
+await workspace.fs.write(
+  "/data/sales.csv",
+  [
+    "region,rep,amount",
+    "emea,ada,1200",
+    "emea,grace,800",
+    "amer,alan,4300",
+    "amer,katherine,2200",
+    "apac,joan,150",
+  ].join("\n") + "\n",
+);
+
+const SYSTEM = [
+  "You drive a computer: a workspace with a filesystem, a shell, and actions",
+  "you discover with `search` rather than being handed up front.",
+  "",
+  "Prefer one `code` call over a string of `run` calls when steps depend on",
+  "each other — it is a single round trip and the intermediate values stay",
+  "in the isolate. Use `search` first when you do not know an action's ref.",
+  "Say what you did in a sentence or two; the tool calls are already visible",
+  "to the user, so do not narrate them step by step.",
+].join("\n");
+
+const app = new Hono();
+
+app.post("/api/chat", async (context) => {
+  const { messages } = await context.req.json<{ messages: UIMessage[] }>();
+
+  const result = streamText({
+    model: anthropic(MODEL),
+    system: SYSTEM,
+    messages: await convertToModelMessages(messages),
+    tools: await workspace.tools(),
+    stopWhen: stepCountIs(16),
+    onError: ({ error }) => console.error("[chat]", error),
+  });
+
+  return result.toUIMessageStreamResponse();
+});
+
+/** Lets the UI name the model it is talking to without hardcoding it. */
+app.get("/api/info", (context) => context.json({ model: MODEL, workspace: workspace.info.id }));
+
+serve({ fetch: app.fetch, port: PORT }, ({ port }) => {
+  console.log(`\x1b[1mcloudfarm web\x1b[0m  api on http://localhost:${port}  model ${MODEL}`);
+});

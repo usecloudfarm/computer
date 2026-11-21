@@ -10,6 +10,7 @@ packages:
   - "packages/storage/*" # StorageProvider: s3, …
   - "packages/memory/*" # MemoryStore
   - "examples/*"
+  - "apps/*" # runnable applications: the chat playground
 
 # Dependencies allowed to run install scripts (pnpm 10 blocks these by default).
 onlyBuiltDependencies:

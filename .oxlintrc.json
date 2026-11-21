@@ -53,6 +53,12 @@
       // Test doubles and fixtures say what they mean with loose shapes.
       "files": ["**/*.test.ts", "**/testing.ts"],
       "rules": { "typescript/no-explicit-any": "off" }
+    },
+    {
+      // A stylesheet import has no binding to assign: that is simply how CSS
+      // enters a bundle.
+      "files": ["apps/**/*.ts", "apps/**/*.tsx"],
+      "rules": { "import/no-unassigned-import": "off" }
     }
   ],
   "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/coverage/**", "**/.wrangler/**"]

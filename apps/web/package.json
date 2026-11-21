@@ -1,0 +1,42 @@
+{
+  "name": "@cloudfarm/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A chat UI for driving a Computer, with every tool call visible",
+  "scripts": {
+    "dev": "turbo run build --filter=@cloudfarm/web^... && node scripts/dev.mjs",
+    "dev:server": "node --env-file-if-exists=.env --experimental-strip-types --watch server/index.ts",
+    "dev:client": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "oxlint src server",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.107",
+    "@ai-sdk/react": "^4.0.183",
+    "@cloudfarm/ai": "workspace:^",
+    "@cloudfarm/bash": "workspace:^",
+    "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/quickjs": "workspace:^",
+    "@cloudfarm/slack": "workspace:^",
+    "@hono/node-server": "^1.15.0",
+    "@pierre/highlights": "^0.5.1",
+    "@pierre/words": "^0.3.0",
+    "ai": "^7.0.179",
+    "hono": "^4.6.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0"
+  }
+}
