@@ -122,6 +122,33 @@ describe("createHttpClient", () => {
     await expect(client.get("thing")).rejects.toThrow(/nope/);
   });
 
+  it("hands back the untouched Response for a body that is not JSON", async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const { seen, fetcher } = recorder(
+      () => new Response(png, { headers: { "content-type": "image/png" } }),
+    );
+    const client = createHttpClient(fetcher, { baseUrl: "https://api.test" });
+
+    const response = await client.raw("shot", { method: "POST", body: { url: "x" } });
+
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(png);
+    expect(seen[0]?.method).toBe("POST");
+    // Same URL building and headers as the JSON path.
+    expect(seen[0]?.url).toBe("https://api.test/shot");
+    expect(seen[0]?.headers.get("content-type")).toContain("application/json");
+  });
+
+  it("leaves status handling to the caller on the raw path", async () => {
+    const { fetcher } = recorder(() => json({ error: "nope" }, 500));
+    const client = createHttpClient(fetcher, { baseUrl: "https://api.test" });
+
+    // The JSON path would throw HttpError here. Binary callers need the
+    // response, because only they know what a non-2xx body contains.
+    const response = await client.raw("shot");
+
+    expect(response.status).toBe(500);
+  });
+
   it("says so plainly when a relative path has no base url to resolve against", async () => {
     const client = createHttpClient(recorder().fetcher);
 

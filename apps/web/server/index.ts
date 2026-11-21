@@ -14,6 +14,7 @@ import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
 import { AISDKToolset } from "@cloudfarm/ai";
 import { hackernews } from "@cloudfarm/hackernews";
+import { web } from "@cloudfarm/cloudflare-browser";
 import { reports } from "./reports.ts";
 
 const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
@@ -30,9 +31,24 @@ if (!process.env["ANTHROPIC_API_KEY"]) {
 
 // Hacker News needs no credentials, so the playground has a real third-party
 // app out of the box — not a stub pretending to be one.
+/**
+ * Reading the open web needs a Cloudflare account, so it is added only when
+ * one is configured. An app that cannot work is worse than an absent one: the
+ * model would find it with `search` and then fail on every call.
+ */
+const browser =
+  process.env["CLOUDFLARE_API_TOKEN"] && process.env["CLOUDFLARE_ACCOUNT_ID"]
+    ? [
+        web({
+          apiKey: process.env["CLOUDFLARE_API_TOKEN"],
+          accountId: process.env["CLOUDFLARE_ACCOUNT_ID"],
+        }),
+      ]
+    : [];
+
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  apps: [reports, hackernews({})],
+  apps: [reports, hackernews({}), ...browser],
 });
 
 /**

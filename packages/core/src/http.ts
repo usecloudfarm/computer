@@ -51,6 +51,13 @@ export interface HttpClient {
     path: string,
     options?: HttpOptions,
   ): Promise<T>;
+  /**
+   * The untouched `Response`, for bodies that are not JSON — a PNG, a PDF, a
+   * stream. URL resolution, default headers and the credential still apply;
+   * status handling does not, because the caller is the only one who knows
+   * what a non-2xx body means for binary.
+   */
+  raw(path: string, options?: HttpOptions & { method?: string }): Promise<Response>;
 }
 
 export interface HttpConfig {
@@ -69,11 +76,8 @@ export interface HttpConfig {
 type Fetcher = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 export function createHttpClient(fetcher: Fetcher, config: HttpConfig = {}): HttpClient {
-  const request = async <T>(
-    method: string,
-    path: string,
-    options: HttpOptions = {},
-  ): Promise<T> => {
+  /** URL, headers and body, built once so JSON and raw cannot drift apart. */
+  const prepare = (path: string, options: HttpOptions) => {
     const url = resolveUrl(path, config.baseUrl);
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
@@ -98,6 +102,15 @@ export function createHttpClient(fetcher: Fetcher, config: HttpConfig = {}): Htt
       headers["content-type"] = "application/json; charset=utf-8";
     }
 
+    return { url, headers, body };
+  };
+
+  const request = async <T>(
+    method: string,
+    path: string,
+    options: HttpOptions = {},
+  ): Promise<T> => {
+    const { url, headers, body } = prepare(path, options);
     const response = await fetcher(url, {
       method,
       headers,
@@ -117,8 +130,21 @@ export function createHttpClient(fetcher: Fetcher, config: HttpConfig = {}): Htt
     return parsed as T;
   };
 
+  const raw = async (
+    path: string,
+    options: HttpOptions & { method?: string } = {},
+  ): Promise<Response> => {
+    const { url, headers, body } = prepare(path, options);
+    return fetcher(url, {
+      method: options.method ?? "GET",
+      headers,
+      ...(body !== undefined ? { body } : {}),
+    });
+  };
+
   return {
     request,
+    raw,
     get: (path, options) => request("GET", path, options ?? {}),
     post: (path, body, options) => request("POST", path, { ...options, ...bodyOf(body) }),
     put: (path, body, options) => request("PUT", path, { ...options, ...bodyOf(body) }),
