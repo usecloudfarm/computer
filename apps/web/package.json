@@ -21,6 +21,7 @@
     "@cloudfarm/bash": "workspace:^",
     "@cloudfarm/cloudflare-browser": "workspace:^",
     "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/firecrawl": "workspace:^",
     "@cloudfarm/hackernews": "workspace:^",
     "@cloudfarm/quickjs": "workspace:^",
     "@cloudfarm/slack": "workspace:^",

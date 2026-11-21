@@ -15,6 +15,7 @@ import { Computer } from "@cloudfarm/core";
 import { AISDKToolset } from "@cloudfarm/ai";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
+import { firecrawl } from "@cloudfarm/firecrawl";
 import { reports } from "./reports.ts";
 
 const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
@@ -46,9 +47,13 @@ const browser =
       ]
     : [];
 
+const search = process.env["FIRECRAWL_API_KEY"]
+  ? [firecrawl({ apiKey: process.env["FIRECRAWL_API_KEY"] })]
+  : [];
+
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  apps: [reports, hackernews({}), ...browser],
+  apps: [reports, hackernews({}), ...browser, ...search],
 });
 
 /**
