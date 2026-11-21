@@ -26,13 +26,25 @@ type HostCallErrorCode = HostCallError["code"];
 /**
  * Builds the JavaScript prepended to the model's source.
  *
- * Every identifier the guest can reach is created here. Anything not named
- * below simply does not exist in the isolate: no fetch, no filesystem, no
- * require. `fetch` and `require` are declared as throwing stubs rather than
- * left undefined, because a clear message beats a bare ReferenceError.
+ * Every identifier the guest can reach is created here — the apps, plus the
+ * workspace's own `fs`, `bash` and `memory`. Code mode is meant to be the
+ * whole computer in one turn, so a script that reads a file, shells out and
+ * posts the result should not have to bounce back through three separate tool
+ * calls to do it.
+ *
+ * Anything not named below does not exist in the isolate: no network, no host
+ * filesystem, no require. `fetch` and `require` are throwing stubs rather than
+ * undefined, because a clear message beats a bare ReferenceError.
  */
-export function buildPrelude(namespaces: ReadonlyMap<string, readonly string[]>): string {
-  const bindings = [...namespaces.entries()]
+export interface PreludeBindings {
+  /** `namespace.member` objects: apps, plus the built-in `fs` and `memory`. */
+  readonly namespaces: ReadonlyMap<string, readonly string[]>;
+  /** Refs with no member, bound as plain functions: `bash`, `search`. */
+  readonly functions: readonly string[];
+}
+
+export function buildPrelude(bindings: PreludeBindings): string {
+  const objects = [...bindings.namespaces.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([namespace, members]) => {
       const methods = [...members]
@@ -43,8 +55,11 @@ export function buildPrelude(namespaces: ReadonlyMap<string, readonly string[]>)
         )
         .join("\n");
       return `const ${namespace} = {\n${methods}\n};`;
-    })
-    .join("\n");
+    });
+
+  const functions = [...bindings.functions]
+    .sort()
+    .map((ref) => `const ${ref} = (input) => __host(${JSON.stringify(ref)}, input);`);
 
   return `"use strict";
 const console = {
@@ -53,9 +68,9 @@ const console = {
   warn: (...args) => __log("warn", args),
   error: (...args) => __log("error", args),
 };
-const fetch = () => { throw new Error("fetch is unavailable in code mode; use a capability or computer.run('bash', ...)"); };
+const fetch = () => { throw new Error("fetch is unavailable in code mode; use a capability or bash"); };
 const require = () => { throw new Error("require is unavailable in code mode; every capability is already in scope"); };
-${bindings}
+${[...objects, ...functions].join("\n")}
 `;
 }
 

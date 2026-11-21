@@ -1,5 +1,6 @@
 import { clampForModel, toLargeRef } from "./clamp.js";
 import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
+import type { PreludeBindings } from "./code.js";
 import {
   CapabilityFailedError,
   EgressDeniedError,
@@ -310,7 +311,7 @@ export class Workspace<T = unknown> {
     return engine.evaluate(
       {
         source,
-        prelude: buildPrelude(this.#namespaces()),
+        prelude: buildPrelude(this.#bindings()),
         limits,
         runId: `code-${++this.#runCounter}`,
       },
@@ -332,14 +333,25 @@ export class Workspace<T = unknown> {
 
   // --- internals ------------------------------------------------------------
 
-  #namespaces(): Map<string, string[]> {
-    const namespaces = new Map<string, string[]>();
+  /**
+   * What generated code can reach: every installed app, plus the workspace's
+   * own filesystem, shell and memory. Binding the built-ins matters — a script
+   * that reads a file, processes it and posts the result should be one run,
+   * not a run sandwiched between separate fs and bash tool calls.
+   */
+  #bindings(): PreludeBindings {
+    const namespaces = new Map<string, string[]>([["fs", ["read", "write", "list", "remove"]]]);
     for (const entry of this.#registry.entries()) {
       const members = namespaces.get(entry.namespace) ?? [];
       members.push(entry.member);
       namespaces.set(entry.namespace, members);
     }
-    return namespaces;
+    if (this.#options.memory) namespaces.set("memory", ["remember", "search", "forget"]);
+
+    const functions: string[] = [];
+    if (this.#options.provider) functions.push("bash");
+
+    return { namespaces, functions };
   }
 
   #connectSandbox(provider: SandboxProvider): Promise<Sandbox> {

@@ -232,6 +232,28 @@ describe("QuickJSEngine", () => {
     expect(result.error?.message).toContain("no `await`");
   });
 
+  it("reads and writes the workspace filesystem from inside a run", async () => {
+    const computer = new Computer({ apps: [app()], codeEngine: quickjs() });
+    const ws = await computer.createWorkspace("coder");
+    await ws.fs.write("/data/input.txt", "alpha\nbeta\ngamma\n");
+
+    const result = await ws.code(`
+      const text = fs.read({ path: "/data/input.txt" });
+      const lines = text.trim().split("\\n").map(line => line.toUpperCase());
+      fs.write({ path: "/data/output.txt", content: lines.join("\\n") + "\\n" });
+      return lines.length;
+    `);
+
+    expect(result).toMatchObject({ status: "ok", value: 3 });
+    expect(await ws.fs.readText("/data/output.txt")).toBe("ALPHA\nBETA\nGAMMA\n");
+  });
+
+  it("does not bind bash when no sandbox is configured", async () => {
+    const ws = await workspace();
+
+    expect((await ws.code("return typeof bash;")).value).toBe("undefined");
+  });
+
   it("starts each run with a fresh context", async () => {
     const ws = await workspace();
 
