@@ -5,12 +5,12 @@
   "type": "module",
   "description": "The brief's snippet, typechecked in CI and runnable against real services",
   "scripts": {
-    "start": "node --experimental-strip-types src/main.ts",
-    "demo": "node --experimental-strip-types src/demo.ts",
+    "start": "turbo run build --filter=@cloudfarm/example-node-agent... && node --experimental-strip-types src/main.ts",
+    "demo": "turbo run build --filter=@cloudfarm/example-node-agent... && node --experimental-strip-types src/demo.ts",
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "clean": "rm -rf .turbo *.tsbuildinfo",
-    "agent": "node --env-file-if-exists=.env --experimental-strip-types src/agent.ts"
+    "agent": "turbo run build --filter=@cloudfarm/example-node-agent... && node --env-file-if-exists=.env --experimental-strip-types src/agent.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.107",
