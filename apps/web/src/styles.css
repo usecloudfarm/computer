@@ -584,15 +584,22 @@ body {
 
 /* --- tool call accordion -------------------------------------------------- */
 
-.tool {
+/* The card is the group; a single call is simply a group of one. The rows
+   inside carry no frame of their own, so consecutive calls read as one run of
+   work divided by hairlines rather than as separate boxes. */
+.toolgroup {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-2);
   overflow: hidden;
 }
 
+.tool + .tool {
+  border-top: 1px solid var(--line);
+}
+
 .tool--failed {
-  border-color: color-mix(in srgb, var(--error) 35%, var(--line));
+  background: color-mix(in srgb, var(--error) 7%, transparent);
 }
 
 .tool__head {
@@ -684,13 +691,15 @@ body {
   color: var(--muted);
 }
 
+/* Square inside the card: the group's corners are the only rounded ones, so
+   nested radii do not fight them. */
 .tool__json,
 .tool__code {
   margin: 0;
   padding: 12px 14px;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0;
   overflow-x: auto;
   max-height: 340px;
   font: 12.5px/1.6 var(--mono);

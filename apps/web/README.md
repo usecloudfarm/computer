@@ -68,6 +68,11 @@ the client a Computer to drive.
   half the demo.
 - `/data/sales.csv` is seeded at boot, so the suggested prompts have something
   to work on.
+- **Consecutive calls share one card**, divided by hairlines. A run of calls
+  is one unit of work; gaps between separate boxes read as pauses that did not
+  happen. Prose breaks a run, so order is still exactly what occurred. The
+  card is the only rounded thing — nested radii inside it just fight its
+  corners.
 - A failed `run` is a _successful_ tool call carrying `{ status: "error" }`.
   The accordion marks those failed too — otherwise the row reads green while
   the model is looking at an error.

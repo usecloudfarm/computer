@@ -21,11 +21,11 @@ export function Message({ message, streaming }: { message: UIMessage; streaming:
 
   return (
     <div className="msg msg--assistant">
-      {message.parts.map((part, index) => {
-        if (part.type === "text") {
+      {group(message.parts).map((block, blockIndex) => {
+        if (block.kind === "text") {
           return (
             <Markdown
-              key={index}
+              key={blockIndex}
               className="msg__markdown"
               // Streaming mode copes with half-written markdown — an unclosed
               // code fence mid-token renders as a code block, not as literal
@@ -34,24 +34,60 @@ export function Message({ message, streaming }: { message: UIMessage; streaming:
               isAnimating={streaming}
               parseIncompleteMarkdown
             >
-              {part.text}
+              {block.text}
             </Markdown>
           );
         }
-        if (isToolUIPart(part)) {
-          return (
-            <ToolCall
-              key={index}
-              id={`call-${message.id}-${index}`}
-              part={part}
-              name={getToolName(part)}
-            />
-          );
-        }
-        return null;
+
+        // A run of calls is one card with dividers rather than a stack of
+        // boxes: consecutive calls are one unit of work, and the gaps between
+        // them read as pauses that did not happen.
+        return (
+          <div className="toolgroup" key={blockIndex}>
+            {block.calls.map(({ part, index }) => (
+              <ToolCall
+                key={index}
+                id={`call-${message.id}-${index}`}
+                part={part}
+                name={getToolName(part)}
+              />
+            ))}
+          </div>
+        );
       })}
     </div>
   );
+}
+
+type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
+
+type Block =
+  { kind: "text"; text: string } | { kind: "tools"; calls: { part: ToolPart; index: number }[] };
+
+/**
+ * Collapse the part list into alternating prose and runs of tool calls.
+ *
+ * Order is preserved: a call that happened between two sentences still shows
+ * between them. Only adjacency is used, so prose always breaks a run.
+ */
+function group(parts: UIMessage["parts"]): Block[] {
+  const blocks: Block[] = [];
+
+  for (const [index, part] of parts.entries()) {
+    if (part.type === "text") {
+      blocks.push({ kind: "text", text: part.text });
+      continue;
+    }
+    if (!isToolUIPart(part)) continue;
+
+    const last = blocks.at(-1);
+    if (last?.kind === "tools") {
+      last.calls.push({ part: part as ToolPart, index });
+    } else {
+      blocks.push({ kind: "tools", calls: [{ part: part as ToolPart, index }] });
+    }
+  }
+  return blocks;
 }
 
 function textOf(message: UIMessage): string {
