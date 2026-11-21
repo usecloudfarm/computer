@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
+import { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 import { Redactor } from "./redact.js";
 import type { HostCallRequest } from "./schemas.js";
 
@@ -10,7 +10,7 @@ function bridge(
   } = {},
 ) {
   const redactor = new Redactor();
-  return new CapabilityBridge({
+  return new ActionBridge({
     invoke: (options.invoke ?? (async () => ({ ok: true }))) as never,
     limits: resolveLimits(options.limits),
     redactor,
@@ -19,12 +19,12 @@ function bridge(
 
 const request = (
   seq: number,
-  capability = "slack.sendMessage",
+  action = "slack.sendMessage",
   args: unknown = {},
 ): HostCallRequest => ({
   v: 1,
   seq,
-  capability,
+  action,
   args: args as never,
 });
 
@@ -47,7 +47,7 @@ describe("buildPrelude", () => {
   });
 });
 
-describe("CapabilityBridge", () => {
+describe("ActionBridge", () => {
   it("forwards a call and records it", async () => {
     const invoke = vi.fn(async () => ({ ts: "1" }));
     const host = bridge({ invoke });
@@ -57,7 +57,7 @@ describe("CapabilityBridge", () => {
     expect(response).toMatchObject({ ok: true, value: { ts: "1" } });
     expect(invoke).toHaveBeenCalledWith("slack.sendMessage", {});
     expect(host.calls).toEqual([
-      { capability: "slack.sendMessage", ok: true, durationMs: expect.any(Number) },
+      { action: "slack.sendMessage", ok: true, durationMs: expect.any(Number) },
     ]);
   });
 
@@ -121,7 +121,7 @@ describe("CapabilityBridge", () => {
   it("redacts secrets from returned values", async () => {
     const redactor = new Redactor();
     redactor.add("top-secret-token");
-    const host = new CapabilityBridge({
+    const host = new ActionBridge({
       invoke: (async () => ({ echoed: "top-secret-token" })) as never,
       limits: resolveLimits(),
       redactor,

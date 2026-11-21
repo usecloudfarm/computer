@@ -68,6 +68,11 @@ export interface Sandbox {
   close(): Promise<void>;
 }
 
+/**
+ * What a sandbox or engine *can do* — a feature flag, deliberately not an
+ * "action". An app's actions are the units an agent calls; these answer
+ * "does this provider support bash?" and are never exposed to a model.
+ */
 export type SandboxCapability = "bash" | "ports";
 
 export interface SandboxProvider extends Described {
@@ -94,7 +99,7 @@ export interface ComputerHost {
 /** `fetch` with the app's credential already applied. The token is never a value here. */
 export type AuthorizedFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
-export interface CapabilityContext {
+export interface ActionContext {
   readonly fetch: AuthorizedFetch;
   readonly workspace: WorkspaceInfo;
   readonly signal: AbortSignal;
@@ -102,12 +107,12 @@ export interface CapabilityContext {
   readonly ref: (data: Uint8Array | string, mime?: string) => Promise<LargeRef>;
 }
 
-export interface CapabilityDefinition<I = unknown, O = unknown> {
+export interface ActionDefinition<I = unknown, O = unknown> {
   /** Member name; the ref is `${app.id}.${name}`. */
   readonly name: string;
   /** Imperative, one line: "Post a message to a channel or DM." */
   readonly summary: string;
-  /** Phrases this capability answers. The primary ranking signal for search(). */
+  /** Phrases this action answers. The primary ranking signal for search(). */
   readonly useCases: readonly string[];
   readonly keywords?: readonly string[];
   readonly input: z.ZodType<I>;
@@ -115,14 +120,14 @@ export interface CapabilityDefinition<I = unknown, O = unknown> {
   /** One runnable line, shown in search results and as JSDoc in generated types. */
   readonly example: string;
   readonly sideEffects: SideEffects;
-  handler(input: I, context: CapabilityContext): Promise<O>;
+  handler(input: I, context: ActionContext): Promise<O>;
 }
 
 export interface App extends Described {
   readonly name: string;
   /** Hosts this app is allowed to call. Blocks a prompt-injected URL argument. */
   readonly allowedHosts: readonly string[];
-  capabilities(): readonly CapabilityDefinition[];
+  actions(): readonly ActionDefinition[];
   /** Applies the app's credential. Called per request; the token stays in this closure. */
   authorize(request: Request): Request;
 }
@@ -145,7 +150,7 @@ export interface HostBridge {
 
 export interface CodeJob {
   readonly source: string;
-  /** Capability proxies and console shim, prepended to the source. */
+  /** Action proxies and console shim, prepended to the source. */
   readonly prelude: string;
   readonly limits: CodeLimits;
   readonly runId: string;

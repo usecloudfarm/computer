@@ -1,14 +1,14 @@
 import { clampForModel, toLargeRef } from "./clamp.js";
-import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
+import { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 import { validateSource } from "./validate.js";
 import {
-  CapabilityFailedError,
+  ActionFailedError,
   classifyError,
   EgressDeniedError,
   InvalidArgumentsError,
   UnknownRefError,
 } from "./errors.js";
-import { CapabilityRegistry, parseInput, summarize } from "./registry.js";
+import { ActionRegistry, parseInput, summarize } from "./registry.js";
 import { Redactor } from "./redact.js";
 import { codeModeSpecs, RawToolset } from "./tools.js";
 import { renderDeclarations } from "./typegen.js";
@@ -90,7 +90,7 @@ export class Computer<T = unknown> {
   readonly #options: ComputerOptions<T>;
   readonly #storage: StorageProvider;
   readonly #toolset: Toolset<T>;
-  readonly #registry: CapabilityRegistry;
+  readonly #registry: ActionRegistry;
   readonly #workspaces = new Map<string, Workspace<T>>();
   #defaultWorkspace: Promise<Workspace<T>> | undefined;
   #resolvedOptions: Promise<ResolvedOptions> | undefined;
@@ -99,7 +99,7 @@ export class Computer<T = unknown> {
     this.#options = options;
     this.#storage = options.storage ?? new MemoryStorage();
     this.#toolset = options.toolset ?? (new RawToolset() as unknown as Toolset<T>);
-    this.#registry = new CapabilityRegistry(options.apps ?? []);
+    this.#registry = new ActionRegistry(options.apps ?? []);
   }
 
   get apps(): readonly App[] {
@@ -200,7 +200,7 @@ export class Computer<T = unknown> {
 interface WorkspaceInit<T> {
   info: WorkspaceInfo;
   fs: FileSystem;
-  registry: CapabilityRegistry;
+  registry: ActionRegistry;
   toolset: Toolset<T>;
   options: ResolvedOptions;
 }
@@ -210,7 +210,7 @@ export class Workspace<T = unknown> {
   readonly info: WorkspaceInfo;
   readonly fs: FileSystem;
 
-  readonly #registry: CapabilityRegistry;
+  readonly #registry: ActionRegistry;
   readonly #toolset: Toolset<T>;
   readonly #options: ResolvedOptions;
   readonly #redactor = new Redactor();
@@ -240,17 +240,17 @@ export class Workspace<T = unknown> {
     });
   }
 
-  /** Find capabilities by intent, with the types needed to call them. */
+  /** Find actions by intent, with the types needed to call them. */
   async search(useCase: string, options: { limit?: number } = {}): Promise<SearchResult> {
     const hits = this.#registry.search(useCase, options.limit ?? 8);
     return {
-      capabilities: hits.map((hit) => summarize(hit.entry, hit.score, true)),
+      actions: hits.map((hit) => summarize(hit.entry, hit.score, true)),
       types: renderDeclarations(
         hits.map((hit) => ({
           appId: hit.entry.app.id,
           appName: hit.entry.app.name,
           appDescription: hit.entry.app.description,
-          capability: hit.entry.capability,
+          action: hit.entry.action,
           authenticated: true,
         })),
       ),
@@ -309,7 +309,7 @@ export class Workspace<T = unknown> {
       case "memory":
         return this.#runMemory(member ?? "", args);
       default:
-        return this.#runCapability(ref, args);
+        return this.#runAction(ref, args);
     }
   }
 
@@ -346,11 +346,11 @@ export class Workspace<T = unknown> {
     };
   }
 
-  /** Run generated code against the capability proxies. */
+  /** Run generated code against the action proxies. */
   async code(source: string, options: { limits?: Partial<CodeLimits> } = {}): Promise<CodeResult> {
     const engine = this.#options.codeEngine;
     const limits = resolveLimits({ ...this.#options.limits, ...options.limits });
-    const bridge = new CapabilityBridge({
+    const bridge = new ActionBridge({
       invoke: (ref, args) => this.run(ref, args),
       limits,
       redactor: this.#redactor,
@@ -434,7 +434,7 @@ export class Workspace<T = unknown> {
 
   /**
    * Refs that exist without an app behind them. Validation needs these so it
-   * does not reject `run("bash", …)` as an unknown capability.
+   * does not reject `run("bash", …)` as an unknown action.
    */
   #builtinRefs(): Set<string> {
     const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search"]);
@@ -461,9 +461,9 @@ export class Workspace<T = unknown> {
     };
   }
 
-  async #runCapability(ref: string, args?: Json): Promise<Json> {
+  async #runAction(ref: string, args?: Json): Promise<Json> {
     const entry = this.#registry.get(ref);
-    const parsed = parseInput(entry.capability.input, args ?? {});
+    const parsed = parseInput(entry.action.input, args ?? {});
     if (!parsed.ok) throw new InvalidArgumentsError(ref, parsed.issues);
 
     const app = entry.app;
@@ -478,7 +478,7 @@ export class Workspace<T = unknown> {
     };
 
     try {
-      const output = await entry.capability.handler(parsed.value, {
+      const output = await entry.action.handler(parsed.value, {
         fetch: authorizedFetch,
         workspace: this.info,
         signal: this.#controller.signal,
@@ -492,7 +492,7 @@ export class Workspace<T = unknown> {
       return this.#redactor.value(output) as Json;
     } catch (error) {
       if (error instanceof EgressDeniedError || error instanceof InvalidArgumentsError) throw error;
-      throw new CapabilityFailedError(
+      throw new ActionFailedError(
         ref,
         this.#redactor.text(error instanceof Error ? error.message : String(error)),
         error,

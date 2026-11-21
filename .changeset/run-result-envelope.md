@@ -6,7 +6,7 @@
 Every call now answers with one envelope: `{ status: "ok", value }` or
 `{ status: "error", error: { code, message, hint?, retryable, details? } }`.
 That holds for the `run` tool, the built-in `fs`/`bash`/`memory` refs, app
-capabilities, and `run()` inside code mode — so a model never has to learn
+actions, and `run()` inside code mode — so a model never has to learn
 which surfaces throw and which return, and never has to guess whether a bare
 value meant success.
 

@@ -3,14 +3,14 @@ export type { ComputerOptions, CreateWorkspaceOptions } from "./computer.js";
 
 export { defaultProvider, defaultCodeEngine, resetDefaults } from "./defaults.js";
 export { MemoryStorage, MemoryFileSystem, normalizePath, dirname, basename } from "./vfs.js";
-export { CapabilityRegistry, RESERVED_NAMESPACES } from "./registry.js";
-export { Bm25CapabilityIndex, tokenize } from "./search.js";
-export type { CapabilityIndex, IndexedCapability, SearchHit } from "./search.js";
+export { ActionRegistry, RESERVED_NAMESPACES } from "./registry.js";
+export { Bm25ActionIndex, tokenize } from "./search.js";
+export type { ActionIndex, IndexedAction, SearchHit } from "./search.js";
 export { Redactor } from "./redact.js";
 export { clampForModel, toLargeRef } from "./clamp.js";
-export { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
-export { createApp, capability } from "./define.js";
-export type { AppDefinition, CapabilitySpec, DefinedCapability } from "./define.js";
+export { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
+export { createApp, createAction } from "./define.js";
+export type { AppDefinition, ActionSpec, DefinedAction } from "./define.js";
 export { validateSource } from "./validate.js";
 export type { ValidationInput } from "./validate.js";
 export { RawToolset, codeModeSpecs } from "./tools.js";
@@ -25,15 +25,15 @@ export {
   InvalidArgumentsError,
   EgressDeniedError,
   NamespaceConflictError,
-  CapabilityFailedError,
+  ActionFailedError,
   UnauthorizedError,
 } from "./errors.js";
 
 export type {
   App,
   AuthorizedFetch,
-  CapabilityContext,
-  CapabilityDefinition,
+  ActionContext,
+  ActionDefinition,
   CodeEngine,
   CodeEngineCapabilities,
   CodeJob,
@@ -52,7 +52,7 @@ export type {
 } from "./ports.js";
 
 export {
-  CapabilitySummary,
+  ActionSummary,
   CodeCall,
   Diagnostic,
   CodeLimits,

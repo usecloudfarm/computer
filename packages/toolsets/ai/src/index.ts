@@ -59,7 +59,7 @@ export class AISDKToolset implements Toolset<ToolSet> {
 
       tools[spec.name] = tool({
         description: spec.description,
-        // Capability schemas are Zod on our side and JSON Schema by the time
+        // Action schemas are Zod on our side and JSON Schema by the time
         // they reach a tool spec; jsonSchema() is what the SDK will accept.
         inputSchema: jsonSchema(spec.inputSchema),
         execute: async (input: unknown) => {

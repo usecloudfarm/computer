@@ -1,9 +1,9 @@
 import type { z } from "zod";
-import { Bm25CapabilityIndex, type CapabilityIndex } from "./search.js";
+import { Bm25ActionIndex, type ActionIndex } from "./search.js";
 import { NamespaceConflictError, UnknownRefError } from "./errors.js";
 import { renderSignature } from "./typegen.js";
-import type { App, CapabilityDefinition } from "./ports.js";
-import type { CapabilitySummary, SideEffects } from "./schemas.js";
+import type { App, ActionDefinition } from "./ports.js";
+import type { ActionSummary, SideEffects } from "./schemas.js";
 
 /** Namespaces the runtime owns; an app claiming one is a construction-time error. */
 export const RESERVED_NAMESPACES = new Set([
@@ -21,20 +21,20 @@ export interface RegistryEntry {
   readonly namespace: string;
   readonly member: string;
   readonly app: App;
-  readonly capability: CapabilityDefinition;
+  readonly action: ActionDefinition;
 }
 
 /**
- * Every capability the workspace can reach, indexed once at construction.
+ * Every action the workspace can reach, indexed once at construction.
  *
  * Building this synchronously and without network matters: a Worker builds a
- * registry per request, so `App.capabilities()` is required to be static.
+ * registry per request, so `App.actions()` is required to be static.
  */
-export class CapabilityRegistry {
+export class ActionRegistry {
   readonly #entries = new Map<string, RegistryEntry>();
-  readonly #index: CapabilityIndex;
+  readonly #index: ActionIndex;
 
-  constructor(apps: readonly App[], index: CapabilityIndex = new Bm25CapabilityIndex()) {
+  constructor(apps: readonly App[], index: ActionIndex = new Bm25ActionIndex()) {
     this.#index = index;
     const seen = new Set<string>();
 
@@ -43,16 +43,16 @@ export class CapabilityRegistry {
       if (seen.has(app.id)) throw new NamespaceConflictError(app.id);
       seen.add(app.id);
 
-      const indexed = app.capabilities().map((capability) => {
-        const ref = `${app.id}.${capability.name}`;
+      const indexed = app.actions().map((action) => {
+        const ref = `${app.id}.${action.name}`;
         this.#entries.set(ref, {
           ref,
           namespace: app.id,
-          member: capability.name,
+          member: action.name,
           app,
-          capability,
+          action,
         });
-        return { ref, definition: capability, appId: app.id };
+        return { ref, definition: action, appId: app.id };
       });
       this.#index.add(indexed);
     }
@@ -98,20 +98,20 @@ export function summarize(
   entry: RegistryEntry,
   score: number,
   authenticated: boolean,
-): CapabilitySummary {
+): ActionSummary {
   return {
     ref: entry.ref,
     app: { id: entry.app.id, name: entry.app.name },
-    summary: entry.capability.summary,
-    signature: renderSignature(entry.capability),
-    example: entry.capability.example,
-    sideEffects: entry.capability.sideEffects as SideEffects,
+    summary: entry.action.summary,
+    signature: renderSignature(entry.action),
+    example: entry.action.example,
+    sideEffects: entry.action.sideEffects as SideEffects,
     auth: authenticated ? "authenticated" : "needs_auth",
     score: Number(score.toFixed(4)),
   };
 }
 
-/** Validates against the capability's own Zod schema. Host-side only, always. */
+/** Validates against the action's own Zod schema. Host-side only, always. */
 export function parseInput<T>(
   schema: z.ZodType<T>,
   args: unknown,

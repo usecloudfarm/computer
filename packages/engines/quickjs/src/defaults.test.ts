@@ -38,11 +38,11 @@ describe("Computer defaults", () => {
           description: "A demo app.",
           allowedHosts: [],
           authorize: (request) => request,
-          capabilities: () => [],
+          actions: () => [],
         },
       ],
     }).createWorkspace("u");
-    // An app with no capabilities still leaves the registry empty.
+    // An app with no actions still leaves the registry empty.
     expect(withApp.toolSpecs().map((spec) => spec.name)).not.toContain("code");
   });
 

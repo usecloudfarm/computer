@@ -3,7 +3,7 @@
 **Computer** — a fast computer with the right tools for every agent.
 
 A Computer gives an agent a workspace: a filesystem for its state, a shell,
-apps as plugins, and _code mode_ — where the agent searches for a capability,
+apps as plugins, and _code mode_ — where the agent searches for an action,
 gets typed signatures back, and writes code that runs in an isolate.
 
 ```ts
@@ -51,13 +51,13 @@ import, which only your own bundler can do.
 An agent with ten apps installed does not get a hundred tools. It gets **six**,
 and the list does not grow:
 
-| tool                               | what it does                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| `search`                           | find capabilities by intent; returns signatures, examples and a scoped `.d.ts` |
-| `code`                             | run JavaScript that calls several capabilities in one go                       |
-| `run`                              | call one capability directly — cheaper and auditable                           |
-| `bash`                             | run a shell command in the workspace                                           |
-| `fs_read` / `fs_write` / `fs_list` | the workspace filesystem                                                       |
+| tool                               | what it does                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `search`                           | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
+| `code`                             | run JavaScript that calls several actions in one go                       |
+| `run`                              | call one action directly — cheaper and auditable                          |
+| `bash`                             | run a shell command in the workspace                                      |
+| `fs_read` / `fs_write` / `fs_list` | the workspace filesystem                                                  |
 
 Adding an app adds zero tokens to the system prompt. The model finds what it
 needs, then writes a script:
@@ -86,7 +86,7 @@ nothing — so a typo on line three never lands two real side effects first:
 
 ```
 status      invalid
-line 3      No capability named "slack.sendMesage". Did you mean: slack.sendMessage?
+line 3      No action named "slack.sendMesage". Did you mean: slack.sendMessage?
 calls made  0
 ```
 
@@ -113,7 +113,7 @@ pnpm build
 pnpm --filter @cloudfarm/example-node-agent demo   # runs offline, no keys
 ```
 
-The demo walks through the filesystem, the shell, capability search, code mode
+The demo walks through the filesystem, the shell, action search, code mode
 chaining several calls, and a runaway loop being stopped at its deadline.
 
 To watch a real model drive it:
@@ -131,13 +131,13 @@ call is printed as it happens, so you can see which it reaches for.
 ## Design notes
 
 **Zod defines the data.** Every value that crosses a boundary is a Zod schema
-with its TypeScript type inferred from it, and app authors write capability
+with its TypeScript type inferred from it, and app authors write action
 schemas the same way. One definition does three jobs: it validates the model's
 arguments host-side, it generates the JSON Schema a tool definition needs, and
 it renders the TypeScript the model writes against.
 
 **Credentials are unreachable, not merely hidden.** An app applies its token in
-`authorize()`; capability handlers get an already-authorised `fetch` and never
+`authorize()`; action handlers get an already-authorised `fetch` and never
 see a value. Generated code is further removed — the isolate's only authority
 is one host function, so there is no object graph connecting guest memory to a
 token. On top of that, every model-facing value passes a redactor, and each app

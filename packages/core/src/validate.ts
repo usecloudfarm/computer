@@ -1,5 +1,5 @@
 import { UnknownRefError } from "./errors.js";
-import type { CapabilityRegistry } from "./registry.js";
+import type { ActionRegistry } from "./registry.js";
 import type { Diagnostic } from "./schemas.js";
 
 /**
@@ -17,7 +17,7 @@ import type { Diagnostic } from "./schemas.js";
  */
 export interface ValidationInput {
   readonly source: string;
-  readonly registry: CapabilityRegistry;
+  readonly registry: ActionRegistry;
   /** Built-in refs that are not in the registry: `bash`, `fs.read`, … */
   readonly builtins: ReadonlySet<string>;
 }
@@ -38,17 +38,17 @@ const FORBIDDEN: ReadonlyArray<{
   {
     pattern: /\b(?:import|export)\s/,
     message: "Modules are not available in code mode.",
-    hint: "Every capability is already in scope through `run`.",
+    hint: "Every action is already in scope through `run`.",
   },
   {
     pattern: /\brequire\s*\(/,
     message: "`require` is not available in code mode.",
-    hint: "Every capability is already in scope through `run`.",
+    hint: "Every action is already in scope through `run`.",
   },
   {
     pattern: /\bfetch\s*\(/,
     message: "There is no network access in code mode.",
-    hint: 'Use a capability, or `run("bash", { cmd })` if a sandbox is configured.',
+    hint: 'Use an action, or `run("bash", { cmd })` if a sandbox is configured.',
   },
 ];
 
@@ -86,7 +86,7 @@ export function validateSource(input: ValidationInput): Diagnostic[] {
       }
       diagnostics.push({
         code: "unknown_ref",
-        message: `No capability named "${ref}".`,
+        message: `No action named "${ref}".`,
         ref,
         line: lineIndex + 1,
         ...(hint !== undefined ? { hint } : { hint: "Use `search` to find the right ref." }),

@@ -3,10 +3,10 @@ import { z } from "zod";
 import { Computer } from "./computer.js";
 import { MemoryStorage } from "./vfs.js";
 import { fakeApp, fakeSandbox } from "./testing.js";
-import type { App, CapabilityDefinition } from "./ports.js";
+import type { App, ActionDefinition } from "./ports.js";
 
 function slackish(calls: Array<{ input: unknown }> = []): App {
-  const sendMessage: CapabilityDefinition<{ channel: string; text: string }, { ts: string }> = {
+  const sendMessage: ActionDefinition<{ channel: string; text: string }, { ts: string }> = {
     name: "sendMessage",
     summary: "Post a message to a channel or DM.",
     useCases: ["send a message", "notify a channel"],
@@ -27,7 +27,7 @@ function slackish(calls: Array<{ input: unknown }> = []): App {
     name: "Slack",
     description: "Team messaging.",
     allowedHosts: ["slack.com"],
-    capabilities: () => [sendMessage],
+    actions: () => [sendMessage],
     authorize: (request) => request,
   };
 }
@@ -59,7 +59,7 @@ describe("Computer", () => {
 
     const result = await computer.search("send a message");
 
-    expect(result.capabilities[0]?.ref).toBe("slack.sendMessage");
+    expect(result.actions[0]?.ref).toBe("slack.sendMessage");
     expect(computer.getWorkspace("default")).toBeDefined();
   });
 
@@ -74,7 +74,7 @@ describe("Computer", () => {
 });
 
 describe("Workspace.run", () => {
-  it("dispatches to an app capability and validates input", async () => {
+  it("dispatches to an app action and validates input", async () => {
     const calls: Array<{ input: unknown }> = [];
     const computer = new Computer({ apps: [slackish(calls)] });
     const workspace = await computer.createWorkspace("u1");
@@ -85,7 +85,7 @@ describe("Workspace.run", () => {
     expect(calls[0]?.input).toEqual({ channel: "#general", text: "hi" });
   });
 
-  it("rejects arguments that fail the capability's zod schema", async () => {
+  it("rejects arguments that fail the action's zod schema", async () => {
     const computer = new Computer({ apps: [slackish()] });
     const workspace = await computer.createWorkspace("u1");
 
@@ -164,7 +164,7 @@ function fetcher(): App {
     description: "Fetches a url.",
     allowedHosts: ["good.example"],
     authorize: (request) => request,
-    capabilities: () => [
+    actions: () => [
       {
         name: "get",
         summary: "Fetch a url.",
@@ -198,7 +198,7 @@ describe("egress guard", () => {
     );
   });
 
-  it("names the capability when a handler fails for any other reason", async () => {
+  it("names the action when a handler fails for any other reason", async () => {
     const workspace = await new Computer({ apps: [fetcher()] }).createWorkspace("u1");
 
     expect(await workspace.run("fetcher.get", { url: "not-a-url" })).toMatchObject({
@@ -298,9 +298,9 @@ describe("Workspace.search", () => {
   it("returns a signature, an example and generated types", async () => {
     const workspace = await new Computer({ apps: [slackish()] }).createWorkspace("u");
 
-    const { capabilities, types } = await workspace.search("notify the team");
+    const { actions, types } = await workspace.search("notify the team");
 
-    expect(capabilities[0]).toMatchObject({
+    expect(actions[0]).toMatchObject({
       ref: "slack.sendMessage",
       sideEffects: "write",
       signature: expect.stringContaining("sendMessage(input:"),

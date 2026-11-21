@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { renderDeclarations, renderSignature, renderType, toJsonSchema } from "./typegen.js";
-import type { CapabilityDefinition } from "./ports.js";
+import type { ActionDefinition } from "./ports.js";
 
-const sendMessage: CapabilityDefinition = {
+const sendMessage: ActionDefinition = {
   name: "sendMessage",
   summary: "Post a message to a channel or DM.",
   useCases: ["send a message"],
@@ -69,11 +69,11 @@ describe("renderDeclarations", () => {
     appId: "slack",
     appName: "Slack",
     appDescription: "Team messaging.",
-    capability: sendMessage,
+    action: sendMessage,
     authenticated: true,
   };
 
-  it("emits a run() overload per capability, keyed by ref", () => {
+  it("emits a run() overload per action, keyed by ref", () => {
     const declarations = renderDeclarations([entry]);
 
     expect(declarations).toContain('declare function run(ref: "slack.sendMessage", input: {');
@@ -92,7 +92,7 @@ describe("renderDeclarations", () => {
     expect(renderDeclarations([entry])).toContain("no `await`");
   });
 
-  it("flags capabilities that still need credentials", () => {
+  it("flags actions that still need credentials", () => {
     expect(renderDeclarations([{ ...entry, authenticated: false }])).toContain(
       "@auth needs credentials",
     );

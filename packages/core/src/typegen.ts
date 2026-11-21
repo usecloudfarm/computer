@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CapabilityDefinition } from "./ports.js";
+import type { ActionDefinition } from "./ports.js";
 
 /**
  * Zod schemas rendered as TypeScript, for the model to read.
@@ -82,22 +82,22 @@ export function renderType(schema: JsonSchema, indent = 0): string {
 /**
  * `sendMessage(input: { channel: string; text: string }): { ts: string }`
  *
- * Note the absence of `Promise`. Capabilities are synchronous inside code
+ * Note the absence of `Promise`. Actions are synchronous inside code
  * mode — the isolate suspends its whole stack across a host call — and the
  * signature has to say so, or the model writes `await` and hits a syntax
  * error.
  */
-export function renderSignature(capability: CapabilityDefinition): string {
-  const input = renderType(toJsonSchema(capability.input)).replace(/\n\s*/g, " ");
-  const output = renderType(toJsonSchema(capability.output)).replace(/\n\s*/g, " ");
-  return `${capability.name}(input: ${input}): ${output}`;
+export function renderSignature(action: ActionDefinition): string {
+  const input = renderType(toJsonSchema(action.input)).replace(/\n\s*/g, " ");
+  const output = renderType(toJsonSchema(action.output)).replace(/\n\s*/g, " ");
+  return `${action.name}(input: ${input}): ${output}`;
 }
 
 export interface DeclarationEntry {
   readonly appId: string;
   readonly appName: string;
   readonly appDescription: string;
-  readonly capability: CapabilityDefinition;
+  readonly action: ActionDefinition;
   readonly authenticated: boolean;
 }
 
@@ -112,20 +112,19 @@ export interface DeclarationEntry {
 export function renderDeclarations(entries: readonly DeclarationEntry[]): string {
   const overloads = [...entries]
     .toSorted(
-      (a, b) =>
-        a.appId.localeCompare(b.appId) || a.capability.name.localeCompare(b.capability.name),
+      (a, b) => a.appId.localeCompare(b.appId) || a.action.name.localeCompare(b.action.name),
     )
     .map((entry) => {
-      const { capability } = entry;
-      const ref = `${entry.appId}.${capability.name}`;
-      const input = renderType(toJsonSchema(capability.input), 0);
-      const output = renderType(toJsonSchema(capability.output), 0);
+      const { action } = entry;
+      const ref = `${entry.appId}.${action.name}`;
+      const input = renderType(toJsonSchema(action.input), 0);
+      const output = renderType(toJsonSchema(action.output), 0);
       const docs = [
         `/**`,
-        ` * ${capability.summary} (${entry.appName})`,
-        ` * @sideEffects ${capability.sideEffects}`,
+        ` * ${action.summary} (${entry.appName})`,
+        ` * @sideEffects ${action.sideEffects}`,
         entry.authenticated ? null : ` * @auth needs credentials`,
-        ` * @example ${capability.example}`,
+        ` * @example ${action.example}`,
         ` */`,
       ]
         .filter((line): line is string => line !== null)

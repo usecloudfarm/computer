@@ -1,18 +1,18 @@
-import type { CapabilityDefinition } from "./ports.js";
+import type { ActionDefinition } from "./ports.js";
 
 /**
- * Capability search, BM25 over four fields.
+ * Action search, BM25 over four fields.
  *
  * Deliberately lexical rather than embedding-based: a library whose pitch is
  * "bring your own agent" should not force a model dependency on its consumers,
- * and at the scale that matters here — tens to a few hundred capabilities —
+ * and at the scale that matters here — tens to a few hundred actions —
  * BM25 over author-written `useCases` beats a generic embedding anyway. It is
  * also deterministic, which makes ranking testable.
  */
 
-export interface IndexedCapability {
+export interface IndexedAction {
   readonly ref: string;
-  readonly definition: CapabilityDefinition;
+  readonly definition: ActionDefinition;
   readonly appId: string;
 }
 
@@ -21,12 +21,12 @@ export interface SearchHit {
   readonly score: number;
 }
 
-export interface CapabilityIndex {
-  add(entries: readonly IndexedCapability[]): void;
+export interface ActionIndex {
+  add(entries: readonly IndexedAction[]): void;
   search(query: string, limit?: number): SearchHit[];
 }
 
-/** Field weights: what an author wrote the capability *for* matters most. */
+/** Field weights: what an author wrote the action *for* matters most. */
 const FIELD_WEIGHTS = { useCases: 3.0, name: 2.5, summary: 1.5, keywords: 1.0 } as const;
 const K1 = 1.2;
 const B = 0.75;
@@ -130,12 +130,12 @@ interface Document {
   readonly length: number;
 }
 
-export class Bm25CapabilityIndex implements CapabilityIndex {
+export class Bm25ActionIndex implements ActionIndex {
   #documents: Document[] = [];
   #averageLength = 0;
   readonly #documentFrequency = new Map<string, number>();
 
-  add(entries: readonly IndexedCapability[]): void {
+  add(entries: readonly IndexedAction[]): void {
     for (const entry of entries) {
       const fields = {
         useCases: entry.definition.useCases.flatMap(tokenize),

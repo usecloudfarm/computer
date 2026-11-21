@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { Bm25CapabilityIndex, tokenize } from "./search.js";
-import type { CapabilityDefinition } from "./ports.js";
+import { Bm25ActionIndex, tokenize } from "./search.js";
+import type { ActionDefinition } from "./ports.js";
 
-function capability(
+function createAction(
   name: string,
   summary: string,
   useCases: string[],
   keywords: string[] = [],
-): CapabilityDefinition {
+): ActionDefinition {
   return {
     name,
     summary,
@@ -23,12 +23,12 @@ function capability(
 }
 
 function index() {
-  const built = new Bm25CapabilityIndex();
+  const built = new Bm25ActionIndex();
   built.add([
     {
       ref: "slack.sendMessage",
       appId: "slack",
-      definition: capability("sendMessage", "Post a message to a channel or DM.", [
+      definition: createAction("sendMessage", "Post a message to a channel or DM.", [
         "send a message",
         "notify a channel",
         "post an update",
@@ -37,7 +37,7 @@ function index() {
     {
       ref: "slack.listChannels",
       appId: "slack",
-      definition: capability("listChannels", "List channels you can post to.", [
+      definition: createAction("listChannels", "List channels you can post to.", [
         "list channels",
         "find a channel",
       ]),
@@ -45,7 +45,7 @@ function index() {
     {
       ref: "gmail.sendEmail",
       appId: "gmail",
-      definition: capability("sendEmail", "Send an email to one or more recipients.", [
+      definition: createAction("sendEmail", "Send an email to one or more recipients.", [
         "send an email",
         "email someone",
       ]),
@@ -53,7 +53,7 @@ function index() {
     {
       ref: "github.createIssue",
       appId: "github",
-      definition: capability("createIssue", "Open an issue on a repository.", [
+      definition: createAction("createIssue", "Open an issue on a repository.", [
         "file a bug",
         "create an issue",
       ]),
@@ -72,8 +72,8 @@ describe("tokenize", () => {
   });
 });
 
-describe("Bm25CapabilityIndex", () => {
-  it("ranks the intended capability first", () => {
+describe("Bm25ActionIndex", () => {
+  it("ranks the intended action first", () => {
     expect(index().search("send a message to the team")[0]?.ref).toBe("slack.sendMessage");
   });
 
@@ -81,7 +81,7 @@ describe("Bm25CapabilityIndex", () => {
     expect(index().search("email the report to finance")[0]?.ref).toBe("gmail.sendEmail");
   });
 
-  it("matches on the capability name itself, split on camelCase", () => {
+  it("matches on the action name itself, split on camelCase", () => {
     expect(index().search("createIssue")[0]?.ref).toBe("github.createIssue");
   });
 

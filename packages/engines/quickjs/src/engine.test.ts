@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { Computer } from "@cloudfarm/core";
-import type { App, CapabilityDefinition } from "@cloudfarm/core";
+import type { App, ActionDefinition } from "@cloudfarm/core";
 import { quickjs } from "./node.js";
 
 function app(calls: unknown[] = []): App {
-  const sendMessage: CapabilityDefinition<{ channel: string; text: string }, { ts: string }> = {
+  const sendMessage: ActionDefinition<{ channel: string; text: string }, { ts: string }> = {
     name: "sendMessage",
     summary: "Post a message to a channel.",
     useCases: ["send a message"],
@@ -18,7 +18,7 @@ function app(calls: unknown[] = []): App {
       return { ts: `ts-${calls.length}` };
     },
   };
-  const listChannels: CapabilityDefinition<Record<string, never>, { channels: string[] }> = {
+  const listChannels: ActionDefinition<Record<string, never>, { channels: string[] }> = {
     name: "listChannels",
     summary: "List channels.",
     useCases: ["list channels"],
@@ -33,7 +33,7 @@ function app(calls: unknown[] = []): App {
     name: "Slack",
     description: "Team messaging.",
     allowedHosts: ["slack.com"],
-    capabilities: () => [sendMessage, listChannels],
+    actions: () => [sendMessage, listChannels],
     authorize: (request) => request,
   };
 }
@@ -60,7 +60,7 @@ describe("QuickJSEngine", () => {
     expect(result).toMatchObject({ outcome: "ok", value: 42 });
   });
 
-  it("calls a capability through the bridge", async () => {
+  it("calls an action through the bridge", async () => {
     const calls: unknown[] = [];
     const ws = await workspace({ calls });
 
@@ -73,7 +73,7 @@ describe("QuickJSEngine", () => {
     expect(calls).toEqual([{ channel: "#general", text: "hello" }]);
   });
 
-  it("chains several capabilities in one run — the point of code mode", async () => {
+  it("chains several actions in one run — the point of code mode", async () => {
     const calls: unknown[] = [];
     const ws = await workspace({ calls });
 
@@ -89,7 +89,7 @@ describe("QuickJSEngine", () => {
     expect(result.value).toBe(2);
     expect(calls).toHaveLength(2);
     // Every call is recorded, in order: the audit trail.
-    expect(result.calls.map((call) => call.capability)).toEqual([
+    expect(result.calls.map((call) => call.action)).toEqual([
       "slack.listChannels",
       "slack.sendMessage",
       "slack.sendMessage",
@@ -244,7 +244,7 @@ describe("QuickJSEngine", () => {
     expect(await ws.fs.readText("/data/output.txt")).toBe("ALPHA\nBETA\nGAMMA\n");
   });
 
-  it("rejects a run() for a capability that does not exist, without executing", async () => {
+  it("rejects a run() for an action that does not exist, without executing", async () => {
     const calls: unknown[] = [];
     const ws = await workspace({ calls });
 

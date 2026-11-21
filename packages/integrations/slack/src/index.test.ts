@@ -28,20 +28,20 @@ describe("Slack", () => {
     expect(() => new Slack({ apiKey: "" })).toThrow(/needs an apiKey/);
   });
 
-  it("exposes four capabilities with use cases for search", () => {
-    const capabilities = slack({ apiKey: "x" }).capabilities();
+  it("exposes four actions with use cases for search", () => {
+    const actions = slack({ apiKey: "x" }).actions();
 
-    expect(capabilities.map((capability) => capability.name)).toEqual([
+    expect(actions.map((action) => action.name)).toEqual([
       "sendMessage",
       "listChannels",
       "searchMessages",
       "getThread",
     ]);
-    for (const capability of capabilities) {
-      expect(capability.useCases.length).toBeGreaterThan(0);
-      expect(capability.example).toContain('run("slack.');
+    for (const action of actions) {
+      expect(action.useCases.length).toBeGreaterThan(0);
+      expect(action.example).toContain('run("slack.');
       // Code mode is synchronous; examples must not teach `await`.
-      expect(capability.example).not.toContain("await");
+      expect(action.example).not.toContain("await");
     }
   });
 
@@ -132,9 +132,9 @@ describe("Slack", () => {
   it("is discoverable by intent", async () => {
     const ws = await workspace();
 
-    const { capabilities, types } = await ws.search("notify the team about a deploy");
+    const { actions, types } = await ws.search("notify the team about a deploy");
 
-    expect(capabilities[0]?.ref).toBe("slack.sendMessage");
+    expect(actions[0]?.ref).toBe("slack.sendMessage");
     expect(types).toContain('declare function run(ref: "slack.sendMessage"');
     expect(types).toContain("no `await`");
   });

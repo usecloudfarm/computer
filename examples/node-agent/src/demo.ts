@@ -1,7 +1,7 @@
 /**
  * A runnable walkthrough of everything a Computer gives an agent: a
- * filesystem, a shell, capability search, and code mode calling several
- * capabilities in one go.
+ * filesystem, a shell, action search, and code mode calling several
+ * actions in one go.
  *
  * No API keys needed — the Slack app is pointed at a local stub so the whole
  * thing runs offline.
@@ -56,10 +56,10 @@ heading("3. a shell over the same files");
 const shell = await workspace.exec("ls -la /notes && wc -l < /notes/todo.md");
 console.log(shell.stdout.trim());
 
-heading("4. capability search");
+heading("4. action search");
 const found = await workspace.search("tell the team about the release");
-for (const capability of found.capabilities.slice(0, 3)) {
-  console.log(`  ${capability.ref.padEnd(22)} ${capability.summary}`);
+for (const action of found.actions.slice(0, 3)) {
+  console.log(`  ${action.ref.padEnd(22)} ${action.summary}`);
 }
 console.log("\n  the types handed to the model:\n");
 console.log(
@@ -69,7 +69,7 @@ console.log(
     .join("\n"),
 );
 
-heading("5. code mode: several capabilities in one run");
+heading("5. code mode: several actions in one run");
 const result = await workspace.code(`
   const listed = run("slack.listChannels", { limit: 10 });
   if (listed.status === "error") return { failed: listed.error.code };
@@ -91,7 +91,7 @@ console.log(`  outcome  ${result.outcome}`);
 console.log(`  value    ${JSON.stringify(result.value)}`);
 console.log(`  logs     ${result.logs}`);
 if (result.error) console.log(`  error    ${result.error.name}: ${result.error.message}`);
-console.log(`  calls    ${result.calls.map((call) => call.capability).join(" → ")}`);
+console.log(`  calls    ${result.calls.map((call) => call.action).join(" → ")}`);
 
 heading("6. bad code is rejected before anything runs");
 const rejected = await workspace.code(`

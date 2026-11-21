@@ -6,7 +6,7 @@ import {
   type QuickJSHandle,
 } from "quickjs-emscripten-core";
 import { finishResult, Redactor } from "@cloudfarm/core";
-import type { CodeEngine, CodeJob, HostBridge, CapabilityBridge } from "@cloudfarm/core";
+import type { CodeEngine, CodeJob, HostBridge, ActionBridge } from "@cloudfarm/core";
 import type { CodeResult, Diagnostic, Json } from "@cloudfarm/core";
 
 /** Anything that resolves to a QuickJS async module: a variant, or a loader. */
@@ -25,7 +25,7 @@ export type VariantLoader = () => Promise<QuickJSAsyncWASMModule>;
  *    interrupt handler stops a `while (true)` within milliseconds of the
  *    deadline.
  * 3. **Host calls are local.** Generated code is glue: a script making a dozen
- *    capability calls would pay a dozen network round trips on a remote
+ *    action calls would pay a dozen network round trips on a remote
  *    sandbox, which is exactly the cost code mode exists to avoid.
  *
  * The guest gets no ambient authority at all — no fetch, no filesystem, no
@@ -37,7 +37,7 @@ export class QuickJSEngine implements CodeEngine {
   readonly id = "quickjs";
   readonly description =
     "Runs JavaScript (ES2023) in a WebAssembly isolate with no network or filesystem access. " +
-    "Capabilities are in scope as objects; everything else is unavailable.";
+    "Actions are in scope as objects; everything else is unavailable.";
   readonly capabilities = {
     asyncHostCalls: true,
     interruptible: true,
@@ -119,7 +119,7 @@ export class QuickJSEngine implements CodeEngine {
 
     // Two clocks. The interrupt handler covers guest CPU, but it cannot fire
     // while the stack is unwound inside a host call, so a wall-clock timer
-    // covers that half. Without both, a hung capability is unkillable.
+    // covers that half. Without both, a hung action is unkillable.
     const cpuDeadline = Date.now() + job.limits.cpuTimeoutMs;
     let wallClockExpired = false;
     const wallClock = setTimeout(() => {
@@ -165,7 +165,7 @@ export class QuickJSEngine implements CodeEngine {
       return finishResult({
         outcome: "ok",
         ...(value !== undefined ? { value } : {}),
-        bridge: bridge as CapabilityBridge,
+        bridge: bridge as ActionBridge,
         durationMs: Date.now() - started,
         redactor,
         extraLimits: [...extraLimits],
@@ -224,11 +224,11 @@ export class QuickJSEngine implements CodeEngine {
           ? {
               name: "SyntaxError",
               message:
-                `${error.message}. Capabilities in code mode are synchronous: ` +
+                `${error.message}. Actions in code mode are synchronous: ` +
                 "write `const result = slack.sendMessage({...})` with no `await`.",
             }
           : error,
-      bridge: bridge as CapabilityBridge,
+      bridge: bridge as ActionBridge,
       durationMs: Date.now() - started,
       redactor,
       extraLimits: [...extraLimits],
@@ -253,13 +253,13 @@ function installHostBridge(
 
   const host = context.newAsyncifiedFunction(
     "__host_raw",
-    async (capabilityHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
-      const capability = context.getString(capabilityHandle);
+    async (actionHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
+      const action = context.getString(actionHandle);
       const raw = context.getString(argsHandle);
       const args = raw === "null" ? undefined : (JSON.parse(raw) as Json);
 
       const response = await bridge.call(
-        { v: 1, seq: seq++, capability, ...(args !== undefined ? { args } : {}) },
+        { v: 1, seq: seq++, action, ...(args !== undefined ? { args } : {}) },
         signal,
       );
       return context.newString(JSON.stringify(response));
@@ -272,8 +272,8 @@ function installHostBridge(
   // It is synchronous: asyncify suspends the whole wasm stack across the host
   // call, so the guest sees an ordinary function return.
   const installed = context.evalCode(`
-    globalThis.__host = (capability, input) => {
-      const response = JSON.parse(__host_raw(capability, JSON.stringify(input ?? null)));
+    globalThis.__host = (action, input) => {
+      const response = JSON.parse(__host_raw(action, JSON.stringify(input ?? null)));
       // A completed host call already carries the { status, value | error }
       // envelope. A failed frame — a limit, a cancellation — is wrapped in the
       // same shape, so guest code only ever checks one thing.

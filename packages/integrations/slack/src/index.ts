@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { capability, createApp } from "@cloudfarm/core";
-import type { App, CapabilityContext } from "@cloudfarm/core";
+import { createAction, createApp } from "@cloudfarm/core";
+import type { App, ActionContext } from "@cloudfarm/core";
 
 export interface SlackOptions {
   /**
    * A Slack bot or user token (`xoxb-…`). It is captured in the closure that
-   * `authorize()` closes over; it is never passed to a capability handler, put
+   * `authorize()` closes over; it is never passed to an action handler, put
    * in a result, or reachable from code mode.
    */
   readonly apiKey: string;
@@ -22,7 +22,7 @@ const BASE = "https://slack.com/api";
 /**
  * Slack as an app plugin.
  *
- * Every capability declares its own Zod schemas, which do four jobs at once:
+ * Every action declares its own Zod schemas, which do four jobs at once:
  * they validate the model's arguments before anything runs, they type the
  * handler, they generate the JSON Schema a tool definition needs, and they
  * render the TypeScript the model writes against in code mode.
@@ -47,8 +47,8 @@ export function slack(options: SlackOptions): App {
       authorized.headers.set("authorization", `Bearer ${apiKey}`);
       return authorized;
     },
-    capabilities: {
-      sendMessage: capability({
+    actions: {
+      sendMessage: createAction({
         summary: "Post a message to a channel or DM.",
         useCases: [
           "send a message",
@@ -79,7 +79,7 @@ export function slack(options: SlackOptions): App {
         },
       }),
 
-      listChannels: capability({
+      listChannels: createAction({
         summary: "List channels the token can see.",
         useCases: ["list channels", "find a channel", "what channels exist"],
         sideEffects: "read",
@@ -112,7 +112,7 @@ export function slack(options: SlackOptions): App {
         },
       }),
 
-      searchMessages: capability({
+      searchMessages: createAction({
         summary: "Search message history by text.",
         useCases: ["search messages", "find a conversation", "what was said about"],
         sideEffects: "read",
@@ -151,7 +151,7 @@ export function slack(options: SlackOptions): App {
         },
       }),
 
-      getThread: capability({
+      getThread: createAction({
         summary: "Fetch every reply in a message thread.",
         useCases: ["read a thread", "get replies", "catch up on a conversation"],
         sideEffects: "read",
@@ -209,19 +209,19 @@ export class Slack implements App {
   authorize(request: Request): Request {
     return this.#app.authorize(request);
   }
-  capabilities() {
-    return this.#app.capabilities();
+  actions() {
+    return this.#app.actions();
   }
 }
 
 // --- transport --------------------------------------------------------------
 
-async function get(context: CapabilityContext, url: URL): Promise<Record<string, unknown>> {
+async function get(context: ActionContext, url: URL): Promise<Record<string, unknown>> {
   return unwrap(await context.fetch(url, { method: "GET" }));
 }
 
 async function post(
-  context: CapabilityContext,
+  context: ActionContext,
   url: string,
   payload: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {

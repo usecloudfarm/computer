@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type {
   App,
-  CapabilityDefinition,
+  ActionDefinition,
   ComputerHost,
   ExecHandle,
   Sandbox,
@@ -15,18 +15,18 @@ export interface FakeAppOptions {
   id?: string;
   name?: string;
   description?: string;
-  capabilities?: readonly CapabilityDefinition[];
+  actions?: readonly ActionDefinition[];
 }
 
 export function fakeApp(
   options: FakeAppOptions = {},
 ): App & { calls: Array<{ name: string; input: unknown }> } {
   const calls: Array<{ name: string; input: unknown }> = [];
-  const defaults: CapabilityDefinition[] = [
+  const defaults: ActionDefinition[] = [
     {
       name: "echo",
       summary: "Echo a message back.",
-      useCases: ["echo a message", "test a capability"],
+      useCases: ["echo a message", "test an action"],
       input: z.object({ text: z.string().describe("Anything at all.") }),
       output: z.object({ text: z.string() }),
       example: 'fake.echo({ text: "hi" })',
@@ -43,7 +43,7 @@ export function fakeApp(
     name: options.name ?? "Fake",
     description: options.description ?? "A test double app.",
     allowedHosts: ["example.test"],
-    capabilities: () => options.capabilities ?? defaults,
+    actions: () => options.actions ?? defaults,
     authorize: (request) => request,
     calls,
   };

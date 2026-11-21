@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { CapabilityRegistry } from "./registry.js";
+import { ActionRegistry } from "./registry.js";
 import { validateSource } from "./validate.js";
 import type { App } from "./ports.js";
 
@@ -10,7 +10,7 @@ const app: App = {
   description: "Team messaging.",
   allowedHosts: ["slack.com"],
   authorize: (request) => request,
-  capabilities: () => [
+  actions: () => [
     {
       name: "sendMessage",
       summary: "Post a message.",
@@ -26,7 +26,7 @@ const app: App = {
 
 const builtins = new Set(["bash", "fs.read", "fs.write"]);
 const check = (source: string) =>
-  validateSource({ source, registry: new CapabilityRegistry([app]), builtins });
+  validateSource({ source, registry: new ActionRegistry([app]), builtins });
 
 describe("validateSource", () => {
   it("passes code that only calls known refs", () => {
@@ -45,7 +45,7 @@ describe("validateSource", () => {
     expect(diagnostic).toMatchObject({
       code: "unknown_ref",
       ref: "slack.sendMesage",
-      message: 'No capability named "slack.sendMesage".',
+      message: 'No action named "slack.sendMesage".',
       hint: expect.stringContaining("slack.sendMessage"),
       line: 1,
     });

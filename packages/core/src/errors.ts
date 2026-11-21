@@ -44,8 +44,8 @@ export class NamespaceConflictError extends CloudfarmError {
   }
 }
 
-export class CapabilityFailedError extends CloudfarmError {
-  override name = "CapabilityFailedError";
+export class ActionFailedError extends CloudfarmError {
+  override name = "ActionFailedError";
   constructor(
     readonly ref: string,
     message: string,
@@ -55,7 +55,7 @@ export class CapabilityFailedError extends CloudfarmError {
   }
 }
 
-/** A capability the workspace reached but which refused the call. */
+/** An action the workspace reached but which refused the call. */
 export class UnauthorizedError extends CloudfarmError {
   override name = "UnauthorizedError";
   constructor(
@@ -100,7 +100,7 @@ export function classifyError(error: unknown): {
       hint: "The app only reaches hosts it declares; a url from the task cannot redirect it.",
     };
   }
-  if (error instanceof CapabilityFailedError) {
+  if (error instanceof ActionFailedError) {
     // The upstream service answered, badly. Worth retrying, unlike a typo.
     return { code: "upstream_error", retryable: true };
   }

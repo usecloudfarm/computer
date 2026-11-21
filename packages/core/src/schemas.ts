@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Every value that crosses a boundary — into a capability handler, out to a
+ * Every value that crosses a boundary — into an action handler, out to a
  * model, through the code-mode bridge — is defined here as a Zod schema, with
  * the TypeScript type inferred from it. One definition, used for both static
  * types and runtime validation.
@@ -156,7 +156,7 @@ export function failed(error: RunError): RunResult {
   return { status: "error", error };
 }
 
-// --- capabilities -----------------------------------------------------------
+// --- actions -----------------------------------------------------------
 
 export const SideEffects = z.enum(["read", "write", "destructive"]);
 export type SideEffects = z.infer<typeof SideEffects>;
@@ -165,7 +165,7 @@ export const AuthStatus = z.enum(["authenticated", "needs_auth", "not_required"]
 export type AuthStatus = z.infer<typeof AuthStatus>;
 
 /** What `search()` hands back: enough to write a correct call on the first try. */
-export const CapabilitySummary = z.object({
+export const ActionSummary = z.object({
   ref: Ref,
   app: z.object({ id: z.string(), name: z.string() }),
   summary: z.string(),
@@ -177,11 +177,11 @@ export const CapabilitySummary = z.object({
   auth: AuthStatus,
   score: z.number(),
 });
-export type CapabilitySummary = z.infer<typeof CapabilitySummary>;
+export type ActionSummary = z.infer<typeof ActionSummary>;
 
 export const SearchResult = z.object({
-  capabilities: z.array(CapabilitySummary),
-  /** Ambient .d.ts covering exactly these capabilities, for the model to read. */
+  actions: z.array(ActionSummary),
+  /** Ambient .d.ts covering exactly these actions, for the model to read. */
   types: z.string(),
 });
 export type SearchResult = z.infer<typeof SearchResult>;
@@ -225,7 +225,7 @@ export type CodeLimitsInput = z.input<typeof CodeLimits>;
 
 export const HostCallError = z.object({
   code: z.enum([
-    "unknown_capability",
+    "unknown_action",
     "invalid_args",
     "not_authenticated",
     "rate_limited",
@@ -243,7 +243,7 @@ export const HostCallRequest = z.object({
   v: z.literal(1),
   /** Monotonic per run; the host rejects replays and gaps. */
   seq: z.number().int().nonnegative(),
-  capability: Ref,
+  action: Ref,
   args: Json.optional(),
 });
 export type HostCallRequest = z.infer<typeof HostCallRequest>;
@@ -267,7 +267,7 @@ export const HostCallResponse = z.union([
 export type HostCallResponse = z.infer<typeof HostCallResponse>;
 
 export const CodeCall = z.object({
-  capability: Ref,
+  action: Ref,
   ok: z.boolean(),
   durationMs: z.number().int().nonnegative(),
 });
@@ -314,7 +314,7 @@ export const ToolSpec = z.object({
   name: z.string(),
   ref: Ref,
   description: z.string(),
-  /** JSON Schema, produced from the capability's Zod schema. */
+  /** JSON Schema, produced from the action's Zod schema. */
   inputSchema: z.record(z.string(), z.unknown()),
   annotations: z
     .object({ readOnly: z.boolean().optional(), sideEffects: SideEffects.optional() })

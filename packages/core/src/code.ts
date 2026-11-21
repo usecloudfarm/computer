@@ -15,7 +15,7 @@ const encoder = new TextEncoder();
 type HostCallErrorCode = HostCallError["code"];
 
 /**
- * Code mode: the model writes a script against typed capability proxies and we
+ * Code mode: the model writes a script against typed action proxies and we
  * run it in an isolate, bridging each call back to a host-side handler.
  *
  * The point is context economy. Ten installed apps add zero tokens to the
@@ -39,7 +39,7 @@ type HostCallErrorCode = HostCallError["code"];
 /**
  * Builds the JavaScript prepended to the model's source.
  *
- * Generated code calls capabilities exactly the way the `run` tool does —
+ * Generated code calls actions exactly the way the `run` tool does —
  * `run("slack.sendMessage", { ... })` — so there is one calling convention to
  * learn instead of two, and a snippet the model works out in code mode can be
  * replayed as a single tool call without rewriting it.
@@ -57,8 +57,8 @@ const console = {
   error: (...args) => __log("error", args),
 };
 const run = (ref, input) => __host(ref, input);
-const fetch = () => { throw new Error('there is no network in code mode; use a capability or run("bash", { cmd })'); };
-const require = () => { throw new Error("require is unavailable in code mode; every capability is reachable through run()"); };
+const fetch = () => { throw new Error('there is no network in code mode; use an action or run("bash", { cmd })'); };
+const require = () => { throw new Error("require is unavailable in code mode; every action is reachable through run()"); };
 `;
 }
 
@@ -74,7 +74,7 @@ export interface BridgeOptions {
  * and — importantly — never throws: an engine gets an error frame back so the
  * guest's own `catch`/`finally` runs and partial work is still reported.
  */
-export class CapabilityBridge implements HostBridge {
+export class ActionBridge implements HostBridge {
   readonly #options: BridgeOptions;
   readonly #logs: string[] = [];
   readonly calls: CodeCall[] = [];
@@ -122,7 +122,7 @@ export class CapabilityBridge implements HostBridge {
 
     const started = Date.now();
     try {
-      const envelope = await this.#options.invoke(request.capability, request.args as Json);
+      const envelope = await this.#options.invoke(request.action, request.args as Json);
       const value = envelope as unknown as Json;
       const callFailed = envelope.status === "error";
       const serialized = JSON.stringify(value) ?? "null";
@@ -131,12 +131,12 @@ export class CapabilityBridge implements HostBridge {
       this.#totalBytes += bytes;
       if (this.#totalBytes > limits.maxTotalBytes) {
         this.limitsHit.add("maxTotalBytes");
-        this.#record(request.capability, false, started);
+        this.#record(request.action, false, started);
         return this.#fail(seq, "limit_exceeded", "total result bytes exceeded", false);
       }
       if (bytes > limits.maxResultBytes) {
         this.limitsHit.add("maxResultBytes");
-        this.#record(request.capability, true, started);
+        this.#record(request.action, true, started);
         return {
           v: 1,
           seq,
@@ -153,10 +153,10 @@ export class CapabilityBridge implements HostBridge {
 
       // The envelope carries success or failure; the frame is "ok" either way,
       // because the host call itself completed. The call trace records which.
-      this.#record(request.capability, !callFailed, started);
+      this.#record(request.action, !callFailed, started);
       return { v: 1, seq, ok: true, value: this.#options.redactor.value(value) as Json, bytes };
     } catch (error) {
-      this.#record(request.capability, false, started);
+      this.#record(request.action, false, started);
       const message = this.#options.redactor.text(
         error instanceof Error ? error.message : String(error),
       );
@@ -176,8 +176,8 @@ export class CapabilityBridge implements HostBridge {
     this.#logs.push(level === "log" ? line : `[${level}] ${line}`);
   }
 
-  #record(capability: string, ok: boolean, started: number): void {
-    const call = { capability, ok, durationMs: Date.now() - started };
+  #record(action: string, ok: boolean, started: number): void {
+    const call = { action, ok, durationMs: Date.now() - started };
     this.calls.push(call);
     this.#options.onCall?.(call);
   }
@@ -197,7 +197,7 @@ function classify(error: unknown): HostCallErrorCode {
   if (name === "InvalidArgumentsError") return "invalid_args";
   if (name === "UnauthorizedError") return "not_authenticated";
   if (name === "RateLimitedError") return "rate_limited";
-  if (name === "CapabilityFailedError") return "upstream_error";
+  if (name === "ActionFailedError") return "upstream_error";
   return "internal";
 }
 
@@ -218,7 +218,7 @@ export function finishResult(args: {
   outcome: CodeResult["outcome"];
   value?: Json;
   error?: { name: string; message: string; stack?: string };
-  bridge: CapabilityBridge;
+  bridge: ActionBridge;
   durationMs: number;
   redactor: Redactor;
   extraLimits?: readonly string[];

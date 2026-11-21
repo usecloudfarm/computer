@@ -11,7 +11,7 @@ const app: App = {
   description: "A demo app.",
   allowedHosts: ["example.test"],
   authorize: (request) => request,
-  capabilities: () => [
+  actions: () => [
     {
       name: "greet",
       summary: "Greet someone.",
@@ -70,7 +70,7 @@ describe("AISDKToolset", () => {
       inputSchema: { jsonSchema?: unknown };
     };
 
-    expect(search.description).toContain("Find capabilities");
+    expect(search.description).toContain("Find actions");
     // jsonSchema() brands the schema with a validator; the SDK rejects a bare
     // object, so the brand is what matters here. (Matching the whole branded
     // object deep-recurses on its `_type` field.)

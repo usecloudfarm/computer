@@ -17,7 +17,7 @@ packages/
 ├── sandboxes/               SandboxProvider — where bash runs
 │   ├── bash/                @cloudfarm/bash   (default: just-bash, no infrastructure)
 │   └── e2b/                 @cloudfarm/e2b    (planned)
-├── integrations/            App — third-party capabilities
+├── integrations/            App — third-party actions
 │   └── slack/               @cloudfarm/slack
 ├── engines/                 CodeEngine — where code mode executes
 │   └── quickjs/             @cloudfarm/quickjs
@@ -42,7 +42,7 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 
 1. **Pick the folder from the interface you implement.** A thing that runs
    shell commands is a `SandboxProvider`, so it goes in `packages/sandboxes/`.
-   A thing that exposes third-party capabilities is an `App` → `integrations/`.
+   A thing that exposes third-party actions is an `App` → `integrations/`.
 2. **Copy the nearest sibling.** `packages/sandboxes/bash` is the best template
    for a provider; `packages/integrations/slack` for an app. Both are small and
    already have the right config.
@@ -66,10 +66,10 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 
 ## Writing an app
 
-Use `createApp` from core, with one `capability()` per member:
+Use `createApp` from core, with one `createAction()` per member:
 
 ```ts
-import { capability, createApp } from "@cloudfarm/core";
+import { createAction, createApp } from "@cloudfarm/core";
 
 export function linear(options: { apiKey: string }) {
   return createApp({
@@ -81,8 +81,8 @@ export function linear(options: { apiKey: string }) {
       authorized.headers.set("authorization", options.apiKey);
       return authorized;
     },
-    capabilities: {
-      createIssue: capability({
+    actions: {
+      createIssue: createAction({
         summary: "Open an issue on a team's board.",
         useCases: ["file a bug", "create an issue"],   // the ranking signal
         sideEffects: "write",
@@ -100,17 +100,17 @@ export function linear(options: { apiKey: string }) {
 
 Why it is shaped this way:
 
-- **`capability()` is not optional sugar.** It is what infers the handler's
+- **`createAction()` is not optional sugar.** It is what infers the handler's
   `input` from the schema. Passing a bare object literal is rejected by the
   type system on purpose — with a record constraint TypeScript silently types
   the parameter `any`, so `input.nope.totally.made.up` would compile.
-- **The record key is the capability name**, so a ref cannot disagree with the
+- **The record key is the action name**, so a ref cannot disagree with the
   member it names, and duplicates are impossible.
 - **`example` is the input literal only** — `{ team: "ENG" }`. The
   `run("linear.createIssue", …)` wrapper is generated, so the ref in prompt
   text cannot drift. A full line is taken verbatim if you need one.
 - **Authoring mistakes throw at construction**: a non-identifier name, an app
-  with no capabilities, empty `useCases` (unreachable by search), or
+  with no actions, empty `useCases` (unreachable by search), or
   `authorize` without `allowedHosts` (how a token leaks).
 
 Hand-written `App` objects still work — `createApp` returns a plain `App` — but
@@ -144,7 +144,7 @@ SDK is ESM-only anyway.
 but nothing publishes.
 
 **Zod for data, interfaces for behaviour.** Anything that crosses a boundary —
-capability inputs and outputs, run results, wire frames — is a Zod schema in
+action inputs and outputs, run results, wire frames — is a Zod schema in
 `packages/core/src/schemas.ts` with its TypeScript type inferred from it. One
 definition validates the model's arguments, generates the JSON Schema that tool
 definitions need, and renders the TypeScript the model writes against in code
@@ -153,7 +153,7 @@ interfaces in `packages/core/src/ports.ts`; Zod has nothing useful to say about
 a method.
 
 **Descriptions are prompt text.** Every `description` field on a provider, app
-or capability ships to a language model. Editing one changes behaviour for
+or action ships to a language model. Editing one changes behaviour for
 every consumer, so treat it as API: review it like a function signature and
 expect tests to assert on it.
 
@@ -197,6 +197,6 @@ It spans `examples/` as well as `packages/`, which is what catches a core
 change that compiles in isolation but breaks a consumer.
 
 The demo is the fastest end-to-end signal: it exercises the filesystem, the
-shell, capability search, code mode chaining several calls, and a runaway loop
+shell, action search, code mode chaining several calls, and a runaway loop
 being stopped at its deadline. `examples/node-agent/src/main.ts` is the public
 API's regression test — if it stops compiling, the surface has drifted.

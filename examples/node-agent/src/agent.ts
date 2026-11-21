@@ -13,7 +13,7 @@
  */
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs } from "ai";
-import { capability, Computer, createApp } from "@cloudfarm/core";
+import { createAction, Computer, createApp } from "@cloudfarm/core";
 import { AISDKToolset } from "@cloudfarm/ai";
 import { z } from "zod";
 
@@ -36,8 +36,8 @@ const reports = createApp({
   id: "reports",
   name: "Reports",
   description: "Publishes finished reports to the team.",
-  capabilities: {
-    publish: capability({
+  actions: {
+    publish: createAction({
       summary: "Publish a report so the team can read it.",
       useCases: ["publish a report", "share results", "send the summary to the team"],
       sideEffects: "write",
