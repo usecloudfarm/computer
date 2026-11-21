@@ -39,6 +39,16 @@ async function tools(options?: ConstructorParameters<typeof AISDKToolset>[0]) {
 }
 
 describe("AISDKToolset", () => {
+  it("builds each tool with the SDK's own tool() helper", async () => {
+    const result = await tools();
+    const bash = result["bash"] as Record<string, unknown>;
+
+    // What tool() produces: no hand-rolled `type` field, a branded schema,
+    // and an execute the SDK will call.
+    expect(Object.keys(bash).sort()).toEqual(["description", "execute", "inputSchema"]);
+    expect(typeof bash["execute"]).toBe("function");
+  });
+
   it("produces an object keyed by tool name, as the AI SDK expects", async () => {
     const result = await tools();
 
@@ -57,7 +67,7 @@ describe("AISDKToolset", () => {
 
     const search = result["search"] as {
       description?: string;
-      inputSchema: { jsonSchema?: unknown; validate?: unknown };
+      inputSchema: { jsonSchema?: unknown };
     };
 
     expect(search.description).toContain("Find capabilities");

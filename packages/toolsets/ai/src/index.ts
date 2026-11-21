@@ -1,12 +1,22 @@
-import { jsonSchema } from "ai";
+import { jsonSchema, tool } from "ai";
 import type { Tool, ToolSet } from "ai";
 import type { Invoke, Toolset } from "@cloudfarm/core";
 import type { ToolSpec } from "@cloudfarm/core";
 
 /**
- * `ai` is a peer dependency. The SDK's `tool()` helper is inference-only and
- * is not needed, but `jsonSchema()` is not: it brands a raw JSON Schema so the
- * SDK will validate against it, and a bare object is rejected.
+ * The AI SDK adapter.
+ *
+ * It imports the SDK and uses its own helpers rather than hand-rolling the
+ * shapes: `tool()` for the definition and `jsonSchema()` for the schema. That
+ * matters more than it looks — `jsonSchema()` brands a raw JSON Schema with
+ * `Symbol.for("vercel.ai.schema")`, and the SDK refuses anything unbranded, so
+ * an approximation of the shape type-checks against itself and then fails
+ * against a real model.
+ *
+ * `ai` is a peer dependency, not a direct one: a second copy of the SDK in the
+ * tree would mean two sets of its types for the same objects. (Its schema
+ * brand uses a global symbol, so the runtime would survive it — the types
+ * would not.)
  */
 export type { Tool, ToolSet } from "ai";
 
@@ -46,26 +56,31 @@ export class AISDKToolset implements Toolset<ToolSet> {
 
     for (const spec of specs) {
       if (only && !only.includes(spec.name)) continue;
-      tools[spec.name] = {
-        type: "function",
+
+      tools[spec.name] = tool({
         description: spec.description,
         // Capability schemas are Zod on our side and JSON Schema by the time
-        // they reach a tool spec; jsonSchema() is what makes the SDK accept one.
+        // they reach a tool spec; jsonSchema() is what the SDK will accept.
         inputSchema: jsonSchema(spec.inputSchema),
         execute: async (input: unknown) => {
           try {
-            const result = await invoke(spec.ref, (input ?? {}) as never);
-            return clamp(result, limit);
+            return clamp(await invoke(spec.ref, (input ?? {}) as never), limit);
           } catch (error) {
-            // A thrown tool error ends the agent loop; a returned one lets the
-            // model read what went wrong and try something else.
+            // A thrown tool error ends the agent loop. Dispatch already
+            // answers failures in the envelope, so reaching here means
+            // something unexpected — report it in the same shape rather than
+            // letting it escape.
             return {
-              error: error instanceof Error ? error.message : String(error),
-              ref: spec.ref,
+              status: "error",
+              error: {
+                code: "internal",
+                message: error instanceof Error ? error.message : String(error),
+                retryable: false,
+              },
             };
           }
         },
-      };
+      });
     }
     return tools;
   }
