@@ -39,7 +39,7 @@ describe("Slack", () => {
     ]);
     for (const capability of capabilities) {
       expect(capability.useCases.length).toBeGreaterThan(0);
-      expect(capability.example).toContain("slack.");
+      expect(capability.example).toContain('run("slack.');
       // Code mode is synchronous; examples must not teach `await`.
       expect(capability.example).not.toContain("await");
     }
@@ -126,7 +126,7 @@ describe("Slack", () => {
     const { capabilities, types } = await ws.search("notify the team about a deploy");
 
     expect(capabilities[0]?.ref).toBe("slack.sendMessage");
-    expect(types).toContain("declare const slack");
-    expect(types).toContain("without `await`");
+    expect(types).toContain('declare function run(ref: "slack.sendMessage"');
+    expect(types).toContain("no `await`");
   });
 });

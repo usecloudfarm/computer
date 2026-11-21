@@ -1,6 +1,6 @@
 import { clampForModel, toLargeRef } from "./clamp.js";
 import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
-import type { PreludeBindings } from "./code.js";
+import { validateSource } from "./validate.js";
 import {
   CapabilityFailedError,
   EgressDeniedError,
@@ -308,10 +308,34 @@ export class Workspace<T = unknown> {
       });
     }
 
+    // Validate before anything executes. A typo on line three would otherwise
+    // land two real side effects before failing, leaving the agent to reason
+    // about a half-applied script.
+    const diagnostics = validateSource({
+      source,
+      registry: this.#registry,
+      builtins: this.#builtinRefs(),
+    });
+    if (engine.validate) diagnostics.push(...(await engine.validate(source)));
+
+    if (diagnostics.length > 0) {
+      return finishResult({
+        status: "invalid",
+        error: {
+          name: "ValidationError",
+          message: diagnostics.map((d) => `${d.message}${d.hint ? ` ${d.hint}` : ""}`).join(" "),
+        },
+        bridge,
+        durationMs: 0,
+        redactor: this.#redactor,
+        diagnostics,
+      });
+    }
+
     return engine.evaluate(
       {
         source,
-        prelude: buildPrelude(this.#bindings()),
+        prelude: buildPrelude(),
         limits,
         runId: `code-${++this.#runCounter}`,
       },
@@ -334,24 +358,18 @@ export class Workspace<T = unknown> {
   // --- internals ------------------------------------------------------------
 
   /**
-   * What generated code can reach: every installed app, plus the workspace's
-   * own filesystem, shell and memory. Binding the built-ins matters — a script
-   * that reads a file, processes it and posts the result should be one run,
-   * not a run sandwiched between separate fs and bash tool calls.
+   * Refs that exist without an app behind them. Validation needs these so it
+   * does not reject `run("bash", …)` as an unknown capability.
    */
-  #bindings(): PreludeBindings {
-    const namespaces = new Map<string, string[]>([["fs", ["read", "write", "list", "remove"]]]);
-    for (const entry of this.#registry.entries()) {
-      const members = namespaces.get(entry.namespace) ?? [];
-      members.push(entry.member);
-      namespaces.set(entry.namespace, members);
+  #builtinRefs(): Set<string> {
+    const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search"]);
+    if (this.#options.provider) refs.add("bash");
+    if (this.#options.memory) {
+      refs.add("memory.remember");
+      refs.add("memory.search");
+      refs.add("memory.forget");
     }
-    if (this.#options.memory) namespaces.set("memory", ["remember", "search", "forget"]);
-
-    const functions: string[] = [];
-    if (this.#options.provider) functions.push("bash");
-
-    return { namespaces, functions };
+    return refs;
   }
 
   #connectSandbox(provider: SandboxProvider): Promise<Sandbox> {

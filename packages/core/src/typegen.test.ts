@@ -73,17 +73,23 @@ describe("renderDeclarations", () => {
     authenticated: true,
   };
 
-  it("tells the model that capabilities are synchronous", () => {
-    expect(renderDeclarations([entry])).toContain("without `await`");
-  });
-
-  it("emits an ambient const per app with JSDoc", () => {
+  it("emits a run() overload per capability, keyed by ref", () => {
     const declarations = renderDeclarations([entry]);
 
-    expect(declarations).toContain("/** Slack — Team messaging. */");
-    expect(declarations).toContain("declare const slack: {");
-    expect(declarations).toContain("@example slack.sendMessage");
+    expect(declarations).toContain('declare function run(ref: "slack.sendMessage", input: {');
+    expect(declarations).toContain("channel: string;");
+  });
+
+  it("carries the summary, side effects and example as JSDoc", () => {
+    const declarations = renderDeclarations([entry]);
+
+    expect(declarations).toContain("Post a message to a channel or DM. (Slack)");
     expect(declarations).toContain("@sideEffects write");
+    expect(declarations).toContain("@example slack.sendMessage");
+  });
+
+  it("tells the model that calls are synchronous", () => {
+    expect(renderDeclarations([entry])).toContain("no `await`");
   });
 
   it("flags capabilities that still need credentials", () => {
@@ -92,12 +98,12 @@ describe("renderDeclarations", () => {
     );
   });
 
-  it("groups capabilities by app and sorts stably", () => {
+  it("orders overloads stably by ref", () => {
     const other = { ...entry, appId: "gmail", appName: "Gmail", appDescription: "Email." };
     const declarations = renderDeclarations([entry, other]);
 
-    expect(declarations.indexOf("declare const gmail")).toBeLessThan(
-      declarations.indexOf("declare const slack"),
+    expect(declarations.indexOf('"gmail.sendMessage"')).toBeLessThan(
+      declarations.indexOf('"slack.sendMessage"'),
     );
   });
 });

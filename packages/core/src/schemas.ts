@@ -221,8 +221,22 @@ export const CodeCall = z.object({
 });
 export type CodeCall = z.infer<typeof CodeCall>;
 
+/** Why a run was rejected before it executed. */
+export const Diagnostic = z.object({
+  code: z.enum(["syntax_error", "unknown_ref", "forbidden_construct", "source_too_large"]),
+  message: z.string(),
+  /** The ref the diagnostic is about, when it is about one. */
+  ref: Ref.optional(),
+  /** 1-indexed, relative to the source the model wrote. */
+  line: z.number().int().positive().optional(),
+  /** What to do instead. Written for the model, not for a log. */
+  hint: z.string().optional(),
+});
+export type Diagnostic = z.infer<typeof Diagnostic>;
+
 export const CodeResult = z.object({
-  status: z.enum(["ok", "error", "timeout", "limit_exceeded"]),
+  /** `invalid` means validation rejected the source and nothing ran. */
+  status: z.enum(["ok", "invalid", "error", "timeout", "limit_exceeded"]),
   value: Json.optional(),
   error: z
     .object({ name: z.string(), message: z.string(), stack: z.string().optional() })
@@ -232,6 +246,8 @@ export const CodeResult = z.object({
   calls: z.array(CodeCall),
   durationMs: z.number().int().nonnegative(),
   limitsHit: z.array(z.string()),
+  /** Populated when `status` is `invalid`; empty otherwise. */
+  diagnostics: z.array(Diagnostic).default([]),
 });
 export type CodeResult = z.infer<typeof CodeResult>;
 

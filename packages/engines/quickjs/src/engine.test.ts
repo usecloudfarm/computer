@@ -65,7 +65,7 @@ describe("QuickJSEngine", () => {
     const ws = await workspace({ calls });
 
     const result = await ws.code(`
-      const sent = slack.sendMessage({ channel: "#general", text: "hello" });
+      const sent = run("slack.sendMessage", { channel: "#general", text: "hello" });
       return sent.ts;
     `);
 
@@ -78,9 +78,9 @@ describe("QuickJSEngine", () => {
     const ws = await workspace({ calls });
 
     const result = await ws.code(`
-      const { channels } = slack.listChannels({});
+      const { channels } = run("slack.listChannels", {});
       for (const channel of channels) {
-        slack.sendMessage({ channel, text: "broadcast" });
+        run("slack.sendMessage", { channel, text: "broadcast" });
       }
       return channels.length;
     `);
@@ -117,7 +117,7 @@ describe("QuickJSEngine", () => {
 
     const result = await ws.code(`
       try {
-        slack.sendMessage({ channel: 123 });
+        run("slack.sendMessage", { channel: 123 });
         return "no error";
       } catch (error) {
         return "caught: " + error.name;
@@ -151,7 +151,7 @@ describe("QuickJSEngine", () => {
       let sent = 0;
       try {
         for (let i = 0; i < 10; i++) {
-          slack.sendMessage({ channel: "#c", text: String(i) });
+          run("slack.sendMessage", { channel: "#c", text: String(i) });
           sent++;
         }
       } catch (error) {
@@ -191,14 +191,16 @@ describe("QuickJSEngine", () => {
     ]);
   });
 
-  it("explains itself when the guest calls fetch", async () => {
+  it("rejects a network call during validation, before it can run", async () => {
     const ws = await workspace();
 
-    const result = await ws.code(`
-      try { fetch("https://example.com"); } catch (error) { return error.message; }
-    `);
+    const result = await ws.code(`fetch("https://example.com");`);
 
-    expect(result.value).toContain("fetch is unavailable in code mode");
+    expect(result.status).toBe("invalid");
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "forbidden_construct",
+      message: expect.stringContaining("no network access"),
+    });
   });
 
   it("rejects source larger than the limit before running anything", async () => {
@@ -225,11 +227,11 @@ describe("QuickJSEngine", () => {
   it("explains the calling convention when the model writes await", async () => {
     const ws = await workspace();
 
-    const result = await ws.code(`const x = await slack.listChannels({}); return x;`);
+    const result = await ws.code(`const x = await run("slack.listChannels", {}); return x;`);
 
-    expect(result.status).toBe("error");
-    expect(result.error?.message).toContain("synchronous");
-    expect(result.error?.message).toContain("no `await`");
+    expect(result.status).toBe("invalid");
+    expect(result.diagnostics[0]).toMatchObject({ code: "forbidden_construct" });
+    expect(result.diagnostics[0]?.message).toContain("synchronous");
   });
 
   it("reads and writes the workspace filesystem from inside a run", async () => {
@@ -238,9 +240,9 @@ describe("QuickJSEngine", () => {
     await ws.fs.write("/data/input.txt", "alpha\nbeta\ngamma\n");
 
     const result = await ws.code(`
-      const text = fs.read({ path: "/data/input.txt" });
+      const text = run("fs.read", { path: "/data/input.txt" });
       const lines = text.trim().split("\\n").map(line => line.toUpperCase());
-      fs.write({ path: "/data/output.txt", content: lines.join("\\n") + "\\n" });
+      run("fs.write", { path: "/data/output.txt", content: lines.join("\\n") + "\\n" });
       return lines.length;
     `);
 
@@ -248,10 +250,33 @@ describe("QuickJSEngine", () => {
     expect(await ws.fs.readText("/data/output.txt")).toBe("ALPHA\nBETA\nGAMMA\n");
   });
 
-  it("does not bind bash when no sandbox is configured", async () => {
+  it("rejects a run() for a capability that does not exist, without executing", async () => {
+    const calls: unknown[] = [];
+    const ws = await workspace({ calls });
+
+    const result = await ws.code(`
+      run("slack.sendMessage", { channel: "#a", text: "first" });
+      run("slack.sendMesage", { channel: "#b", text: "typo" });
+    `);
+
+    expect(result.status).toBe("invalid");
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "unknown_ref",
+      ref: "slack.sendMesage",
+      hint: expect.stringContaining("slack.sendMessage"),
+    });
+    // The point of validating first: the valid call above never fired.
+    expect(calls).toEqual([]);
+    expect(result.calls).toEqual([]);
+  });
+
+  it("rejects a syntax error with the line, before executing", async () => {
     const ws = await workspace();
 
-    expect((await ws.code("return typeof bash;")).value).toBe("undefined");
+    const result = await ws.code(`const a = 1;\nconst b = ;\nreturn a;`);
+
+    expect(result.status).toBe("invalid");
+    expect(result.diagnostics[0]).toMatchObject({ code: "syntax_error", line: 2 });
   });
 
   it("starts each run with a fresh context", async () => {

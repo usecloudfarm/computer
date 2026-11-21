@@ -8,6 +8,8 @@ export type { CapabilityIndex, IndexedCapability, SearchHit } from "./search.js"
 export { Redactor } from "./redact.js";
 export { clampForModel, toLargeRef } from "./clamp.js";
 export { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
+export { validateSource } from "./validate.js";
+export type { ValidationInput } from "./validate.js";
 export { RawToolset, codeModeSpecs } from "./tools.js";
 export { renderDeclarations, renderSignature, renderType, toJsonSchema } from "./typegen.js";
 export type { JsonSchema, DeclarationEntry } from "./typegen.js";
@@ -46,6 +48,7 @@ export type {
 export {
   CapabilitySummary,
   CodeCall,
+  Diagnostic,
   CodeLimits,
   CodeResult,
   ExecEvent,

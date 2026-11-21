@@ -7,7 +7,7 @@ import {
   type Json,
 } from "./schemas.js";
 import type { HostBridge, Invoke } from "./ports.js";
-import type { HostCallError } from "./schemas.js";
+import type { Diagnostic, HostCallError } from "./schemas.js";
 import type { Redactor } from "./redact.js";
 
 const encoder = new TextEncoder();
@@ -36,31 +36,19 @@ type HostCallErrorCode = HostCallError["code"];
  * filesystem, no require. `fetch` and `require` are throwing stubs rather than
  * undefined, because a clear message beats a bare ReferenceError.
  */
-export interface PreludeBindings {
-  /** `namespace.member` objects: apps, plus the built-in `fs` and `memory`. */
-  readonly namespaces: ReadonlyMap<string, readonly string[]>;
-  /** Refs with no member, bound as plain functions: `bash`, `search`. */
-  readonly functions: readonly string[];
-}
-
-export function buildPrelude(bindings: PreludeBindings): string {
-  const objects = [...bindings.namespaces.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([namespace, members]) => {
-      const methods = [...members]
-        .sort()
-        .map(
-          (member) =>
-            `  ${member}: (input) => __host(${JSON.stringify(`${namespace}.${member}`)}, input),`,
-        )
-        .join("\n");
-      return `const ${namespace} = {\n${methods}\n};`;
-    });
-
-  const functions = [...bindings.functions]
-    .sort()
-    .map((ref) => `const ${ref} = (input) => __host(${JSON.stringify(ref)}, input);`);
-
+/**
+ * Builds the JavaScript prepended to the model's source.
+ *
+ * Generated code calls capabilities exactly the way the `run` tool does —
+ * `run("slack.sendMessage", { ... })` — so there is one calling convention to
+ * learn instead of two, and a snippet the model works out in code mode can be
+ * replayed as a single tool call without rewriting it.
+ *
+ * Anything not named here does not exist in the isolate: no network, no host
+ * filesystem, no require. `fetch` and `require` are throwing stubs rather than
+ * undefined, because a clear message beats a bare ReferenceError.
+ */
+export function buildPrelude(): string {
   return `"use strict";
 const console = {
   log: (...args) => __log("log", args),
@@ -68,9 +56,9 @@ const console = {
   warn: (...args) => __log("warn", args),
   error: (...args) => __log("error", args),
 };
-const fetch = () => { throw new Error("fetch is unavailable in code mode; use a capability or bash"); };
-const require = () => { throw new Error("require is unavailable in code mode; every capability is already in scope"); };
-${[...objects, ...functions].join("\n")}
+const run = (ref, input) => __host(ref, input);
+const fetch = () => { throw new Error('there is no network in code mode; use a capability or run("bash", { cmd })'); };
+const require = () => { throw new Error("require is unavailable in code mode; every capability is reachable through run()"); };
 `;
 }
 
@@ -230,6 +218,7 @@ export function finishResult(args: {
   durationMs: number;
   redactor: Redactor;
   extraLimits?: readonly string[];
+  diagnostics?: readonly Diagnostic[];
 }): CodeResult {
   const limitsHit = new Set([...args.bridge.limitsHit, ...(args.extraLimits ?? [])]);
   return {
@@ -250,5 +239,6 @@ export function finishResult(args: {
     calls: args.bridge.calls,
     durationMs: args.durationMs,
     limitsHit: [...limitsHit].sort(),
+    diagnostics: [...(args.diagnostics ?? [])],
   };
 }

@@ -102,45 +102,38 @@ export interface DeclarationEntry {
 }
 
 /**
- * The ambient module the model writes against. Declared as `const`, not
- * imported, so the prelude can bind it as a global with no module resolver.
+ * The declarations the model writes against.
+ *
+ * Emitted as overloads of one `run` function rather than an object per app,
+ * because that is literally how the code calls them — `run("slack.sendMessage",
+ * {...})` — and an overload set gives the model the ref, the argument shape and
+ * the return type in the position it will actually type them.
  */
 export function renderDeclarations(entries: readonly DeclarationEntry[]): string {
-  const byApp = new Map<string, DeclarationEntry[]>();
-  for (const entry of entries) {
-    const existing = byApp.get(entry.appId);
-    if (existing) existing.push(entry);
-    else byApp.set(entry.appId, [entry]);
-  }
+  const overloads = [...entries]
+    .sort(
+      (a, b) =>
+        a.appId.localeCompare(b.appId) || a.capability.name.localeCompare(b.capability.name),
+    )
+    .map((entry) => {
+      const { capability } = entry;
+      const ref = `${entry.appId}.${capability.name}`;
+      const input = renderType(toJsonSchema(capability.input), 0);
+      const output = renderType(toJsonSchema(capability.output), 0);
+      const docs = [
+        `/**`,
+        ` * ${capability.summary} (${entry.appName})`,
+        ` * @sideEffects ${capability.sideEffects}`,
+        entry.authenticated ? null : ` * @auth needs credentials`,
+        ` * @example ${capability.example}`,
+        ` */`,
+      ]
+        .filter((line): line is string => line !== null)
+        .join("\n");
+      return `${docs}\ndeclare function run(ref: ${JSON.stringify(ref)}, input: ${input}): ${output};`;
+    });
 
-  const blocks: string[] = [
-    "// Capabilities are synchronous in code mode: call them directly, without `await`.",
-  ];
-  for (const [appId, group] of [...byApp.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    const first = group[0]!;
-    const members = group
-      .sort((a, b) => a.capability.name.localeCompare(b.capability.name))
-      .map((entry) => {
-        const { capability } = entry;
-        const input = renderType(toJsonSchema(capability.input), 1);
-        const output = renderType(toJsonSchema(capability.output), 1);
-        const docs = [
-          `  /**`,
-          `   * ${capability.summary}`,
-          `   * @sideEffects ${capability.sideEffects}`,
-          entry.authenticated ? null : `   * @auth needs credentials`,
-          `   * @example ${capability.example}`,
-          `   */`,
-        ]
-          .filter((line): line is string => line !== null)
-          .join("\n");
-        return `${docs}\n  ${capability.name}(input: ${input}): ${output};`;
-      })
-      .join("\n\n");
-
-    blocks.push(
-      `/** ${first.appName} — ${first.appDescription} */\ndeclare const ${appId}: {\n${members}\n};`,
-    );
-  }
-  return blocks.join("\n\n");
+  return ["// Everything is synchronous: call run() directly, with no `await`.", ...overloads].join(
+    "\n\n",
+  );
 }

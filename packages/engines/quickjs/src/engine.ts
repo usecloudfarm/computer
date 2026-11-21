@@ -7,7 +7,7 @@ import {
 } from "quickjs-emscripten-core";
 import { finishResult, Redactor } from "@cloudfarm/core";
 import type { CodeEngine, CodeJob, HostBridge, CapabilityBridge } from "@cloudfarm/core";
-import type { CodeResult, Json } from "@cloudfarm/core";
+import type { CodeResult, Diagnostic, Json } from "@cloudfarm/core";
 
 /** Anything that resolves to a QuickJS async module: a variant, or a loader. */
 export type VariantLoader = () => Promise<QuickJSAsyncWASMModule>;
@@ -57,6 +57,49 @@ export class QuickJSEngine implements CodeEngine {
       return { ok: true, detail: "QuickJS (asyncify) on WebAssembly" };
     } catch (error) {
       return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /**
+   * Compiles without running. QuickJS is the same parser that will execute the
+   * code, so a clean compile here means the only failures left are runtime
+   * ones — and a syntax error reaches the agent having touched nothing.
+   */
+  async validate(source: string): Promise<Diagnostic[]> {
+    const module = await this.#moduleOnce();
+    const runtime = module.newRuntime();
+    const context = runtime.newContext();
+    try {
+      const compiled = context.evalCode(`(() => {\n${source}\n})`, "validate.js", {
+        compileOnly: true,
+      });
+      if (!compiled.error) {
+        compiled.value.dispose();
+        return [];
+      }
+      const error = readError(context, compiled.error);
+      compiled.error.dispose();
+      return [
+        {
+          code: "syntax_error",
+          message: error.message,
+          ...(lineOf(error) !== undefined ? { line: lineOf(error)! } : {}),
+          ...(/\bawait\b/.test(source)
+            ? { hint: "Code mode is synchronous: drop `await` and call run() directly." }
+            : {}),
+        },
+      ];
+    } finally {
+      try {
+        context.dispose();
+      } catch {
+        /* nothing ran, but be defensive */
+      }
+      try {
+        runtime.dispose();
+      } catch {
+        /* ditto */
+      }
     }
   }
 
@@ -250,6 +293,15 @@ function installLogging(context: QuickJSAsyncContext, bridge: HostBridge): void 
   });
   context.setProp(context.global, "__log", log);
   log.dispose();
+}
+
+/** QuickJS puts the position in the stack: `at <eval> (validate.js:3:5)`. */
+function lineOf(error: { stack?: string }): number | undefined {
+  const match = /validate\.js:(\d+)/.exec(error.stack ?? "");
+  if (!match) return undefined;
+  // The wrapper adds one line above the model's source.
+  const line = Number(match[1]) - 1;
+  return line > 0 ? line : undefined;
 }
 
 function readError(

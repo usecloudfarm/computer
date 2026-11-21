@@ -91,7 +91,7 @@ function sendMessage(base: string): CapabilityDefinition {
       threadTs: z.string().optional().describe("Reply inside an existing thread."),
     }),
     output: z.object({ ts: z.string(), channel: z.string() }),
-    example: 'slack.sendMessage({ channel: "#general", text: "deploy finished" })',
+    example: 'run("slack.sendMessage", { channel: "#general", text: "deploy finished" })',
     handler: async (input, context) => {
       const { channel, text, threadTs } = input as {
         channel: string;
@@ -122,7 +122,7 @@ function listChannels(base: string): CapabilityDefinition {
       channels: z.array(z.object({ id: z.string(), name: z.string(), isPrivate: z.boolean() })),
       cursor: z.string().optional(),
     }),
-    example: "slack.listChannels({ limit: 50 })",
+    example: 'run("slack.listChannels", { limit: 50 })',
     handler: async (input, context) => {
       const { limit = 100, cursor } = input as { limit?: number; cursor?: string };
       const url = new URL(`${base}/conversations.list`);
@@ -159,7 +159,7 @@ function searchMessages(base: string): CapabilityDefinition {
         z.object({ channel: z.string(), user: z.string(), text: z.string(), ts: z.string() }),
       ),
     }),
-    example: 'slack.searchMessages({ query: "incident in:#eng" })',
+    example: 'run("slack.searchMessages", { query: "incident in:#eng" })',
     handler: async (input, context) => {
       const { query, count = 20 } = input as { query: string; count?: number };
       const url = new URL(`${base}/search.messages`);
@@ -195,7 +195,7 @@ function getThread(base: string): CapabilityDefinition {
     output: z.object({
       messages: z.array(z.object({ user: z.string(), text: z.string(), ts: z.string() })),
     }),
-    example: 'slack.getThread({ channel: "C123", threadTs: "1700000000.000100" })',
+    example: 'run("slack.getThread", { channel: "C123", threadTs: "1700000000.000100" })',
     handler: async (input, context) => {
       const { channel, threadTs } = input as { channel: string; threadTs: string };
       const url = new URL(`${base}/conversations.replies`);

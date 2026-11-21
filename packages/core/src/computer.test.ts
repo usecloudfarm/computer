@@ -267,7 +267,7 @@ describe("Workspace.search", () => {
       signature: expect.stringContaining("sendMessage(input:"),
       example: expect.stringContaining("slack.sendMessage"),
     });
-    expect(types).toContain("declare const slack");
+    expect(types).toContain('declare function run(ref: "slack.sendMessage"');
     expect(types).toContain("channel: string;");
   });
 });

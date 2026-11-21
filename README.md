@@ -46,16 +46,32 @@ Adding an app adds zero tokens to the system prompt. The model finds what it
 needs, then writes a script:
 
 ```js
-const { channels } = slack.listChannels({ limit: 10 });
+const { channels } = run("slack.listChannels", { limit: 10 });
 for (const channel of channels) {
-  slack.sendMessage({ channel: channel.name, text: "v1 is out" });
+  run("slack.sendMessage", { channel: channel.name, text: "v1 is out" });
 }
+run("fs.write", { path: "/out/posted.txt", content: channels.map((c) => c.name).join("\n") });
 return channels.length;
 ```
 
-Capabilities are **synchronous** in code mode. The isolate suspends its whole
-stack across a host call, so generated code never touches a promise — which
-removes the job-queue machinery, and with it an entire class of bug.
+One calling convention: `run(ref, input)` inside the isolate is the same ref
+the `run` tool takes, so a snippet worked out in code mode replays as a single
+tool call unchanged. The workspace filesystem, shell and memory are reachable
+the same way.
+
+Calls are **synchronous**. The isolate suspends its whole stack across a host
+call, so generated code never touches a promise — which removes the job-queue
+machinery and an entire class of bug with it.
+
+**Code is validated before it runs.** Unknown refs, syntax errors and `await`
+come back as diagnostics with a line number and a suggestion, having executed
+nothing — so a typo on line three never lands two real side effects first:
+
+```
+status      invalid
+line 3      No capability named "slack.sendMesage". Did you mean: slack.sendMessage?
+calls made  0
+```
 
 ## Packages
 

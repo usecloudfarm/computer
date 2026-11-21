@@ -73,15 +73,20 @@ console.log(
 
 heading("5. code mode: several capabilities in one run");
 const result = await workspace.code(`
-  const { channels } = slack.listChannels({ limit: 10 });
+  const { channels } = run("slack.listChannels", { limit: 10 });
   console.log("found " + channels.length + " channels");
 
   const posted = [];
   for (const channel of channels) {
-    const sent = slack.sendMessage({ channel: channel.name, text: "v1 is out" });
+    const sent = run("slack.sendMessage", { channel: channel.name, text: "v1 is out" });
     posted.push(channel.name + " @ " + sent.ts);
   }
-  return posted;
+
+  // The workspace filesystem and shell are reachable through the same run().
+  run("fs.write", { path: "/out/posted.txt", content: posted.join("\\n") + "\\n" });
+  const counted = run("bash", { cmd: "wc -l < /out/posted.txt" });
+
+  return { posted, lines: Number(counted.stdout.trim()) };
 `);
 console.log(`  status   ${result.status}`);
 console.log(`  value    ${JSON.stringify(result.value)}`);
@@ -89,7 +94,18 @@ console.log(`  logs     ${result.logs}`);
 if (result.error) console.log(`  error    ${result.error.name}: ${result.error.message}`);
 console.log(`  calls    ${result.calls.map((call) => call.capability).join(" → ")}`);
 
-heading("6. limits are enforced, not advisory");
+heading("6. bad code is rejected before anything runs");
+const rejected = await workspace.code(`
+  run("slack.sendMessage", { channel: "#general", text: "this would have been sent" });
+  run("slack.sendMesage", { channel: "#general", text: "typo on the second call" });
+`);
+console.log(`  status      ${rejected.status}`);
+for (const diagnostic of rejected.diagnostics) {
+  console.log(`  line ${diagnostic.line}      ${diagnostic.message} ${diagnostic.hint ?? ""}`);
+}
+console.log(`  calls made  ${rejected.calls.length}  (the valid first call never fired)`);
+
+heading("7. limits are enforced, not advisory");
 const runaway = await workspace.code("while (true) {}", { limits: { cpuTimeoutMs: 250 } });
 console.log(`  runaway loop → ${runaway.status}, hit ${runaway.limitsHit.join(", ")}`);
 

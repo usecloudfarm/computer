@@ -3,15 +3,6 @@ import { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./c
 import { Redactor } from "./redact.js";
 import type { HostCallRequest } from "./schemas.js";
 
-const bindings = {
-  namespaces: new Map([
-    ["slack", ["sendMessage", "listChannels"]],
-    ["gmail", ["sendEmail"]],
-    ["fs", ["read", "write"]],
-  ]),
-  functions: ["bash"],
-};
-
 function bridge(
   options: {
     invoke?: (ref: string, args: unknown) => Promise<unknown>;
@@ -38,31 +29,21 @@ const request = (
 });
 
 describe("buildPrelude", () => {
-  it("binds one object per app with a method per capability", () => {
-    const prelude = buildPrelude(bindings);
+  it("binds one run() that matches the run tool's calling convention", () => {
+    const prelude = buildPrelude();
 
-    expect(prelude).toContain("const slack = {");
-    expect(prelude).toContain('sendMessage: (input) => __host("slack.sendMessage", input)');
-    expect(prelude).toContain("const gmail = {");
-  });
-
-  it("binds the workspace filesystem and shell alongside the apps", () => {
-    const prelude = buildPrelude(bindings);
-
-    expect(prelude).toContain('read: (input) => __host("fs.read", input)');
-    // bash has no member, so it binds as a plain function.
-    expect(prelude).toContain('const bash = (input) => __host("bash", input);');
+    expect(prelude).toContain("const run = (ref, input) => __host(ref, input);");
   });
 
   it("replaces fetch and require with explanatory throws", () => {
-    const prelude = buildPrelude(bindings);
+    const prelude = buildPrelude();
 
-    expect(prelude).toContain("fetch is unavailable in code mode");
+    expect(prelude).toContain("there is no network in code mode");
     expect(prelude).toContain("require is unavailable in code mode");
   });
 
   it("is deterministic", () => {
-    expect(buildPrelude(bindings)).toBe(buildPrelude(bindings));
+    expect(buildPrelude()).toBe(buildPrelude());
   });
 });
 

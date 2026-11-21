@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type {
   CodeLimits,
   CodeResult,
+  Diagnostic,
   ExecEvent,
   ExecOptions,
   ExecResult,
@@ -152,6 +153,12 @@ export interface CodeJob {
 export interface CodeEngine extends Described {
   readonly capabilities: CodeEngineCapabilities;
   available(): Promise<{ ok: boolean; detail?: string }>;
+  /**
+   * Compiles without running, so a syntax error reaches the agent before any
+   * side effect. Optional: an engine that cannot compile separately simply
+   * surfaces the error at evaluation time instead.
+   */
+  validate?(source: string): Promise<Diagnostic[]>;
   /**
    * Evaluates in a fresh, single-use context. `bridge` is the only authority
    * the guest receives: no fetch, no filesystem, no timers that outlive the run.

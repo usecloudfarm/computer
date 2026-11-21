@@ -33,12 +33,13 @@ export const CodeInput = z.object({
   source: z
     .string()
     .describe(
-      "JavaScript to run. Everything is SYNCHRONOUS — no `await`, no promises. " +
-        "In scope: every capability from search() as an object " +
-        "(`slack.sendMessage({ channel: '#general', text: 'hi' })`), the workspace " +
-        "filesystem as `fs.read({ path })` / `fs.write({ path, content })` / " +
-        "`fs.list({ prefix })` / `fs.remove({ path })`, and `bash({ cmd })` when a " +
-        "sandbox is configured. Use `return` to report a value back; console.log is captured.",
+      "JavaScript to run. Call capabilities with run(ref, input) — the same refs the " +
+        "`run` tool takes: run('slack.sendMessage', { channel: '#general', text: 'hi' }), " +
+        "run('fs.read', { path }), run('fs.write', { path, content }), run('fs.list', {}), " +
+        "run('bash', { cmd }). Everything is SYNCHRONOUS: no `await`, no promises. " +
+        "Use `return` to report a value back; console.log is captured. The source is " +
+        "validated before it runs, so unknown refs and syntax errors come back without " +
+        "executing anything.",
     ),
 });
 
