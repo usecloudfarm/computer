@@ -51,13 +51,17 @@ import, which only your own bundler can do.
 An agent with ten apps installed does not get a hundred tools. It gets **six**,
 and the list does not grow:
 
-| tool     | what it does                                                              |
-| -------- | ------------------------------------------------------------------------- |
-| `search` | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
-| `code`   | run JavaScript that calls several actions in one go                       |
-| `run`    | call one action directly — cheaper and auditable                          |
-| `bash`   | run a shell command in the workspace                                      |
-| `fs`     | the workspace filesystem: read, write, list                               |
+| tool        | what it does                                                              |
+| ----------- | ------------------------------------------------------------------------- |
+| `search`    | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
+| `code`      | run JavaScript that calls several actions in one go                       |
+| `run`       | run one action — an app's, or the computer's own (`bash`, `fs.read`, …)   |
+| `list_apps` | what is installed, including the computer itself                          |
+| `fs`        | the workspace filesystem: read, write, list                               |
+
+The shell is not a tool of its own. `bash` is an action **of the computer**,
+found with `search` and called with `run`, exactly like `slack.sendMessage` —
+because running the shell is running something in the computer.
 
 Adding an app adds zero tokens to the system prompt. The model finds what it
 needs, then writes a script:
@@ -124,7 +128,7 @@ pnpm --filter @cloudfarm/example-node-agent agent
 pnpm --filter @cloudfarm/example-node-agent agent "your own task"
 ```
 
-Claude gets the six tools and a task it cannot finish in one step — read a CSV
+Claude gets the five tools and a task it cannot finish in one step — read a CSV
 from the workspace, total it by region, write a summary, publish it. Every tool
 call is printed as it happens, so you can see which it reaches for.
 

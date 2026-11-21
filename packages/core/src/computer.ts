@@ -1,3 +1,4 @@
+import { builtinActions, BUILTIN_APP } from "./builtins.js";
 import { clampForModel, toLargeRef } from "./clamp.js";
 import { createHttpClient } from "./http.js";
 import { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
@@ -100,7 +101,7 @@ export class Computer<T = unknown> {
     this.#options = options;
     this.#storage = options.storage ?? new MemoryStorage();
     this.#toolset = options.toolset ?? (new RawToolset() as unknown as Toolset<T>);
-    this.#registry = new ActionRegistry(options.apps ?? []);
+    this.#registry = new ActionRegistry(options.apps ?? [], undefined, builtinActions());
   }
 
   get apps(): readonly App[] {
@@ -236,14 +237,13 @@ export class Workspace<T = unknown> {
 
   toolSpecs(): readonly ToolSpec[] {
     return codeModeSpecs({
-      hasSandbox: this.#options.provider !== undefined,
       hasCode: this.#options.codeEngine !== undefined && this.#registry.size > 0,
     });
   }
 
   /** Find actions by intent, with the types needed to call them. */
   async search(useCase: string, options: { limit?: number } = {}): Promise<SearchResult> {
-    const hits = this.#registry.search(useCase, options.limit ?? 8);
+    const hits = this.#registry.search(useCase, options.limit ?? 8, (needs) => this.#has(needs));
     return {
       actions: hits.map((hit) => summarize(hit.entry, hit.score, true)),
       types: renderDeclarations(
@@ -309,7 +309,20 @@ export class Workspace<T = unknown> {
         if (member !== "list") {
           throw new UnknownRefError(`apps.${member ?? ""}`, ["apps.list"]);
         }
-        return { apps: this.#registry.apps() } as unknown as Json;
+        return {
+          apps: [
+            // The computer is listed first and as an app, because that is what
+            // `run` treats it as.
+            {
+              id: BUILTIN_APP.id,
+              name: BUILTIN_APP.name,
+              description: BUILTIN_APP.description,
+              actions: this.#registry.builtins((needs) => this.#has(needs)).map((e) => e.ref),
+              auth: "none",
+            },
+            ...this.#registry.apps(),
+          ],
+        } as unknown as Json;
       case "fs":
         return this.#runFs(member ?? stringField(args, "op"), args);
       case "memory":
@@ -442,6 +455,13 @@ export class Workspace<T = unknown> {
    * Refs that exist without an app behind them. Validation needs these so it
    * does not reject `run("bash", …)` as an unknown action.
    */
+  /** Whether the optional package a built-in needs actually resolved. */
+  #has(needs: "sandbox" | "code"): boolean {
+    return needs === "sandbox"
+      ? this.#options.provider !== undefined
+      : this.#options.codeEngine !== undefined;
+  }
+
   #builtinRefs(): Set<string> {
     const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search", "apps.list"]);
     if (this.#options.provider) refs.add("bash");

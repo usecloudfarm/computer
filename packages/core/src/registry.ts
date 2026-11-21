@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { Bm25ActionIndex, type ActionIndex } from "./search.js";
 import type { AppSummary } from "./schemas.js";
+import { BUILTIN_APP, type BuiltinAction } from "./builtins.js";
 import { NamespaceConflictError, UnknownRefError } from "./errors.js";
 import { renderSignature } from "./typegen.js";
 import type { App, ActionDefinition } from "./ports.js";
@@ -34,10 +35,39 @@ export interface RegistryEntry {
  */
 export class ActionRegistry {
   readonly #entries = new Map<string, RegistryEntry>();
+  readonly #builtins = new Map<string, RegistryEntry>();
+  readonly #needs = new Map<string, "sandbox" | "code">();
   readonly #index: ActionIndex;
 
-  constructor(apps: readonly App[], index: ActionIndex = new Bm25ActionIndex()) {
+  constructor(
+    apps: readonly App[],
+    index: ActionIndex = new Bm25ActionIndex(),
+    builtins: readonly BuiltinAction[] = [],
+  ) {
     this.#index = index;
+
+    // The computer's own actions are indexed alongside the apps', so `search`
+    // can answer "how do I run a shell command?" — it used to return nothing.
+    // They are kept out of #entries: dispatch owns them, and a hit here must
+    // never route to an app handler.
+    for (const builtin of builtins) {
+      this.#builtins.set(builtin.ref, {
+        ref: builtin.ref,
+        namespace: builtin.ref.split(".")[0] ?? builtin.ref,
+        member: builtin.definition.name,
+        app: { ...BUILTIN_APP, actions: () => [] },
+        action: builtin.definition,
+      });
+      if (builtin.needs) this.#needs.set(builtin.ref, builtin.needs);
+    }
+    this.#index.add(
+      builtins.map((builtin) => ({
+        ref: builtin.ref,
+        definition: builtin.definition,
+        appId: BUILTIN_APP.id,
+      })),
+    );
+
     const seen = new Set<string>();
 
     for (const app of apps) {
@@ -107,11 +137,33 @@ export class ActionRegistry {
     return entry;
   }
 
-  search(query: string, limit = 8): Array<{ entry: RegistryEntry; score: number }> {
+  /**
+   * `available` decides which built-ins are real right now. The registry is
+   * built once per Computer while the sandbox and engine resolve lazily per
+   * workspace, so availability cannot be known here — only asked about.
+   */
+  search(
+    query: string,
+    limit = 8,
+    available: (needs: "sandbox" | "code") => boolean = () => true,
+  ): Array<{ entry: RegistryEntry; score: number }> {
     return this.#index
       .search(query, limit)
-      .map((hit) => ({ entry: this.#entries.get(hit.ref)!, score: hit.score }))
-      .filter((hit) => hit.entry !== undefined);
+      .map((hit) => ({
+        entry: this.#entries.get(hit.ref) ?? this.#builtins.get(hit.ref)!,
+        score: hit.score,
+      }))
+      .filter((hit) => hit.entry !== undefined && this.#usable(hit.entry.ref, available));
+  }
+
+  /** The computer's own actions, for listing beside the installed apps. */
+  builtins(available: (needs: "sandbox" | "code") => boolean = () => true): RegistryEntry[] {
+    return [...this.#builtins.values()].filter((entry) => this.#usable(entry.ref, available));
+  }
+
+  #usable(ref: string, available: (needs: "sandbox" | "code") => boolean): boolean {
+    const needs = this.#needs.get(ref);
+    return needs === undefined || available(needs);
   }
 
   /** Cheap edit-distance-free suggestions: shared prefix or shared member name. */

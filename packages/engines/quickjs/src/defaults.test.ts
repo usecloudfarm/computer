@@ -11,7 +11,10 @@ describe("Computer defaults", () => {
   it("has a shell and code mode with no options at all", async () => {
     const workspace = await new Computer().createWorkspace("u");
 
-    expect(workspace.toolSpecs().map((spec) => spec.name)).toContain("bash");
+    // The shell is an action of the computer now, not a tool of its own, so
+    // "is there a shell?" is asked of search and run rather than the tool list.
+    const found = await workspace.search("run a shell command");
+    expect(found.actions.map((action) => action.ref)).toContain("bash");
     expect(await workspace.exec("echo hi")).toMatchObject({ stdout: "hi\n", exitCode: 0 });
   });
 

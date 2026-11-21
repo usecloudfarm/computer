@@ -315,17 +315,15 @@ describe("Workspace.tools", () => {
       apps: [slackish(), fakeApp({ id: "notes", name: "Notes" })],
     }).createWorkspace("u");
 
-    const result = await workspace.run("apps.list", {});
+    const result = (await workspace.run("apps.list", {})) as {
+      value: { apps: { id: string; name: string; actions: string[] }[] };
+    };
 
-    expect(result).toMatchObject({
-      status: "ok",
-      value: {
-        apps: [
-          { id: "slack", name: "Slack", actions: ["sendMessage"] },
-          { id: "notes", name: "Notes", actions: ["echo"] },
-        ],
-      },
-    });
+    // The computer lists itself first: `run` treats the shell and the
+    // filesystem as things you run, so they are listed as things you have.
+    expect(result.value.apps.map((app) => app.id)).toEqual(["computer", "slack", "notes"]);
+    expect(result.value.apps[1]).toMatchObject({ name: "Slack", actions: ["sendMessage"] });
+    expect(result.value.apps[0]?.actions).toContain("fs.read");
   });
 
   it("reports an app's auth kind rather than guessing whether it works", async () => {
@@ -335,17 +333,57 @@ describe("Workspace.tools", () => {
     }).createWorkspace("u");
 
     const result = (await workspace.run("apps.list", {})) as {
-      value: { apps: { auth: string }[] };
+      value: { apps: { id: string; auth: string }[] };
     };
 
     // A hand-written App declares no scheme; createApp-built ones name theirs.
-    expect(result.value.apps[0]?.auth).toBe("unknown");
+    expect(result.value.apps.find((app) => app.id === "slack")?.auth).toBe("unknown");
   });
 
-  it("answers an empty list when nothing is installed, rather than failing", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+  it("still lists the computer when no apps are installed", async () => {
+    // provider/codeEngine pinned off: the defaults resolve whenever
+    // @cloudfarm/bash and @cloudfarm/quickjs are installed, which they are
+    // here, so "not configured" has to be said explicitly.
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: null,
+      codeEngine: null,
+    }).createWorkspace("u");
 
-    expect(await workspace.run("apps.list", {})).toEqual({ status: "ok", value: { apps: [] } });
+    const result = (await workspace.run("apps.list", {})) as {
+      value: { apps: { id: string; actions: string[] }[] };
+    };
+
+    expect(result.value.apps.map((app) => app.id)).toEqual(["computer"]);
+    // No sandbox and no engine here, so neither is offered as available.
+    expect(result.value.apps[0]?.actions).not.toContain("bash");
+    expect(result.value.apps[0]?.actions).not.toContain("code");
+  });
+
+  it("finds the shell through search, which used to return nothing", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: fakeSandbox(),
+    }).createWorkspace("u");
+
+    const found = await workspace.search("run a shell command");
+
+    expect(found.actions[0]?.ref).toBe("bash");
+    expect(found.actions[0]?.app.id).toBe("computer");
+  });
+
+  it("hides a built-in whose package is not installed", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: null,
+      codeEngine: null,
+    }).createWorkspace("u");
+
+    const found = await workspace.search("run a shell command");
+
+    // Offering `bash` with no sandbox would send the model at a ref that
+    // cannot work; the registry indexes it, availability filters it.
+    expect(found.actions.map((action) => action.ref)).not.toContain("bash");
   });
 
   it("suggests the right ref for a near miss under the apps namespace", async () => {
@@ -373,13 +411,7 @@ describe("Workspace.tools", () => {
     }).createWorkspace("u");
 
     expect(few.toolSpecs().map((spec) => spec.name)).toEqual(many.toolSpecs().map((s) => s.name));
-    expect(few.toolSpecs().map((spec) => spec.name)).toEqual([
-      "bash",
-      "search",
-      "run",
-      "list_apps",
-      "fs",
-    ]);
+    expect(few.toolSpecs().map((spec) => spec.name)).toEqual(["search", "run", "list_apps", "fs"]);
   });
 
   it("omits bash and code when both are turned off", async () => {

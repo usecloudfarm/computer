@@ -41,18 +41,18 @@ async function tools(options?: ConstructorParameters<typeof AISDKToolset>[0]) {
 describe("AISDKToolset", () => {
   it("builds each tool with the SDK's own tool() helper", async () => {
     const result = await tools();
-    const bash = result["bash"] as Record<string, unknown>;
+    const search = result["search"] as Record<string, unknown>;
 
     // What tool() produces: no hand-rolled `type` field, a branded schema,
     // and an execute the SDK will call.
-    expect(Object.keys(bash).toSorted()).toEqual(["description", "execute", "inputSchema"]);
-    expect(typeof bash["execute"]).toBe("function");
+    expect(Object.keys(search).toSorted()).toEqual(["description", "execute", "inputSchema"]);
+    expect(typeof search["execute"]).toBe("function");
   });
 
   it("produces an object keyed by tool name, as the AI SDK expects", async () => {
     const result = await tools();
 
-    expect(Object.keys(result)).toEqual(["bash", "search", "run", "list_apps", "fs"]);
+    expect(Object.keys(result)).toEqual(["search", "run", "list_apps", "fs"]);
   });
 
   it("wraps each input schema the way the AI SDK reads JSON Schema", async () => {
@@ -80,7 +80,10 @@ describe("AISDKToolset", () => {
   it("executes a tool through the workspace", async () => {
     const result = await tools();
 
-    await expect(result["bash"]!.execute({ cmd: "echo hi" })).resolves.toMatchObject({
+    // The shell is reached through `run` now, like any other action.
+    await expect(
+      result["run"]!.execute({ ref: "bash", args: { cmd: "echo hi" } }),
+    ).resolves.toMatchObject({
       status: "ok",
       value: { stdout: "hi\n", exitCode: 0 },
     });

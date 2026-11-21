@@ -54,9 +54,12 @@ describe("QuickJSEngine", () => {
     // Validation rejects unknown refs before anything executes, so this
     // passing proves apps.list is a known builtin rather than only a
     // dispatch case that validation would have blocked.
-    const result = await ws.code('return run("apps.list", {}).value.apps[0].id;');
+    const result = await ws.code(
+      'return run("apps.list", {}).value.apps.map(a => a.id).join(",");',
+    );
 
-    expect(result).toMatchObject({ outcome: "ok", value: "slack" });
+    // The computer lists itself first, then the installed apps.
+    expect(result).toMatchObject({ outcome: "ok", value: "computer,slack" });
   });
 
   it("reports itself available", async () => {

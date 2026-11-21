@@ -64,17 +64,16 @@ export const FsInput = z.object({
 });
 
 const DESCRIPTIONS = {
-  bash: "Run a shell command in the workspace. Use for file manipulation, text processing and anything the shell does well.",
   search:
     "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`.",
-  run: "Call one action directly by reference. Cheaper and more auditable than `code` for a single call. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
+  run: "Run one action by reference — an app's, or one of the computer's own: 'bash' for the shell ({ cmd }), 'code' to script several calls, 'fs.read' / 'fs.write' / 'fs.list'. Find others with `search`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
   code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other. Actions are synchronous here: no `await`.",
   list_apps:
     "List the apps installed in this workspace and the actions each one contributes. Use it to see what is available at all; use `search` when you know what you want to do.",
   fs: "Read, write and list files in the workspace. op 'read' needs path, 'write' needs path and content, 'list' takes an optional path prefix.",
 } as const;
 
-export function codeModeSpecs(options: { hasSandbox: boolean; hasCode: boolean }): ToolSpec[] {
+export function codeModeSpecs(options: { hasCode: boolean }): ToolSpec[] {
   const specs: ToolSpec[] = [
     spec("search", "search", DESCRIPTIONS.search, SearchInput, "read"),
     spec("run", "run", DESCRIPTIONS.run, RunInput),
@@ -84,9 +83,6 @@ export function codeModeSpecs(options: { hasSandbox: boolean; hasCode: boolean }
     // hint it used to carry — the one real cost of collapsing these.
     spec("fs", "fs", DESCRIPTIONS.fs, FsInput, "write"),
   ];
-  if (options.hasSandbox) {
-    specs.unshift(spec("bash", "bash", DESCRIPTIONS.bash, BashInput));
-  }
   if (options.hasCode) {
     specs.splice(1, 0, spec("code", "code", DESCRIPTIONS.code, CodeInput));
   }
