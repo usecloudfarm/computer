@@ -10,6 +10,8 @@ export { Redactor } from "./redact.js";
 export { clampForModel, toLargeRef } from "./clamp.js";
 export { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 export { createApp, createAction } from "./define.js";
+export { createHttpClient } from "./http.js";
+export type { HttpClient, HttpConfig, HttpOptions } from "./http.js";
 export type { AppDefinition, ActionSpec, DefinedAction } from "./define.js";
 export { validateSource } from "./validate.js";
 export type { ValidationInput } from "./validate.js";
@@ -26,6 +28,8 @@ export {
   EgressDeniedError,
   NamespaceConflictError,
   ActionFailedError,
+  HttpError,
+  UpstreamRejectedError,
   UnauthorizedError,
 } from "./errors.js";
 

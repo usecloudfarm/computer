@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { App, ActionContext, ActionDefinition } from "./ports.js";
+import type { HttpConfig } from "./http.js";
 import type { SideEffects } from "./schemas.js";
 
 /**
@@ -100,6 +101,12 @@ export interface AppDefinition<C> {
    * this closure and never reaches a handler, a result, or code mode.
    */
   readonly authorize?: (request: Request) => Request;
+  /**
+   * Base URL, default headers and a `validate` hook for `context.http`. The
+   * base URL's host joins `allowedHosts` automatically — an app that declares
+   * where it talks should not have to say it twice.
+   */
+  readonly http?: HttpConfig;
   readonly actions: C;
 }
 
@@ -141,7 +148,11 @@ export function createApp(definition: AppDefinition<Record<string, Branded>>): A
   if (!description.trim()) {
     throw new Error(`App "${id}" needs a description: the model reads it to decide relevance.`);
   }
-  if (definition.authorize && (definition.allowedHosts?.length ?? 0) === 0) {
+  if (
+    definition.authorize &&
+    (definition.allowedHosts?.length ?? 0) === 0 &&
+    !definition.http?.baseUrl
+  ) {
     throw new Error(
       `App "${id}" applies a credential but allows no hosts. List the hosts it may call, or drop authorize().`,
     );
@@ -152,11 +163,17 @@ export function createApp(definition: AppDefinition<Record<string, Branded>>): A
 
   const definitions = entries.map(([name, spec]) => toDefinition(id, name, spec));
 
+  const declared = definition.allowedHosts ?? [];
+  const baseHost = definition.http?.baseUrl ? new URL(definition.http.baseUrl).hostname : undefined;
+  const allowedHosts =
+    baseHost && !declared.includes(baseHost) ? [...declared, baseHost] : declared;
+
   return {
     id,
     name: definition.name ?? id,
     description,
-    allowedHosts: definition.allowedHosts ?? [],
+    ...(definition.http ? { http: definition.http } : {}),
+    allowedHosts,
     authorize: definition.authorize ?? ((request) => request),
     actions: () => definitions,
   };

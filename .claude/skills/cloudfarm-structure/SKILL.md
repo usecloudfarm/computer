@@ -113,6 +113,40 @@ Why it is shaped this way:
   with no actions, empty `useCases` (unreachable by search), or
   `authorize` without `allowedHosts` (how a token leaks).
 
+### Talking to a service
+
+Configure `http` on the app and use `context.http` in handlers:
+
+```ts
+createApp({
+  id: "linear",
+  http: {
+    baseUrl: "https://api.linear.app",
+    // Only for APIs that answer 200 with a failure body.
+    validate: (body) => {
+      if ((body as { errors?: unknown }).errors) throw new UpstreamRejectedError("…");
+    },
+  },
+  actions: { … },
+});
+
+// in a handler:
+const body = await context.http.get("issues", { query: { team, limit } });
+await context.http.post("issues", { title, teamId });
+```
+
+It builds the URL, encodes JSON (or `form` for older APIs), drops `undefined`
+query values, parses the response, and throws `HttpError` with the status on a
+non-2xx. `baseUrl`'s host joins `allowedHosts` automatically.
+
+**Do not hand-roll this.** The reason is not tidiness: a hand-thrown
+`new Error("HTTP 429 …")` is an anonymous Error, and `classifyError` can only
+call that `internal`/`retryable: false`. A rate limit then reaches the model as
+a permanent fault. `HttpError` carries the status, so 429 becomes
+`rate_limited` (retryable), 401/403 `not_authenticated`, 5xx a retryable
+`upstream_error`, and other 4xx a non-retryable one. `context.fetch` is still
+there for anything `http` cannot express — streaming, binary, odd verbs.
+
 Hand-written `App` objects still work — `createApp` returns a plain `App` — but
 new apps should use the factory.
 

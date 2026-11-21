@@ -69,8 +69,40 @@ describe("Slack", () => {
 
     expect(await ws.run("slack.sendMessage", { channel: "#nope", text: "hi" })).toMatchObject({
       status: "error",
-      // The upstream answered, so it is worth retrying — unlike a typo.
-      error: { code: "upstream_error", retryable: true, message: /channel_not_found/ },
+      // Not retryable: asking for the same missing channel again cannot
+      // succeed. This used to report `retryable: true` for every upstream
+      // failure alike, which told a model to burn steps re-sending.
+      error: { code: "upstream_error", retryable: false, message: /channel_not_found/ },
+    });
+  });
+
+  it("marks Slack's own rate limit as retryable", async () => {
+    mockFetch(() => new Response(JSON.stringify({ ok: false, error: "ratelimited" })));
+    const ws = await workspace();
+
+    expect(await ws.run("slack.sendMessage", { channel: "#general", text: "hi" })).toMatchObject({
+      status: "error",
+      error: { code: "upstream_error", retryable: true },
+    });
+  });
+
+  it("maps HTTP 429 to rate_limited, so the model waits instead of giving up", async () => {
+    mockFetch(() => new Response(JSON.stringify({ error: "too_many" }), { status: 429 }));
+    const ws = await workspace();
+
+    expect(await ws.run("slack.sendMessage", { channel: "#general", text: "hi" })).toMatchObject({
+      status: "error",
+      error: { code: "rate_limited", retryable: true },
+    });
+  });
+
+  it("maps HTTP 401 to not_authenticated rather than a generic failure", async () => {
+    mockFetch(() => new Response(JSON.stringify({ error: "invalid_auth" }), { status: 401 }));
+    const ws = await workspace();
+
+    expect(await ws.run("slack.sendMessage", { channel: "#general", text: "hi" })).toMatchObject({
+      status: "error",
+      error: { code: "not_authenticated", retryable: false },
     });
   });
 

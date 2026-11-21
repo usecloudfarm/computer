@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { createAction, createApp } from "@cloudfarm/core";
-import type { App, ActionContext } from "@cloudfarm/core";
+import { createAction, createApp, UpstreamRejectedError } from "@cloudfarm/core";
+import type { App } from "@cloudfarm/core";
 
 export interface SlackOptions {
   /**
@@ -42,6 +42,26 @@ export function slack(options: SlackOptions): App {
       "Team messaging. Post messages to channels or DMs, list channels, read threads and search history.",
     /** A prompt-injected URL cannot redirect a credentialed request off this list. */
     allowedHosts: hosts,
+    http: {
+      baseUrl: base,
+      /**
+       * Slack answers 200 with `{ ok: false, error }` rather than an HTTP
+       * error, so the body is the only reliable signal. Everything else —
+       * status codes, JSON encoding, query strings — core already handles.
+       */
+      validate: (body) => {
+        const payload = body as Record<string, unknown>;
+        if (payload["ok"] !== true) {
+          const reason = String(payload["error"] ?? "unknown_error");
+          // `ratelimited` is Slack's own word for it; mark it retryable so the
+          // model is told to wait rather than to give up.
+          throw new UpstreamRejectedError(
+            `Slack rejected the request: ${reason}`,
+            reason === "ratelimited",
+          );
+        }
+      },
+    },
     authorize: (request) => {
       const authorized = new Request(request);
       authorized.headers.set("authorization", `Bearer ${apiKey}`);
@@ -70,7 +90,7 @@ export function slack(options: SlackOptions): App {
         output: z.object({ ts: z.string(), channel: z.string() }),
         example: '{ channel: "#general", text: "deploy finished" }',
         handler: async ({ channel, text, threadTs }, context) => {
-          const body = await post(context, `${base}/chat.postMessage`, {
+          const body = await context.http.post("chat.postMessage", {
             channel,
             text,
             ...(threadTs !== undefined ? { thread_ts: threadTs } : {}),
@@ -93,11 +113,9 @@ export function slack(options: SlackOptions): App {
         }),
         example: "{ limit: 50 }",
         handler: async ({ limit = 100, cursor }, context) => {
-          const url = new URL(`${base}/conversations.list`);
-          url.searchParams.set("limit", String(limit));
-          if (cursor) url.searchParams.set("cursor", cursor);
-
-          const body = await get(context, url);
+          const body = await context.http.get("conversations.list", {
+            query: { limit, cursor },
+          });
           const channels = (body["channels"] as Array<Record<string, unknown>> | undefined) ?? [];
           const next = (body["response_metadata"] as { next_cursor?: string } | undefined)
             ?.next_cursor;
@@ -132,11 +150,9 @@ export function slack(options: SlackOptions): App {
         }),
         example: '{ query: "incident in:#eng" }',
         handler: async ({ query, count = 20 }, context) => {
-          const url = new URL(`${base}/search.messages`);
-          url.searchParams.set("query", query);
-          url.searchParams.set("count", String(count));
-
-          const body = await get(context, url);
+          const body = await context.http.get("search.messages", {
+            query: { query, count },
+          });
           const matches =
             (body["messages"] as { matches?: Array<Record<string, unknown>> } | undefined)
               ?.matches ?? [];
@@ -164,11 +180,9 @@ export function slack(options: SlackOptions): App {
         }),
         example: '{ channel: "C123", threadTs: "1700000000.000100" }',
         handler: async ({ channel, threadTs }, context) => {
-          const url = new URL(`${base}/conversations.replies`);
-          url.searchParams.set("channel", channel);
-          url.searchParams.set("ts", threadTs);
-
-          const body = await get(context, url);
+          const body = await context.http.get("conversations.replies", {
+            query: { channel, ts: threadTs },
+          });
           const messages = (body["messages"] as Array<Record<string, unknown>> | undefined) ?? [];
           return {
             messages: messages.map((message) => ({
@@ -212,39 +226,4 @@ export class Slack implements App {
   actions() {
     return this.#app.actions();
   }
-}
-
-// --- transport --------------------------------------------------------------
-
-async function get(context: ActionContext, url: URL): Promise<Record<string, unknown>> {
-  return unwrap(await context.fetch(url, { method: "GET" }));
-}
-
-async function post(
-  context: ActionContext,
-  url: string,
-  payload: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  return unwrap(
-    await context.fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json; charset=utf-8" },
-      body: JSON.stringify(payload),
-    }),
-  );
-}
-
-/**
- * Slack answers 200 with `{ ok: false, error }` rather than an HTTP error, so
- * the body is the only reliable signal.
- */
-async function unwrap(response: Response): Promise<Record<string, unknown>> {
-  if (!response.ok) {
-    throw new Error(`Slack returned HTTP ${response.status} ${response.statusText}`);
-  }
-  const body = (await response.json()) as Record<string, unknown>;
-  if (body["ok"] !== true) {
-    throw new Error(`Slack rejected the request: ${String(body["error"] ?? "unknown_error")}`);
-  }
-  return body;
 }

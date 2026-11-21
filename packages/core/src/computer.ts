@@ -1,4 +1,5 @@
 import { clampForModel, toLargeRef } from "./clamp.js";
+import { createHttpClient } from "./http.js";
 import { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 import { validateSource } from "./validate.js";
 import {
@@ -480,6 +481,9 @@ export class Workspace<T = unknown> {
     try {
       const output = await entry.action.handler(parsed.value, {
         fetch: authorizedFetch,
+        // Built per call, over the same allowlisted fetch, so an app cannot
+        // acquire wider reach by using the convenient path.
+        http: createHttpClient(authorizedFetch, app.http ?? {}),
         workspace: this.info,
         signal: this.#controller.signal,
         ref: (data, mime) =>

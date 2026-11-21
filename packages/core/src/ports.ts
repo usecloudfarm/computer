@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { HttpClient, HttpConfig } from "./http.js";
 import type {
   CodeLimits,
   CodeResult,
@@ -100,7 +101,10 @@ export interface ComputerHost {
 export type AuthorizedFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 export interface ActionContext {
+  /** Raw, credentialed fetch. Reach for it when `http` cannot express the call. */
   readonly fetch: AuthorizedFetch;
+  /** JSON over the same authorized fetch, with status-aware errors. */
+  readonly http: HttpClient;
   readonly workspace: WorkspaceInfo;
   readonly signal: AbortSignal;
   /** Park a large payload in the filesystem and hand back a pointer. */
@@ -125,6 +129,8 @@ export interface ActionDefinition<I = unknown, O = unknown> {
 
 export interface App extends Described {
   readonly name: string;
+  /** Shared HTTP configuration handed to every action's `context.http`. */
+  readonly http?: HttpConfig;
   /** Hosts this app is allowed to call. Blocks a prompt-injected URL argument. */
   readonly allowedHosts: readonly string[];
   actions(): readonly ActionDefinition[];
