@@ -41,5 +41,17 @@
     "typescript": "^5.9.3",
     "vitest": "^5.1.1",
     "wrangler": "^4.166.0"
+  },
+  "peerDependencies": {
+    "@cloudfarm/bash": "workspace:^",
+    "@cloudfarm/quickjs": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@cloudfarm/bash": {
+      "optional": true
+    },
+    "@cloudfarm/quickjs": {
+      "optional": true
+    }
   }
 }

@@ -29,6 +29,23 @@ const result = await generateText({
 });
 ```
 
+## Defaults
+
+`provider` and `codeEngine` are optional. With `@cloudfarm/bash` and
+`@cloudfarm/quickjs` installed, `new Computer()` already has a shell and code
+mode — they are found at runtime rather than imported, because both packages
+depend on core and a dependency back would be a cycle.
+
+```ts
+new Computer(); // bash + QuickJS
+new Computer({ provider: new E2B({ apiKey }) }); // swap the shell
+new Computer({ codeEngine: null }); // no code mode
+```
+
+On Cloudflare Workers, configure the engine explicitly:
+`codeEngine: quickjsForWorkers(wasmModule)`. The wasm has to be a static
+import, which only your own bundler can do.
+
 ## Why code mode
 
 An agent with ten apps installed does not get a hundred tools. It gets **six**,

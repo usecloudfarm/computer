@@ -13,6 +13,7 @@ import { Redactor } from "./redact.js";
 import { codeModeSpecs, RawToolset } from "./tools.js";
 import { renderDeclarations } from "./typegen.js";
 import { failed, ok } from "./schemas.js";
+import { defaultCodeEngine, defaultProvider } from "./defaults.js";
 import { MemoryStorage } from "./vfs.js";
 import type {
   App,
@@ -40,12 +41,20 @@ import type {
 export interface ComputerOptions<T = unknown> {
   /** Adapts tool specs to an agent framework. Defaults to handing back raw specs. */
   toolset?: Toolset<T>;
-  /** Where bash runs. Defaults to none — install @cloudfarm/bash for the built-in shell. */
-  provider?: SandboxProvider;
+  /**
+   * Where bash runs. Defaults to `@cloudfarm/bash` when it is installed; pass
+   * `null` for a Computer with no shell at all.
+   */
+  provider?: SandboxProvider | null;
   /** Where workspace files live. Defaults to memory. */
   storage?: StorageProvider;
-  /** Runs code mode. Without one, the `code` tool is simply absent. */
-  codeEngine?: CodeEngine;
+  /**
+   * Runs code mode. Defaults to `@cloudfarm/quickjs` when it is installed;
+   * pass `null` to turn code mode off. On Workers, pass
+   * `quickjsForWorkers(wasmModule)` explicitly — the wasm has to be a static
+   * import, which only your bundler can do.
+   */
+  codeEngine?: CodeEngine | null;
   memory?: MemoryStore;
   apps?: readonly App[];
   limits?: Partial<CodeLimits>;
@@ -53,6 +62,15 @@ export interface ComputerOptions<T = unknown> {
   secrets?: readonly string[];
   now?: () => number;
 }
+
+/**
+ * Options once the defaults have been filled in. `null` has been collapsed to
+ * absent, so nothing downstream has to distinguish "turned off" from "not set".
+ */
+type ResolvedOptions = Omit<ComputerOptions<unknown>, "provider" | "codeEngine"> & {
+  provider?: SandboxProvider;
+  codeEngine?: CodeEngine;
+};
 
 export interface CreateWorkspaceOptions {
   userId: string;
@@ -75,6 +93,7 @@ export class Computer<T = unknown> {
   readonly #registry: CapabilityRegistry;
   readonly #workspaces = new Map<string, Workspace<T>>();
   #defaultWorkspace: Promise<Workspace<T>> | undefined;
+  #resolvedOptions: Promise<ResolvedOptions> | undefined;
 
   constructor(options: ComputerOptions<T> = {}) {
     this.#options = options;
@@ -110,7 +129,7 @@ export class Computer<T = unknown> {
       fs,
       registry: this.#registry,
       toolset: this.#toolset,
-      options: this.#options,
+      options: await this.#resolved(),
     });
     this.#workspaces.set(key, workspace);
     return workspace;
@@ -147,6 +166,31 @@ export class Computer<T = unknown> {
     return (await this.#default()).fs;
   }
 
+  /**
+   * Fills in whatever was left unset. Memoised per Computer: finding the
+   * default packages is one dynamic import, and constructing them is cheap —
+   * neither the shell nor the wasm module does any work until first use.
+   */
+  #resolved(): Promise<ResolvedOptions> {
+    this.#resolvedOptions ??= (async () => {
+      const options = this.#options as ComputerOptions<unknown>;
+      const provider =
+        options.provider === undefined ? await defaultProvider() : (options.provider ?? undefined);
+      const codeEngine =
+        options.codeEngine === undefined
+          ? await defaultCodeEngine()
+          : (options.codeEngine ?? undefined);
+
+      const { provider: _ignoredProvider, codeEngine: _ignoredEngine, ...rest } = options;
+      return {
+        ...rest,
+        ...(provider !== undefined ? { provider } : {}),
+        ...(codeEngine !== undefined ? { codeEngine } : {}),
+      };
+    })();
+    return this.#resolvedOptions;
+  }
+
   #default(): Promise<Workspace<T>> {
     this.#defaultWorkspace ??= this.createWorkspace({ userId: "default" });
     return this.#defaultWorkspace;
@@ -158,7 +202,7 @@ interface WorkspaceInit<T> {
   fs: FileSystem;
   registry: CapabilityRegistry;
   toolset: Toolset<T>;
-  options: ComputerOptions<unknown>;
+  options: ResolvedOptions;
 }
 
 /** One user's computer: their files, their shell, their app calls. */
@@ -168,7 +212,7 @@ export class Workspace<T = unknown> {
 
   readonly #registry: CapabilityRegistry;
   readonly #toolset: Toolset<T>;
-  readonly #options: ComputerOptions<unknown>;
+  readonly #options: ResolvedOptions;
   readonly #redactor = new Redactor();
   readonly #controller = new AbortController();
   #sandbox: Promise<Sandbox> | undefined;

@@ -29,6 +29,9 @@ async function tools(options?: ConstructorParameters<typeof AISDKToolset>[0]) {
   const computer = new Computer({
     toolset: new AISDKToolset(options),
     provider: fakeSandbox({ responses: { "echo hi": { stdout: "hi\n" } } }),
+    // Pinned off so the expected tool list does not depend on which optional
+    // packages are installed alongside.
+    codeEngine: null,
     apps: [app],
   });
   const workspace = await computer.createWorkspace("u1");

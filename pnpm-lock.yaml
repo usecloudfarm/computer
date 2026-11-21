@@ -66,6 +66,12 @@ importers:
 
   packages/core:
     dependencies:
+      '@cloudfarm/bash':
+        specifier: workspace:^
+        version: link:../sandboxes/bash
+      '@cloudfarm/quickjs':
+        specifier: workspace:^
+        version: link:../engines/quickjs
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -101,6 +107,9 @@ importers:
         specifier: ^0.32.0
         version: 0.32.0
     devDependencies:
+      '@cloudfarm/bash':
+        specifier: workspace:^
+        version: link:../../sandboxes/bash
       tsup:
         specifier: ^9.0.0
         version: 9.0.0(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)

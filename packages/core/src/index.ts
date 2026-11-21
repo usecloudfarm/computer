@@ -1,6 +1,7 @@
 export { Computer, Workspace } from "./computer.js";
 export type { ComputerOptions, CreateWorkspaceOptions } from "./computer.js";
 
+export { defaultProvider, defaultCodeEngine, resetDefaults } from "./defaults.js";
 export { MemoryStorage, MemoryFileSystem, normalizePath, dirname, basename } from "./vfs.js";
 export { CapabilityRegistry, RESERVED_NAMESPACES } from "./registry.js";
 export { Bm25CapabilityIndex, tokenize } from "./search.js";

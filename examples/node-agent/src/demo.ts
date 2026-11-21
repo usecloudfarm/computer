@@ -7,8 +7,6 @@
  * thing runs offline.
  */
 import { Computer } from "@cloudfarm/core";
-import { JustBash } from "@cloudfarm/bash";
-import { quickjs } from "@cloudfarm/quickjs";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai";
 import { createServer } from "node:http";
@@ -35,10 +33,10 @@ await new Promise<void>((resolve) => server.listen(0, resolve));
 const port = (server.address() as { port: number }).port;
 
 // --- the computer -----------------------------------------------------------
+// No provider and no codeEngine: @cloudfarm/bash and @cloudfarm/quickjs are
+// installed, so they are the defaults.
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  provider: new JustBash(),
-  codeEngine: quickjs(),
   apps: [slack({ apiKey: "xoxb-demo-token", baseUrl: `http://localhost:${port}` })],
   secrets: ["xoxb-demo-token"],
 });
@@ -46,7 +44,7 @@ const workspace = await computer.createWorkspace("demo-user");
 
 const heading = (text: string) => console.log(`\n\x1b[1m${text}\x1b[0m`);
 
-heading("1. the tools an agent sees");
+heading("1. the tools an agent sees (no provider or engine configured)");
 console.log(Object.keys(await workspace.tools()).join(", "));
 console.log("(that list does not grow when you install more apps)");
 

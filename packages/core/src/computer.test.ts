@@ -139,8 +139,8 @@ describe("Workspace.run", () => {
     expect(provider.commands).toEqual(["echo hi"]);
   });
 
-  it("explains how to get a shell when no provider is configured", async () => {
-    const workspace = await new Computer().createWorkspace("u1");
+  it("explains how to get a shell when the shell is turned off", async () => {
+    const workspace = await new Computer({ provider: null }).createWorkspace("u1");
     expect(await workspace.run("bash", { cmd: "ls" })).toMatchObject({
       status: "error",
       error: { code: "unknown_ref", message: expect.stringContaining("install @cloudfarm/bash") },
@@ -235,9 +235,16 @@ describe("Workspace.exec", () => {
 describe("Workspace.tools", () => {
   it("stays a fixed, small set however many apps are installed", async () => {
     const provider = fakeSandbox();
-    const few = await new Computer({ provider, apps: [slackish()] }).createWorkspace("u");
+    // codeEngine is pinned off so the assertion is about app count, not about
+    // which optional packages happen to be installed.
+    const few = await new Computer({
+      provider,
+      codeEngine: null,
+      apps: [slackish()],
+    }).createWorkspace("u");
     const many = await new Computer({
       provider,
+      codeEngine: null,
       apps: [slackish(), fakeApp({ id: "a" }), fakeApp({ id: "b" }), fakeApp({ id: "c" })],
     }).createWorkspace("u");
 
@@ -252,8 +259,12 @@ describe("Workspace.tools", () => {
     ]);
   });
 
-  it("omits bash when there is no sandbox and code when there is no engine", async () => {
-    const workspace = await new Computer({ apps: [slackish()] }).createWorkspace("u");
+  it("omits bash and code when both are turned off", async () => {
+    const workspace = await new Computer({
+      provider: null,
+      codeEngine: null,
+      apps: [slackish()],
+    }).createWorkspace("u");
 
     const names = workspace.toolSpecs().map((spec) => spec.name);
 
@@ -262,7 +273,10 @@ describe("Workspace.tools", () => {
   });
 
   it("materialises specs through the configured toolset", async () => {
-    const workspace = await new Computer({ apps: [slackish()] }).createWorkspace("u");
+    const workspace = await new Computer({
+      codeEngine: null,
+      apps: [slackish()],
+    }).createWorkspace("u");
 
     const { specs, invoke } = (await workspace.tools()) as {
       specs: Array<{ name: string; inputSchema: Record<string, unknown> }>;

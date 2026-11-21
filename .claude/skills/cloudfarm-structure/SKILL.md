@@ -61,6 +61,21 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
    in an existing folder needs no change there. A brand-new _kind_ does.
 6. Run `pnpm install` so the workspace link exists, then `pnpm build`.
 
+## The default packages
+
+`@cloudfarm/bash` and `@cloudfarm/quickjs` are the defaults for `provider` and
+`codeEngine`. Core cannot import them — they depend on core — so it declares
+them as **optional peer dependencies** and resolves them at runtime through a
+dynamic import in `packages/core/src/defaults.ts`. Installed means default;
+absent means the matching tool is simply missing.
+
+pnpm reports a cyclic workspace dependency because of those peers. It is
+expected and harmless here: turbo still orders the graph, and a published
+consumer resolves peers from their own tree with no cycle at all.
+
+If you add another package that ought to be a default, follow the same shape —
+never a real dependency from core.
+
 ## Conventions every package follows
 
 **Scripts.** `build` (tsup), `dev`, `test` (vitest), `test:watch`, `lint`,

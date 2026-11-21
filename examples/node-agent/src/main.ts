@@ -5,17 +5,16 @@
  * designed — which is the point of keeping it in the workspace.
  */
 import { Computer } from "@cloudfarm/core";
-import { JustBash } from "@cloudfarm/bash";
-import { quickjs } from "@cloudfarm/quickjs";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai";
 
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  provider: new JustBash(), // the default shell; swap for @cloudfarm/e2b
-  codeEngine: quickjs(), // code mode, in a WebAssembly isolate
   apps: [slack({ apiKey: process.env["SLACK_TOKEN"] ?? "" })],
   secrets: [process.env["SLACK_TOKEN"] ?? ""],
+  // provider defaults to @cloudfarm/bash and codeEngine to @cloudfarm/quickjs
+  // when those packages are installed. Pass your own — `new E2B({ apiKey })` —
+  // to swap either, or `null` to turn it off.
 });
 
 const workspace = await computer.createWorkspace("user_id");
