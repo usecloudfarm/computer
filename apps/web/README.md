@@ -51,6 +51,9 @@ the client a Computer to drive.
   separately: the messages already are the record, and a second copy would be
   a second thing to keep correct. Clicking a row scrolls the thread to that
   call.
+- There is no title bar: the panels say what the workspace holds and the
+  transcript says what happened, so a strip repeating the product name was
+  only taking vertical space.
 - Below 1100px the right panel goes, below 820px both do. They are context,
   not content, and squeezing the transcript to keep them is the wrong trade.
 

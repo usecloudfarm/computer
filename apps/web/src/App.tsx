@@ -23,7 +23,6 @@ const PROMPTS = [
 
 export function App() {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState("");
   const [state, setState] = useState<WorkspaceState>(EMPTY);
   const [openFile, setOpenFile] = useState<{ path: string; content: string | null } | null>(null);
 
@@ -34,13 +33,6 @@ export function App() {
   const busy = status === "submitted" || status === "streaming";
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    void fetch("/api/info")
-      .then((response) => response.json() as Promise<{ model: string }>)
-      .then((info) => setModel(info.model))
-      .catch(() => setModel(""));
-  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -82,13 +74,6 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <span className="header__dot" />
-        <h1>cloudfarm</h1>
-        <span className="header__sub">a computer, driven by an agent</span>
-        {model && <span className="header__model">{model}</span>}
-      </header>
-
       <div className="layout">
         <LeftPanel
           files={state.files}
@@ -175,9 +160,6 @@ export function App() {
                 </button>
               )}
             </form>
-            <p className="composer__hint">
-              Enter to send, Shift+Enter for a new line. The workspace persists between turns.
-            </p>
           </div>
         </div>
 

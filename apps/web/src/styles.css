@@ -130,7 +130,7 @@ body {
 .panel__tabs {
   display: flex;
   gap: 2px;
-  padding: 8px 8px 0;
+  padding: 12px 8px 0;
   flex-shrink: 0;
 }
 
@@ -448,45 +448,6 @@ body {
   font-size: 13px;
 }
 
-/* --- header --------------------------------------------------------------- */
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 20px;
-  height: 52px;
-  flex-shrink: 0;
-}
-
-.header__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ok);
-}
-
-.header h1 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.header__sub {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.header__model {
-  margin-left: auto;
-  color: var(--muted);
-  font: 11px/1 var(--mono);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 10px;
-}
-
 /* --- thread --------------------------------------------------------------- */
 
 .thread {
@@ -501,7 +462,7 @@ body {
   width: 100%;
   max-width: var(--column);
   margin: 0 auto;
-  padding: 24px 20px 32px;
+  padding: 32px 20px;
   display: flex;
   flex-direction: column;
   gap: 28px;
