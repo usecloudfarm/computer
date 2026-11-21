@@ -52,14 +52,69 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
    | file                       | in `packages/core`         | in `packages/<kind>/<name>`   |
    | -------------------------- | -------------------------- | ----------------------------- |
    | `tsconfig.json` extends    | `../../tsconfig.base.json` | `../../../tsconfig.base.json` |
-   | `tsconfig.json` references | —                          | `{ "path": "../../core" }`    |
    | `vitest.config.ts` imports | `../../vitest.config.js`   | `../../../vitest.config.js`   |
+
+   Do **not** add `references` / `composite`: they pin typecheck to built
+   output. Workspace imports resolve from `src` through the
+   `@cloudfarm/source` export condition instead.
 
 4. **Name it `@cloudfarm/<name>`** — the npm name is flat even though the
    folder is nested, so `packages/integrations/slack` is `@cloudfarm/slack`.
 5. `pnpm-workspace.yaml` already globs every kind directory, so a new package
    in an existing folder needs no change there. A brand-new _kind_ does.
 6. Run `pnpm install` so the workspace link exists, then `pnpm build`.
+
+## Writing an app
+
+Use `createApp` from core, with one `capability()` per member:
+
+```ts
+import { capability, createApp } from "@cloudfarm/core";
+
+export function linear(options: { apiKey: string }) {
+  return createApp({
+    id: "linear",                       // first half of every ref
+    description: "Issue tracking.",     // prompt text: review it as API
+    allowedHosts: ["api.linear.app"],   // required when authorize() is given
+    authorize: (request) => {           // the token lives in this closure only
+      const authorized = new Request(request);
+      authorized.headers.set("authorization", options.apiKey);
+      return authorized;
+    },
+    capabilities: {
+      createIssue: capability({
+        summary: "Open an issue on a team's board.",
+        useCases: ["file a bug", "create an issue"],   // the ranking signal
+        sideEffects: "write",
+        input: z.object({ team: z.string(), title: z.string() }),
+        output: z.object({ id: z.string(), url: z.string() }),
+        example: '{ team: "ENG", title: "Login fails" }',
+        handler: async (input, context) => {           // input is typed
+          ...
+        },
+      }),
+    },
+  });
+}
+```
+
+Why it is shaped this way:
+
+- **`capability()` is not optional sugar.** It is what infers the handler's
+  `input` from the schema. Passing a bare object literal is rejected by the
+  type system on purpose — with a record constraint TypeScript silently types
+  the parameter `any`, so `input.nope.totally.made.up` would compile.
+- **The record key is the capability name**, so a ref cannot disagree with the
+  member it names, and duplicates are impossible.
+- **`example` is the input literal only** — `{ team: "ENG" }`. The
+  `run("linear.createIssue", …)` wrapper is generated, so the ref in prompt
+  text cannot drift. A full line is taken verbatim if you need one.
+- **Authoring mistakes throw at construction**: a non-identifier name, an app
+  with no capabilities, empty `useCases` (unreachable by search), or
+  `authorize` without `allowedHosts` (how a token leaks).
+
+Hand-written `App` objects still work — `createApp` returns a plain `App` — but
+new apps should use the factory.
 
 ## The default packages
 

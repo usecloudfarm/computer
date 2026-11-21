@@ -9,6 +9,8 @@ export type { CapabilityIndex, IndexedCapability, SearchHit } from "./search.js"
 export { Redactor } from "./redact.js";
 export { clampForModel, toLargeRef } from "./clamp.js";
 export { buildPrelude, CapabilityBridge, finishResult, resolveLimits } from "./code.js";
+export { createApp, capability } from "./define.js";
+export type { AppDefinition, CapabilitySpec, DefinedCapability } from "./define.js";
 export { validateSource } from "./validate.js";
 export type { ValidationInput } from "./validate.js";
 export { RawToolset, codeModeSpecs } from "./tools.js";

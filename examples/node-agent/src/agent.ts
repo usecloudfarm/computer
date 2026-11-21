@@ -13,10 +13,9 @@
  */
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs } from "ai";
-import { Computer } from "@cloudfarm/core";
+import { capability, Computer, createApp } from "@cloudfarm/core";
 import { AISDKToolset } from "@cloudfarm/ai";
 import { z } from "zod";
-import type { App } from "@cloudfarm/core";
 
 if (!process.env["ANTHROPIC_API_KEY"]) {
   console.error(
@@ -33,32 +32,30 @@ const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
  * A stand-in reporting app, so the run needs no third-party credentials. It
  * is a real app plugin: Zod schemas, use cases for search, a handler.
  */
-const reports: App = {
+const reports = createApp({
   id: "reports",
   name: "Reports",
   description: "Publishes finished reports to the team.",
-  allowedHosts: [],
-  authorize: (request) => request,
-  capabilities: () => [
-    {
-      name: "publish",
+  capabilities: {
+    publish: capability({
       summary: "Publish a report so the team can read it.",
       useCases: ["publish a report", "share results", "send the summary to the team"],
+      sideEffects: "write",
       input: z.object({
         title: z.string().describe("Short title for the report."),
         body: z.string().describe("Markdown body."),
       }),
       output: z.object({ url: z.string() }),
-      example: 'run("reports.publish", { title: "Q4", body: "# Q4\\n…" })',
-      sideEffects: "write",
-      handler: async (input) => {
-        const { title } = input as { title: string };
-        published.push(title);
-        return { url: `https://reports.internal/${encodeURIComponent(title)}` };
+      example: '{ title: "Q4", body: "# Q4\\n…" }',
+      // `input` is typed from the schema above: no cast, and widening the
+      // schema without updating this line stops compiling.
+      handler: (input) => {
+        published.push(input.title);
+        return { url: `https://reports.internal/${encodeURIComponent(input.title)}` };
       },
-    },
-  ],
-};
+    }),
+  },
+});
 const published: string[] = [];
 
 // Nothing is passed for `provider` or `codeEngine`: bash and QuickJS are the
