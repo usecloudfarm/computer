@@ -10,7 +10,7 @@
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "clean": "rm -rf .turbo *.tsbuildinfo",
-    "agent": "node --experimental-strip-types src/agent.ts"
+    "agent": "node --env-file-if-exists=.env --experimental-strip-types src/agent.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.107",
