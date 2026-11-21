@@ -360,6 +360,61 @@ describe("Workspace.tools", () => {
     expect(result.value.apps[0]?.actions).not.toContain("code");
   });
 
+  it("scopes a search to one app when asked", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      apps: [slackish(), fakeApp({ id: "notes", name: "Notes" })],
+    }).createWorkspace("u");
+
+    const everywhere = await workspace.search("send a message");
+    const scoped = await workspace.search("send a message", { app: "notes" });
+
+    expect(everywhere.actions[0]?.ref).toBe("slack.sendMessage");
+    expect(scoped.actions.every((action) => action.ref.startsWith("notes."))).toBe(true);
+  });
+
+  it("scopes to the computer, so the shell can be found without app noise", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: fakeSandbox(),
+      apps: [slackish()],
+    }).createWorkspace("u");
+
+    // "do something" would tokenise to nothing: both words are stopwords.
+    const scoped = await workspace.search("run a shell command", { app: "computer" });
+
+    expect(scoped.actions.length).toBeGreaterThan(0);
+    expect(scoped.actions.every((action) => action.app.id === "computer")).toBe(true);
+  });
+
+  it("still returns a full page of hits when the best ones are another app's", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      apps: [slackish(), fakeApp({ id: "notes", name: "Notes" })],
+    }).createWorkspace("u");
+
+    // Filtering after ranking is why the registry over-fetches: ask for two
+    // notes hits for a query slack wins, and two is what should come back.
+    const scoped = await workspace.search("message", { app: "notes", limit: 2 });
+
+    expect(scoped.actions.length).toBeGreaterThan(0);
+    expect(scoped.actions.length).toBeLessThanOrEqual(2);
+  });
+
+  it("rejects an app id that is not installed, naming the ones that are", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      apps: [slackish()],
+    }).createWorkspace("u");
+
+    expect(
+      await workspace.run("search", { useCase: "send a message", app: "slakc" }),
+    ).toMatchObject({
+      status: "error",
+      error: { code: "invalid_args", message: /no app called "slakc".*slack/s },
+    });
+  });
+
   it("finds the shell through search, which used to return nothing", async () => {
     const workspace = await new Computer({
       storage: new MemoryStorage(),

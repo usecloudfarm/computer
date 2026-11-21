@@ -155,7 +155,7 @@ export class Computer<T = unknown> {
   async run(ref: string, args?: Json): Promise<RunResult> {
     return (await this.#default()).run(ref, args);
   }
-  async search(useCase: string, options?: { limit?: number }): Promise<SearchResult> {
+  async search(useCase: string, options?: { limit?: number; app?: string }): Promise<SearchResult> {
     return (await this.#default()).search(useCase, options);
   }
   async code(source: string, options?: { limits?: Partial<CodeLimits> }): Promise<CodeResult> {
@@ -242,8 +242,24 @@ export class Workspace<T = unknown> {
   }
 
   /** Find actions by intent, with the types needed to call them. */
-  async search(useCase: string, options: { limit?: number } = {}): Promise<SearchResult> {
-    const hits = this.#registry.search(useCase, options.limit ?? 8, (needs) => this.#has(needs));
+  async search(
+    useCase: string,
+    options: { limit?: number; app?: string } = {},
+  ): Promise<SearchResult> {
+    // A typo'd app id would otherwise return zero hits, which reads as "this
+    // computer cannot do that" rather than "no such app".
+    if (options.app !== undefined && !this.#registry.ids().includes(options.app)) {
+      throw new InvalidArgumentsError("search", [
+        `no app called "${options.app}"; installed: ${this.#registry.ids().join(", ")}`,
+      ]);
+    }
+
+    const hits = this.#registry.search(
+      useCase,
+      options.limit ?? 8,
+      (needs) => this.#has(needs),
+      options.app,
+    );
     return {
       actions: hits.map((hit) => summarize(hit.entry, hit.score, true)),
       types: renderDeclarations(
@@ -300,8 +316,12 @@ export class Workspace<T = unknown> {
           stringField(args, "cmd"),
           optionalExecOptions(args),
         )) as unknown as Json;
-      case "search":
-        return (await this.search(stringField(args, "useCase"))) as unknown as Json;
+      case "search": {
+        // `app` must be absent rather than undefined: exactOptionalPropertyTypes.
+        const app = optionalString(args, "app");
+        const options = app === undefined ? {} : { app };
+        return (await this.search(stringField(args, "useCase"), options)) as unknown as Json;
+      }
 
       case "code":
         return (await this.code(stringField(args, "source"))) as unknown as Json;

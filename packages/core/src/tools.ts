@@ -22,6 +22,12 @@ export const SearchInput = z.object({
     .string()
     .describe("What you are trying to do, in plain language: 'send a message to the team'."),
   limit: z.number().int().positive().max(25).optional(),
+  app: z
+    .string()
+    .optional()
+    .describe(
+      "Restrict the search to one app's actions, by id — 'slack', or 'computer' for the shell and filesystem. Use list_apps to see the ids.",
+    ),
 });
 
 export const RunInput = z.object({
@@ -65,7 +71,7 @@ export const FsInput = z.object({
 
 const DESCRIPTIONS = {
   search:
-    "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`.",
+    "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`. Pass `app` to search within one app only.",
   run: "Run one action by reference — an app's, or one of the computer's own: 'bash' for the shell ({ cmd }), 'code' to script several calls, 'fs.read' / 'fs.write' / 'fs.list'. Find others with `search`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
   code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other. Actions are synchronous here: no `await`.",
   list_apps:

@@ -146,14 +146,34 @@ export class ActionRegistry {
     query: string,
     limit = 8,
     available: (needs: "sandbox" | "code") => boolean = () => true,
+    app?: string,
   ): Array<{ entry: RegistryEntry; score: number }> {
+    // Filtering happens after ranking, so a scoped search has to ask the
+    // index for more than it will return — otherwise the top `limit` hits
+    // could all belong to other apps and the caller would get nothing.
+    const want = app === undefined ? limit : Math.max(limit * 10, 50);
+
     return this.#index
-      .search(query, limit)
+      .search(query, want)
       .map((hit) => ({
         entry: this.#entries.get(hit.ref) ?? this.#builtins.get(hit.ref)!,
         score: hit.score,
       }))
-      .filter((hit) => hit.entry !== undefined && this.#usable(hit.entry.ref, available));
+      .filter(
+        (hit) =>
+          hit.entry !== undefined &&
+          this.#usable(hit.entry.ref, available) &&
+          (app === undefined || hit.entry.app.id === app),
+      )
+      .slice(0, limit);
+  }
+
+  /** Every app id that can be searched, the computer's own included. */
+  ids(): string[] {
+    const ids = new Set<string>();
+    for (const entry of this.#entries.values()) ids.add(entry.app.id);
+    for (const entry of this.#builtins.values()) ids.add(entry.app.id);
+    return [...ids];
   }
 
   /** The computer's own actions, for listing beside the installed apps. */
