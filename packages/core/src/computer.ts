@@ -305,6 +305,11 @@ export class Workspace<T = unknown> {
 
       case "code":
         return (await this.code(stringField(args, "source"))) as unknown as Json;
+      case "apps":
+        if (member !== "list") {
+          throw new UnknownRefError(`apps.${member ?? ""}`, ["apps.list"]);
+        }
+        return { apps: this.#registry.apps() } as unknown as Json;
       case "fs":
         return this.#runFs(member ?? "", args);
       case "memory":
@@ -438,7 +443,7 @@ export class Workspace<T = unknown> {
    * does not reject `run("bash", …)` as an unknown action.
    */
   #builtinRefs(): Set<string> {
-    const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search"]);
+    const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search", "apps.list"]);
     if (this.#options.provider) refs.add("bash");
     if (this.#options.memory) {
       refs.add("memory.remember");

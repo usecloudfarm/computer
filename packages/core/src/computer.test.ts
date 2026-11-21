@@ -233,6 +233,54 @@ describe("Workspace.exec", () => {
 });
 
 describe("Workspace.tools", () => {
+  it("lists the installed apps, with the actions each contributes", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      apps: [slackish(), fakeApp({ id: "notes", name: "Notes" })],
+    }).createWorkspace("u");
+
+    const result = await workspace.run("apps.list", {});
+
+    expect(result).toMatchObject({
+      status: "ok",
+      value: {
+        apps: [
+          { id: "slack", name: "Slack", actions: ["sendMessage"] },
+          { id: "notes", name: "Notes", actions: ["echo"] },
+        ],
+      },
+    });
+  });
+
+  it("reports an app's auth kind rather than guessing whether it works", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      apps: [slackish()],
+    }).createWorkspace("u");
+
+    const result = (await workspace.run("apps.list", {})) as {
+      value: { apps: { auth: string }[] };
+    };
+
+    // A hand-written App declares no scheme; createApp-built ones name theirs.
+    expect(result.value.apps[0]?.auth).toBe("unknown");
+  });
+
+  it("answers an empty list when nothing is installed, rather than failing", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    expect(await workspace.run("apps.list", {})).toEqual({ status: "ok", value: { apps: [] } });
+  });
+
+  it("suggests the right ref for a near miss under the apps namespace", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    expect(await workspace.run("apps.all", {})).toMatchObject({
+      status: "error",
+      error: { code: "unknown_ref", message: /apps\.list/ },
+    });
+  });
+
   it("stays a fixed, small set however many apps are installed", async () => {
     const provider = fakeSandbox();
     // codeEngine is pinned off so the assertion is about app count, not about
@@ -253,6 +301,7 @@ describe("Workspace.tools", () => {
       "bash",
       "search",
       "run",
+      "list_apps",
       "fs_read",
       "fs_write",
       "fs_list",

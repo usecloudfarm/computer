@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { Bm25ActionIndex, type ActionIndex } from "./search.js";
+import type { AppSummary } from "./schemas.js";
 import { NamespaceConflictError, UnknownRefError } from "./errors.js";
 import { renderSignature } from "./typegen.js";
 import type { App, ActionDefinition } from "./ports.js";
@@ -14,6 +15,7 @@ export const RESERVED_NAMESPACES = new Set([
   "browser",
   "search",
   "run",
+  "apps",
 ]);
 
 export interface RegistryEntry {
@@ -64,6 +66,35 @@ export class ActionRegistry {
 
   has(ref: string): boolean {
     return this.#entries.has(ref);
+  }
+
+  /**
+   * The installed apps, each with the names of the actions it contributes.
+   *
+   * Deliberately not scored or ranked: this answers "what is installed", a
+   * question with one correct answer, unlike `search` which answers "what is
+   * relevant" and can only guess.
+   */
+  apps(): AppSummary[] {
+    const byApp = new Map<string, AppSummary>();
+    for (const entry of this.#entries.values()) {
+      const existing = byApp.get(entry.app.id);
+      if (existing) {
+        existing.actions.push(entry.member);
+        continue;
+      }
+      byApp.set(entry.app.id, {
+        id: entry.app.id,
+        name: entry.app.name,
+        description: entry.app.description,
+        actions: [entry.member],
+        // createApp validates credentials at construction, so an app that
+        // reached the registry is usable. This reports which *kind* of scheme
+        // it declared, which is the part a reader cannot infer.
+        auth: entry.app.auth?.kind ?? "unknown",
+      });
+    }
+    return [...byApp.values()];
   }
 
   entries(): readonly RegistryEntry[] {

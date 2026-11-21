@@ -56,6 +56,7 @@ describe("AISDKToolset", () => {
       "bash",
       "search",
       "run",
+      "list_apps",
       "fs_read",
       "fs_write",
       "fs_list",

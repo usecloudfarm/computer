@@ -66,6 +66,8 @@ export type {
 
 export {
   ActionSummary,
+  AppList,
+  AppSummary,
   CodeCall,
   Diagnostic,
   CodeLimits,

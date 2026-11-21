@@ -179,6 +179,24 @@ export const ActionSummary = z.object({
 });
 export type ActionSummary = z.infer<typeof ActionSummary>;
 
+export const AppSummary = z.object({
+  id: z.string().describe("Namespace half of every ref this app contributes."),
+  name: z.string(),
+  description: z.string(),
+  /** Action names, not refs: the id is right there, and refs would double its length. */
+  actions: z.array(z.string()),
+  /**
+   * The auth scheme's kind — "apiKey", "oauth2", "none". Every installed app
+   * has already had its credentials validated at construction, so this says
+   * what kind of app it is, not whether it works.
+   */
+  auth: z.string(),
+});
+export type AppSummary = z.infer<typeof AppSummary>;
+
+export const AppList = z.object({ apps: z.array(AppSummary) });
+export type AppList = z.infer<typeof AppList>;
+
 export const SearchResult = z.object({
   actions: z.array(ActionSummary),
   /** Ambient .d.ts covering exactly these actions, for the model to read. */

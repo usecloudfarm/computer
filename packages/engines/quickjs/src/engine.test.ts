@@ -48,6 +48,17 @@ async function workspace(options: { calls?: unknown[]; secrets?: string[] } = {}
 }
 
 describe("QuickJSEngine", () => {
+  it("reaches apps.list from code mode without searching first", async () => {
+    const ws = await workspace();
+
+    // Validation rejects unknown refs before anything executes, so this
+    // passing proves apps.list is a known builtin rather than only a
+    // dispatch case that validation would have blocked.
+    const result = await ws.code('return run("apps.list", {}).value.apps[0].id;');
+
+    expect(result).toMatchObject({ outcome: "ok", value: "slack" });
+  });
+
   it("reports itself available", async () => {
     await expect(quickjs().available()).resolves.toMatchObject({ ok: true });
   });

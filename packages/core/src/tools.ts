@@ -6,7 +6,7 @@ import type { ToolSpec } from "./schemas.js";
 /**
  * The tools handed to a model.
  *
- * In `code` mode there are six of them whatever is installed: adding a tenth
+ * In `code` mode there are seven of them whatever is installed: adding a tenth
  * app adds zero tokens to the system prompt. That is the whole bet — the model
  * discovers actions with `search` instead of carrying them all in context.
  */
@@ -44,6 +44,7 @@ export const CodeInput = z.object({
     ),
 });
 
+export const ListAppsInput = z.object({});
 export const ReadInput = z.object({ path: z.string() });
 export const WriteInput = z.object({ path: z.string(), content: z.string() });
 export const ListInput = z.object({ prefix: z.string().optional() });
@@ -54,6 +55,8 @@ const DESCRIPTIONS = {
     "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`.",
   run: "Call one action directly by reference. Cheaper and more auditable than `code` for a single call. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
   code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other. Actions are synchronous here: no `await`.",
+  list_apps:
+    "List the apps installed in this workspace and the actions each one contributes. Use it to see what is available at all; use `search` when you know what you want to do.",
   fs_read: "Read a text file from the workspace.",
   fs_write: "Write a text file to the workspace.",
   fs_list: "List files in the workspace.",
@@ -63,6 +66,7 @@ export function codeModeSpecs(options: { hasSandbox: boolean; hasCode: boolean }
   const specs: ToolSpec[] = [
     spec("search", "search", DESCRIPTIONS.search, SearchInput, "read"),
     spec("run", "run", DESCRIPTIONS.run, RunInput),
+    spec("list_apps", "apps.list", DESCRIPTIONS.list_apps, ListAppsInput, "read"),
     spec("fs_read", "fs.read", DESCRIPTIONS.fs_read, ReadInput, "read"),
     spec("fs_write", "fs.write", DESCRIPTIONS.fs_write, WriteInput, "write"),
     spec("fs_list", "fs.list", DESCRIPTIONS.fs_list, ListInput, "read"),
