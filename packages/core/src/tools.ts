@@ -6,7 +6,7 @@ import type { ToolSpec } from "./schemas.js";
 /**
  * The tools handed to a model.
  *
- * In `code` mode there are seven of them whatever is installed: adding a tenth
+ * In `code` mode there are six of them whatever is installed: adding a tenth
  * app adds zero tokens to the system prompt. That is the whole bet — the model
  * discovers actions with `search` instead of carrying them all in context.
  */
@@ -45,9 +45,23 @@ export const CodeInput = z.object({
 });
 
 export const ListAppsInput = z.object({});
-export const ReadInput = z.object({ path: z.string() });
-export const WriteInput = z.object({ path: z.string(), content: z.string() });
-export const ListInput = z.object({ prefix: z.string().optional() });
+/**
+ * One filesystem tool, three verbs.
+ *
+ * Flat rather than a discriminated union per op: models fumble `oneOf` in a
+ * JSON Schema far more often than they fumble "this field is needed for that
+ * op", and the host validates the combination anyway.
+ */
+export const FsInput = z.object({
+  op: z.enum(["read", "write", "list"]),
+  path: z
+    .string()
+    .optional()
+    .describe(
+      "File path for read and write. For list, the directory prefix to list; defaults to the workspace root.",
+    ),
+  content: z.string().optional().describe("Text to write. Required when op is 'write'."),
+});
 
 const DESCRIPTIONS = {
   bash: "Run a shell command in the workspace. Use for file manipulation, text processing and anything the shell does well.",
@@ -57,9 +71,7 @@ const DESCRIPTIONS = {
   code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other. Actions are synchronous here: no `await`.",
   list_apps:
     "List the apps installed in this workspace and the actions each one contributes. Use it to see what is available at all; use `search` when you know what you want to do.",
-  fs_read: "Read a text file from the workspace.",
-  fs_write: "Write a text file to the workspace.",
-  fs_list: "List files in the workspace.",
+  fs: "Read, write and list files in the workspace. op 'read' needs path, 'write' needs path and content, 'list' takes an optional path prefix.",
 } as const;
 
 export function codeModeSpecs(options: { hasSandbox: boolean; hasCode: boolean }): ToolSpec[] {
@@ -67,9 +79,10 @@ export function codeModeSpecs(options: { hasSandbox: boolean; hasCode: boolean }
     spec("search", "search", DESCRIPTIONS.search, SearchInput, "read"),
     spec("run", "run", DESCRIPTIONS.run, RunInput),
     spec("list_apps", "apps.list", DESCRIPTIONS.list_apps, ListAppsInput, "read"),
-    spec("fs_read", "fs.read", DESCRIPTIONS.fs_read, ReadInput, "read"),
-    spec("fs_write", "fs.write", DESCRIPTIONS.fs_write, WriteInput, "write"),
-    spec("fs_list", "fs.list", DESCRIPTIONS.fs_list, ListInput, "read"),
+    // "write" is the honest annotation for the merged tool: it is the
+    // superset of what the three ops do. A reading call loses the read-only
+    // hint it used to carry — the one real cost of collapsing these.
+    spec("fs", "fs", DESCRIPTIONS.fs, FsInput, "write"),
   ];
   if (options.hasSandbox) {
     specs.unshift(spec("bash", "bash", DESCRIPTIONS.bash, BashInput));

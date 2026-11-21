@@ -311,7 +311,7 @@ export class Workspace<T = unknown> {
         }
         return { apps: this.#registry.apps() } as unknown as Json;
       case "fs":
-        return this.#runFs(member ?? "", args);
+        return this.#runFs(member ?? stringField(args, "op"), args);
       case "memory":
         return this.#runMemory(member ?? "", args);
       default:
@@ -519,7 +519,10 @@ export class Workspace<T = unknown> {
       }
       case "list": {
         const entries: Json[] = [];
-        for await (const entry of this.fs.list(optionalString(args, "prefix") ?? "/")) {
+        // `prefix` is the ref's own field; `path` is what the merged tool
+        // sends, since one field across three ops beats three near-synonyms.
+        const prefix = optionalString(args, "prefix") ?? optionalString(args, "path") ?? "/";
+        for await (const entry of this.fs.list(prefix)) {
           entries.push(entry as unknown as Json);
         }
         return entries;

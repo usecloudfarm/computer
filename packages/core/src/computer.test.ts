@@ -233,6 +233,82 @@ describe("Workspace.exec", () => {
 });
 
 describe("Workspace.tools", () => {
+  it("serves all three filesystem ops through one tool", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    expect(
+      await workspace.run("fs", { op: "write", path: "/a.txt", content: "hello" }),
+    ).toMatchObject({ status: "ok" });
+    expect(await workspace.run("fs", { op: "read", path: "/a.txt" })).toEqual({
+      status: "ok",
+      value: "hello",
+    });
+
+    const listed = (await workspace.run("fs", { op: "list" })) as {
+      value: { path: string }[];
+    };
+    expect(listed.value.map((entry) => entry.path)).toContain("/a.txt");
+  });
+
+  it("takes `path` as the prefix when listing through the merged tool", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+    await workspace.fs.write("/docs/one.md", "1");
+    await workspace.fs.write("/other/two.md", "2");
+
+    const listed = (await workspace.run("fs", { op: "list", path: "/docs" })) as {
+      value: { path: string }[];
+    };
+
+    expect(listed.value.map((entry) => entry.path)).toEqual(["/docs/one.md"]);
+  });
+
+  it("keeps the per-op refs working, which is what code mode writes", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    await workspace.run("fs.write", { path: "/b.txt", content: "kept" });
+
+    expect(await workspace.run("fs.read", { path: "/b.txt" })).toEqual({
+      status: "ok",
+      value: "kept",
+    });
+  });
+
+  it("says which field is missing rather than failing obscurely", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    expect(await workspace.run("fs", { op: "write", path: "/c.txt" })).toMatchObject({
+      status: "error",
+      error: { code: "invalid_args", message: /content/ },
+    });
+    expect(await workspace.run("fs", {})).toMatchObject({
+      status: "error",
+      error: { code: "invalid_args", message: /op/ },
+    });
+  });
+
+  it("rejects an op it does not have, naming the ones it does", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    expect(await workspace.run("fs", { op: "chmod", path: "/a" })).toMatchObject({
+      status: "error",
+      error: { code: "unknown_ref", message: /fs\.read/ },
+    });
+  });
+
+  it("does not advertise remove, but leaves the ref reachable", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+    await workspace.fs.write("/gone.txt", "x");
+
+    const ops = workspace.toolSpecs().find((tool) => tool.name === "fs")?.inputSchema as {
+      properties?: { op?: { enum?: string[] } };
+    };
+    expect(ops.properties?.op?.enum).toEqual(["read", "write", "list"]);
+
+    // Unchanged from before the merge: destructive deletion is reachable by
+    // ref, just not offered as a one-token choice.
+    expect(await workspace.run("fs.remove", { path: "/gone.txt" })).toMatchObject({ status: "ok" });
+  });
+
   it("lists the installed apps, with the actions each contributes", async () => {
     const workspace = await new Computer({
       storage: new MemoryStorage(),
@@ -302,9 +378,7 @@ describe("Workspace.tools", () => {
       "search",
       "run",
       "list_apps",
-      "fs_read",
-      "fs_write",
-      "fs_list",
+      "fs",
     ]);
   });
 

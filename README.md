@@ -51,13 +51,13 @@ import, which only your own bundler can do.
 An agent with ten apps installed does not get a hundred tools. It gets **six**,
 and the list does not grow:
 
-| tool                               | what it does                                                              |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| `search`                           | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
-| `code`                             | run JavaScript that calls several actions in one go                       |
-| `run`                              | call one action directly — cheaper and auditable                          |
-| `bash`                             | run a shell command in the workspace                                      |
-| `fs_read` / `fs_write` / `fs_list` | the workspace filesystem                                                  |
+| tool     | what it does                                                              |
+| -------- | ------------------------------------------------------------------------- |
+| `search` | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
+| `code`   | run JavaScript that calls several actions in one go                       |
+| `run`    | call one action directly — cheaper and auditable                          |
+| `bash`   | run a shell command in the workspace                                      |
+| `fs`     | the workspace filesystem: read, write, list                               |
 
 Adding an app adds zero tokens to the system prompt. The model finds what it
 needs, then writes a script:

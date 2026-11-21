@@ -52,15 +52,7 @@ describe("AISDKToolset", () => {
   it("produces an object keyed by tool name, as the AI SDK expects", async () => {
     const result = await tools();
 
-    expect(Object.keys(result)).toEqual([
-      "bash",
-      "search",
-      "run",
-      "list_apps",
-      "fs_read",
-      "fs_write",
-      "fs_list",
-    ]);
+    expect(Object.keys(result)).toEqual(["bash", "search", "run", "list_apps", "fs"]);
   });
 
   it("wraps each input schema the way the AI SDK reads JSON Schema", async () => {
@@ -111,9 +103,9 @@ describe("AISDKToolset", () => {
 
   it("truncates oversized string output", async () => {
     const result = await tools({ maxOutputChars: 100 });
-    await result["fs_write"]!.execute({ path: "/big.txt", content: "y".repeat(5000) });
+    await result["fs"]!.execute({ op: "write", path: "/big.txt", content: "y".repeat(5000) });
 
-    const read = await result["fs_read"]!.execute({ path: "/big.txt" });
+    const read = await result["fs"]!.execute({ op: "read", path: "/big.txt" });
 
     expect(JSON.stringify(read)).toContain("truncated");
   });
@@ -121,7 +113,8 @@ describe("AISDKToolset", () => {
   it("truncates an oversized object into a preview", async () => {
     const result = await tools({ maxOutputChars: 20 });
 
-    const written = (await result["fs_write"]!.execute({
+    const written = (await result["fs"]!.execute({
+      op: "write",
       path: "/a.txt",
       content: "x",
     })) as Record<string, unknown>;
