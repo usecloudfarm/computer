@@ -116,6 +116,18 @@ pnpm --filter @cloudfarm/example-node-agent demo   # runs offline, no keys
 The demo walks through the filesystem, the shell, capability search, code mode
 chaining several calls, and a runaway loop being stopped at its deadline.
 
+To watch a real model drive it:
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-...
+pnpm --filter @cloudfarm/example-node-agent agent
+pnpm --filter @cloudfarm/example-node-agent agent "your own task"
+```
+
+Claude gets the six tools and a task it cannot finish in one step — read a CSV
+from the workspace, total it by region, write a summary, publish it. Every tool
+call is printed as it happens, so you can see which it reaches for.
+
 ## Design notes
 
 **Zod defines the data.** Every value that crosses a boundary is a Zod schema

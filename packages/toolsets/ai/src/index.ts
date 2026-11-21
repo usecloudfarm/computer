@@ -1,19 +1,14 @@
+import { jsonSchema } from "ai";
+import type { Tool, ToolSet } from "ai";
 import type { Invoke, Toolset } from "@cloudfarm/core";
 import type { ToolSpec } from "@cloudfarm/core";
 
 /**
- * An AI SDK tool, structurally.
- *
- * Declared here rather than imported from `ai` on purpose: the SDK's `tool()`
- * helper has no runtime behaviour — it exists for type inference — so a plain
- * object of this shape is a valid tool. That keeps `ai` out of this package's
- * dependencies entirely, which matters because v7 is ESM-only and moves fast.
+ * `ai` is a peer dependency. The SDK's `tool()` helper is inference-only and
+ * is not needed, but `jsonSchema()` is not: it brands a raw JSON Schema so the
+ * SDK will validate against it, and a bare object is rejected.
  */
-export interface AISDKTool {
-  description: string;
-  inputSchema: { jsonSchema: Record<string, unknown> } | Record<string, unknown>;
-  execute: (input: unknown) => Promise<unknown>;
-}
+export type { Tool, ToolSet } from "ai";
 
 export interface AISDKToolsetOptions {
   /**
@@ -37,25 +32,26 @@ export interface AISDKToolsetOptions {
  * });
  * ```
  */
-export class AISDKToolset implements Toolset<Record<string, AISDKTool>> {
+export class AISDKToolset implements Toolset<ToolSet> {
   readonly #options: AISDKToolsetOptions;
 
   constructor(options: AISDKToolsetOptions = {}) {
     this.#options = options;
   }
 
-  materialize(specs: readonly ToolSpec[], invoke: Invoke): Record<string, AISDKTool> {
+  materialize(specs: readonly ToolSpec[], invoke: Invoke): ToolSet {
     const limit = this.#options.maxOutputChars ?? 24_000;
     const only = this.#options.only;
-    const tools: Record<string, AISDKTool> = {};
+    const tools: Record<string, Tool> = {};
 
     for (const spec of specs) {
       if (only && !only.includes(spec.name)) continue;
       tools[spec.name] = {
+        type: "function",
         description: spec.description,
-        // The AI SDK accepts a JSON Schema wrapped in `{ jsonSchema }`, which
-        // is what its own `jsonSchema()` helper produces.
-        inputSchema: { jsonSchema: spec.inputSchema },
+        // Capability schemas are Zod on our side and JSON Schema by the time
+        // they reach a tool spec; jsonSchema() is what makes the SDK accept one.
+        inputSchema: jsonSchema(spec.inputSchema),
         execute: async (input: unknown) => {
           try {
             const result = await invoke(spec.ref, (input ?? {}) as never);

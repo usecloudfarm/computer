@@ -55,10 +55,23 @@ describe("AISDKToolset", () => {
   it("wraps each input schema the way the AI SDK reads JSON Schema", async () => {
     const result = await tools();
 
-    expect(result["search"]).toMatchObject({
-      description: expect.stringContaining("Find capabilities"),
-      inputSchema: { jsonSchema: { type: "object", required: ["useCase"] } },
+    const search = result["search"] as {
+      description?: string;
+      inputSchema: { jsonSchema?: unknown; validate?: unknown };
+    };
+
+    expect(search.description).toContain("Find capabilities");
+    // jsonSchema() brands the schema with a validator; the SDK rejects a bare
+    // object, so the brand is what matters here. (Matching the whole branded
+    // object deep-recurses on its `_type` field.)
+    expect(search.inputSchema.jsonSchema).toMatchObject({
+      type: "object",
+      required: ["useCase"],
     });
+    // Wrapped, not bare: a raw JSON Schema object is rejected by the SDK.
+    expect(Object.getOwnPropertySymbols(search.inputSchema).map(String)).toContain(
+      "Symbol(vercel.ai.schema)",
+    );
   });
 
   it("executes a tool through the workspace", async () => {

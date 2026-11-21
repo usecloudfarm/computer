@@ -9,14 +9,17 @@
     "demo": "node --experimental-strip-types src/demo.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "clean": "rm -rf .turbo *.tsbuildinfo"
+    "clean": "rm -rf .turbo *.tsbuildinfo",
+    "agent": "node --experimental-strip-types src/agent.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.107",
     "@cloudfarm/ai": "workspace:^",
     "@cloudfarm/bash": "workspace:^",
     "@cloudfarm/core": "workspace:^",
     "@cloudfarm/quickjs": "workspace:^",
-    "@cloudfarm/slack": "workspace:^"
+    "@cloudfarm/slack": "workspace:^",
+    "ai": "^7.0.178"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
