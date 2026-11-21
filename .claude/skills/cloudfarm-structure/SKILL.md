@@ -113,6 +113,47 @@ Why it is shaped this way:
   with no actions, empty `useCases` (unreachable by search), or
   `authorize` without `allowedHosts` (how a token leaks).
 
+### Credentials
+
+Declare an auth scheme instead of hand-rolling `authorize`:
+
+```ts
+export const linear = createApp({
+  id: "linear",
+  description: "Issue tracking.",
+  auth: apiKey({ prefix: "", describe: "A Linear personal API key." }),
+  options: z.object({ baseUrl: z.string().url().optional() }),  // non-credential config
+  http: ({ baseUrl }) => ({ baseUrl: baseUrl ?? "https://api.linear.app" }),
+  actions: { … },
+});
+
+linear({ apiKey: "lin_api_…" });   // the factory's parameter is the scheme's input
+```
+
+**`auth` changes what `createApp` returns**: without it you get an `App`, with
+it you get `(input) => App`. The integration no longer writes its own
+constructor, so the dev-facing signature cannot drift from what the scheme
+actually needs.
+
+Built in: `apiKey({ header, prefix, query })`, `basic()`, `oauth({ scopes })`,
+`noAuth()`. `defineAuth` builds a custom one — `input` and `credentials` are
+separate schemas precisely so they can differ, as when a developer passes
+`{ team, secret }` and what gets stored is a single derived token.
+
+- The credential is **never on `ActionContext`**. Only the scheme sees it;
+  handlers sign requests by using `context.http`/`context.fetch`. An app that
+  closed over a string would be shorter and strictly worse.
+- `app.auth` publishes the scheme's _shape_ — `kind` and both schemas, no
+  values — so a credential store can later learn what to hold.
+- Invalid credentials throw at construction with the fix in the message, not
+  as a 401 halfway through a task.
+- `oauth()` defines the credential shape and signs with the access token. **The
+  flow is not implemented**: no consent redirect, no refresh. It exists now so
+  the stored shape is right before anything persists it.
+- `options` is separate from `auth.input` because `http` and `allowedHosts`
+  receive the options and not the credentials — there is no path that bakes a
+  token into a static header map.
+
 ### Talking to a service
 
 Configure `http` on the app and use `context.http` in handlers:

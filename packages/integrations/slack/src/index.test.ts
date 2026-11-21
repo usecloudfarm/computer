@@ -24,8 +24,17 @@ async function workspace() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Slack", () => {
-  it("requires an api key", () => {
-    expect(() => new Slack({ apiKey: "" })).toThrow(/needs an apiKey/);
+  it("requires an api key, and says how to pass one", () => {
+    // The message comes from the auth scheme now, not from hand-written
+    // validation inside the integration.
+    expect(() => new Slack({ apiKey: "" })).toThrow(/invalid credentials.*slack\({ apiKey }\)/s);
+  });
+
+  it("publishes its auth shape without exposing the credential", () => {
+    const app = slack({ apiKey: "xoxb-secret-value" });
+
+    expect(app.auth?.kind).toBe("apiKey");
+    expect(JSON.stringify(app.auth)).not.toContain("xoxb-secret-value");
   });
 
   it("exposes four actions with use cases for search", () => {

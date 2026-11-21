@@ -130,7 +130,18 @@ export interface ActionDefinition<I = unknown, O = unknown> {
 export interface App extends Described {
   readonly name: string;
   /** Shared HTTP configuration handed to every action's `context.http`. */
-  readonly http?: HttpConfig;
+  readonly http?: HttpConfig | undefined;
+  /**
+   * The auth scheme's shape — kind and schemas, never values. A credential
+   * store can read this to know what to hold; nothing here exposes a secret.
+   */
+  readonly auth?:
+    | {
+        readonly kind: string;
+        readonly input: z.ZodType<unknown>;
+        readonly credentials: z.ZodType<unknown>;
+      }
+    | undefined;
   /** Hosts this app is allowed to call. Blocks a prompt-injected URL argument. */
   readonly allowedHosts: readonly string[];
   actions(): readonly ActionDefinition[];

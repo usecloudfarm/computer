@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { App, ActionContext, ActionDefinition } from "./ports.js";
+import type { AuthScheme } from "./auth.js";
 import type { HttpConfig } from "./http.js";
 import type { SideEffects } from "./schemas.js";
 
@@ -83,7 +84,7 @@ export function createAction<I, O>(spec: ActionSpec<I, O>): DefinedAction<I, O> 
   return spec as DefinedAction<I, O>;
 }
 
-export interface AppDefinition<C> {
+export interface AppDefinition<C, AuthInput = unknown, Options = unknown> {
   /** Lowercase; it is the first half of every ref this app contributes. */
   readonly id: string;
   /** Human-facing name. Defaults to the id. */
@@ -95,7 +96,7 @@ export interface AppDefinition<C> {
    * credentialed request off this list. Required once `authorize` is given:
    * applying a credential with no allowlist is how a token leaks.
    */
-  readonly allowedHosts?: readonly string[];
+  readonly allowedHosts?: readonly string[] | ((options: Options) => readonly string[]);
   /**
    * Applies the app's credential. Called per request, so the token stays in
    * this closure and never reaches a handler, a result, or code mode.
@@ -106,7 +107,25 @@ export interface AppDefinition<C> {
    * base URL's host joins `allowedHosts` automatically — an app that declares
    * where it talks should not have to say it twice.
    */
-  readonly http?: HttpConfig;
+  readonly http?: HttpConfig | ((options: Options) => HttpConfig);
+  /**
+   * How this app is credentialed: `apiKey()`, `basic()`, `oauth()`, `noAuth()`.
+   *
+   * Giving one changes what `createApp` returns. Without it you get an `App`;
+   * with it you get `(input) => App`, where `input` is the scheme's own input
+   * schema — so `slack({ apiKey })` is the scheme's doing, not a wrapper the
+   * integration has to hand-write and keep in sync.
+   */
+  readonly auth?: AuthScheme<AuthInput, unknown>;
+  /**
+   * Non-credential construction options — a base URL override, a region, an
+   * account id. Merged with the auth input to form the factory's parameter.
+   *
+   * It is a separate schema from `auth.input` on purpose: `http` and
+   * `allowedHosts` are handed these values and not the credentials, so there
+   * is no path that bakes a token into a static header map.
+   */
+  readonly options?: z.ZodType<Options>;
   readonly actions: C;
 }
 
@@ -138,7 +157,24 @@ const MEMBER = /^[a-z][a-zA-Z0-9]*$/;
  * Authoring mistakes throw here, at construction, rather than surfacing as a
  * missing search hit or an unparseable ref once an agent is already running.
  */
-export function createApp(definition: AppDefinition<Record<string, Branded>>): App {
+/**
+ * Without `auth`, an app is ready to use.
+ */
+export function createApp(
+  definition: AppDefinition<Record<string, Branded>> & { auth?: undefined },
+): App;
+/**
+ * With `auth`, you get a factory: the scheme's input schema becomes the
+ * parameter, so `slack({ apiKey })` is generated rather than hand-written.
+ */
+export function createApp<AuthInput, Options = unknown>(
+  definition: AppDefinition<Record<string, Branded>, AuthInput, Options> & {
+    auth: AuthScheme<AuthInput, unknown>;
+  },
+): (input: AuthInput & Options) => App;
+export function createApp<AuthInput, Options>(
+  definition: AppDefinition<Record<string, Branded>, AuthInput, Options>,
+): App | ((input: AuthInput & Options) => App) {
   const { id, description } = definition;
   if (!APP_ID.test(id)) {
     throw new Error(
@@ -148,35 +184,117 @@ export function createApp(definition: AppDefinition<Record<string, Branded>>): A
   if (!description.trim()) {
     throw new Error(`App "${id}" needs a description: the model reads it to decide relevance.`);
   }
-  if (
-    definition.authorize &&
-    (definition.allowedHosts?.length ?? 0) === 0 &&
-    !definition.http?.baseUrl
-  ) {
+  if (definition.auth && definition.authorize) {
     throw new Error(
-      `App "${id}" applies a credential but allows no hosts. List the hosts it may call, or drop authorize().`,
+      `App "${id}" sets both auth and authorize. The scheme signs requests; drop authorize(), or drop auth to sign them by hand.`,
     );
   }
 
   const entries = Object.entries(definition.actions) as unknown as [string, SpecView][];
   if (entries.length === 0) throw new Error(`App "${id}" defines no actions.`);
+  const actions = entries.map(([name, spec]) => toDefinition(id, name, spec));
 
-  const definitions = entries.map(([name, spec]) => toDefinition(id, name, spec));
+  const scheme = definition.auth;
+  if (!scheme) {
+    const built = assemble(definition, actions, {} as Options, undefined);
+    requireAllowlist(id, built, definition.authorize !== undefined);
+    return built;
+  }
 
-  const declared = definition.allowedHosts ?? [];
-  const baseHost = definition.http?.baseUrl ? new URL(definition.http.baseUrl).hostname : undefined;
+  return (input: AuthInput & Options): App => {
+    const credentials = toCredentials(id, scheme, input);
+    const options = parseOptions(id, definition.options, input) as Options;
+    const built = assemble(definition, actions, options, (request) =>
+      scheme.authorize(request, credentials),
+    );
+    requireAllowlist(id, built, scheme.kind !== "none");
+    return {
+      ...built,
+      auth: { kind: scheme.kind, input: scheme.input, credentials: scheme.credentials },
+    };
+  };
+}
+
+/** The credential never leaves this call; only the closure that applies it does. */
+function toCredentials<Input>(
+  id: string,
+  scheme: AuthScheme<Input, unknown>,
+  input: unknown,
+): unknown {
+  const parsed = scheme.input.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(
+      `${id}: invalid credentials — ${issuesOf(parsed.error)}. Construct it as ${id}({ ${described(scheme.input)} }).`,
+    );
+  }
+  const credentials = scheme.toCredentials(parsed.data);
+  const checked = scheme.credentials.safeParse(credentials);
+  if (!checked.success) {
+    throw new Error(
+      `${id}: the ${scheme.kind} scheme produced credentials that do not match its own schema: ${issuesOf(checked.error)}`,
+    );
+  }
+  return checked.data;
+}
+
+function parseOptions<Options>(
+  id: string,
+  schema: z.ZodType<Options> | undefined,
+  input: unknown,
+): Options | Record<string, never> {
+  if (!schema) return {};
+  const parsed = schema.safeParse(input ?? {});
+  if (!parsed.success) throw new Error(`${id} got invalid options: ${issuesOf(parsed.error)}`);
+  return parsed.data;
+}
+
+function issuesOf(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("; ");
+}
+
+/** Shared by both forms, so an app is assembled exactly one way. */
+function assemble<AuthInput, Options>(
+  definition: AppDefinition<Record<string, Branded>, AuthInput, Options>,
+  actions: readonly ActionDefinition[],
+  options: Options,
+  authorize: ((request: Request) => Request) | undefined,
+): App {
+  const http = typeof definition.http === "function" ? definition.http(options) : definition.http;
+  const declared =
+    typeof definition.allowedHosts === "function"
+      ? definition.allowedHosts(options)
+      : (definition.allowedHosts ?? []);
+  const baseHost = http?.baseUrl ? new URL(http.baseUrl).hostname : undefined;
   const allowedHosts =
     baseHost && !declared.includes(baseHost) ? [...declared, baseHost] : declared;
 
   return {
-    id,
-    name: definition.name ?? id,
-    description,
-    ...(definition.http ? { http: definition.http } : {}),
+    id: definition.id,
+    name: definition.name ?? definition.id,
+    description: definition.description,
+    ...(http ? { http } : {}),
     allowedHosts,
-    authorize: definition.authorize ?? ((request) => request),
-    actions: () => definitions,
+    authorize: authorize ?? definition.authorize ?? ((request) => request),
+    actions: () => actions,
   };
+}
+
+/**
+ * Applying a credential with no allowlist is how a token leaks.
+ *
+ * Whether the app signs is decided structurally rather than by calling
+ * `authorize()` with a probe request: running the scheme during construction
+ * executes someone else's code for a validation check, and an `oauth()` scheme
+ * holding an expired token throws from exactly that call.
+ */
+function requireAllowlist(id: string, app: App, signs: boolean): void {
+  if ((signs || app.http !== undefined) && app.allowedHosts.length === 0) {
+    throw new Error(
+      `App "${id}" applies a credential but allows no hosts. List the hosts it may call via allowedHosts or http.baseUrl.`,
+    );
+  }
 }
 
 function toDefinition(appId: string, name: string, spec: SpecView): ActionDefinition {
@@ -219,4 +337,11 @@ function toExample(ref: string, example: string): string {
   if (!trimmed) throw new Error(`Action "${ref}" needs an example: it is prompt text.`);
   const isInputLiteral = trimmed.startsWith("{") || trimmed.startsWith("[");
   return isInputLiteral ? `run("${ref}", ${trimmed})` : trimmed;
+}
+
+/** Lists what a scheme's input asks for, so the message says how to fix it. */
+function described(schema: z.ZodType<unknown>): string {
+  const shape = (schema as unknown as { shape?: Record<string, unknown> }).shape;
+  const keys = shape ? Object.keys(shape) : [];
+  return keys.length > 0 ? keys.join(", ") : "credentials";
 }

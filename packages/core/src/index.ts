@@ -10,6 +10,15 @@ export { Redactor } from "./redact.js";
 export { clampForModel, toLargeRef } from "./clamp.js";
 export { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 export { createApp, createAction } from "./define.js";
+export { apiKey, basic, defineAuth, noAuth, oauth } from "./auth.js";
+export type {
+  ApiKeyCredentials,
+  ApiKeyOptions,
+  AuthScheme,
+  BasicCredentials,
+  OAuthCredentials,
+  OAuthOptions,
+} from "./auth.js";
 export { createHttpClient } from "./http.js";
 export type { HttpClient, HttpConfig, HttpOptions } from "./http.js";
 export type { AppDefinition, ActionSpec, DefinedAction } from "./define.js";
