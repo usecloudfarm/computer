@@ -1,7 +1,6 @@
 {
   "name": "@cloudfarm/ai",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
   "description": "Computer tools for the Vercel AI SDK",
   "license": "MIT",
   "type": "module",
@@ -39,5 +38,17 @@
   },
   "peerDependencies": {
     "ai": "^7.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "directory": "packages/toolsets/ai"
+  },
+  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/toolsets/ai#readme",
+  "bugs": {
+    "url": "https://github.com/haxzie/unsandbox/issues"
   }
 }

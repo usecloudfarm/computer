@@ -1,7 +1,6 @@
 {
   "name": "@cloudfarm/e2b",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
   "description": "SandboxProvider over E2B: firecracker microVMs for agent code",
   "license": "MIT",
   "type": "module",
@@ -43,5 +42,17 @@
     "e2b": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "directory": "packages/sandboxes/e2b"
+  },
+  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/sandboxes/e2b#readme",
+  "bugs": {
+    "url": "https://github.com/haxzie/unsandbox/issues"
   }
 }

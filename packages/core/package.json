@@ -1,7 +1,6 @@
 {
   "name": "@cloudfarm/core",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
   "description": "Computer: a workspace, a filesystem, bash, apps and code mode for an agent",
   "license": "MIT",
   "type": "module",
@@ -55,5 +54,17 @@
     "@cloudfarm/quickjs": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/haxzie/unsandbox/issues"
   }
 }

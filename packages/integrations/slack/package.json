@@ -1,7 +1,6 @@
 {
   "name": "@cloudfarm/slack",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
   "description": "Slack as a Computer app: post messages, read channels, search history",
   "license": "MIT",
   "type": "module",
@@ -35,5 +34,17 @@
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "directory": "packages/integrations/slack"
+  },
+  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/integrations/slack#readme",
+  "bugs": {
+    "url": "https://github.com/haxzie/unsandbox/issues"
   }
 }

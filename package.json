@@ -21,7 +21,9 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "changeset": "changeset",
     "lint:fix": "oxlint --fix",
-    "check": "pnpm format:check && turbo run lint typecheck build test test:workers"
+    "check": "pnpm format:check && turbo run lint typecheck build test test:workers",
+    "version": "changeset version && pnpm install --lockfile-only",
+    "release": "pnpm check && pnpm build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",

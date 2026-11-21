@@ -1,7 +1,6 @@
 {
   "name": "@cloudfarm/quickjs",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
   "description": "Code mode for Computer: a QuickJS isolate that runs on Node and on Cloudflare Workers",
   "license": "MIT",
   "type": "module",
@@ -53,5 +52,17 @@
     "typescript": "^5.9.3",
     "vitest": "^5.1.1",
     "zod": "^4.6.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "directory": "packages/engines/quickjs"
+  },
+  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/engines/quickjs#readme",
+  "bugs": {
+    "url": "https://github.com/haxzie/unsandbox/issues"
   }
 }

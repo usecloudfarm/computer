@@ -1,7 +1,6 @@
 {
   "name": "@cloudfarm/vercel-sandbox",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
   "description": "SandboxProvider over Vercel Sandbox",
   "license": "MIT",
   "type": "module",
@@ -43,5 +42,17 @@
     "@vercel/sandbox": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "directory": "packages/sandboxes/vercel-sandbox"
+  },
+  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/sandboxes/vercel-sandbox#readme",
+  "bugs": {
+    "url": "https://github.com/haxzie/unsandbox/issues"
   }
 }
