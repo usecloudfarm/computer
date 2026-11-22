@@ -51,6 +51,41 @@ export interface FileSystem {
 export interface StorageProvider extends Described {
   /** One filesystem per workspace. Called once, lazily, per workspace. */
   open(scope: { userId: string; workspaceId: string }): Promise<FileSystem>;
+  /**
+   * How a sandbox could attach this storage directly, or `null` when it
+   * cannot.
+   *
+   * `open()` returns an API view — read, write, list — which is what code
+   * mode and the `fs.*` refs use, and what you cannot mount: FUSE needs a
+   * bucket and credentials, not a JavaScript object. This is the same storage
+   * described as a thing to attach.
+   */
+  attachment?(scope: { userId: string; workspaceId: string }): Promise<Attachment | null>;
+}
+
+/**
+ * An S3-compatible bucket a sandbox can mount.
+ *
+ * The credentials here are handed to a machine that runs model-written code,
+ * so they should be scoped to `prefix` and short-lived — an STS session
+ * policy or an R2 scoped token, never the account's long-lived pair. A
+ * prompt-injected script reaching the whole bucket is the failure this field
+ * invites if it is filled in carelessly.
+ */
+export interface Attachment {
+  readonly kind: "s3";
+  readonly endpoint: string;
+  readonly bucket: string;
+  /** This workspace's subtree. Credentials should not reach outside it. */
+  readonly prefix: string;
+  readonly region?: string;
+  /** MinIO and some gateways need path-style addressing rather than host-style. */
+  readonly pathStyle?: boolean;
+  readonly credentials: {
+    readonly accessKeyId: string;
+    readonly secretAccessKey: string;
+    readonly sessionToken?: string;
+  };
 }
 
 // --- sandbox ----------------------------------------------------------------
@@ -74,7 +109,7 @@ export interface Sandbox {
  * "action". An app's actions are the units an agent calls; these answer
  * "does this provider support bash?" and are never exposed to a model.
  */
-export type SandboxCapability = "bash" | "ports";
+export type SandboxCapability = "bash" | "ports" | "mount";
 
 export interface SandboxProvider extends Described {
   readonly capabilities: ReadonlySet<SandboxCapability>;
@@ -92,6 +127,12 @@ export interface ComputerHost {
   /** The only network path, so egress stays observable and allowlistable. */
   readonly fetch: typeof globalThis.fetch;
   readonly fs: FileSystem;
+  /**
+   * The same storage, described so a sandbox can mount it. `null` when the
+   * storage cannot be attached — a provider should then fall back to copying
+   * through `fs` rather than leaving the sandbox with an empty disk.
+   */
+  readonly attachment: Attachment | null;
   readonly signal: AbortSignal;
 }
 

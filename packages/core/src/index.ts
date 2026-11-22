@@ -45,6 +45,7 @@ export {
 
 export type {
   App,
+  Attachment,
   AuthorizedFetch,
   ActionContext,
   ActionDefinition,

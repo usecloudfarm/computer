@@ -19,6 +19,7 @@ import { defaultCodeEngine, defaultProvider } from "./defaults.js";
 import { MemoryStorage } from "./vfs.js";
 import type {
   App,
+  Attachment,
   CodeEngine,
   ComputerHost,
   FileSystem,
@@ -125,10 +126,13 @@ export class Computer<T = unknown> {
       createdAt: (this.#options.now ?? Date.now)(),
       metadata: options.metadata ?? {},
     };
-    const fs = await this.#storage.open({ userId: options.userId, workspaceId });
+    const scope = { userId: options.userId, workspaceId };
+    const fs = await this.#storage.open(scope);
+    const attachment = (await this.#storage.attachment?.(scope)) ?? null;
     const workspace = new Workspace<T>({
       info,
       fs,
+      attachment,
       registry: this.#registry,
       toolset: this.#toolset,
       options: await this.#resolved(),
@@ -202,6 +206,7 @@ export class Computer<T = unknown> {
 interface WorkspaceInit<T> {
   info: WorkspaceInfo;
   fs: FileSystem;
+  attachment: Attachment | null;
   registry: ActionRegistry;
   toolset: Toolset<T>;
   options: ResolvedOptions;
@@ -220,9 +225,12 @@ export class Workspace<T = unknown> {
   #sandbox: Promise<Sandbox> | undefined;
   #runCounter = 0;
 
+  readonly #attachment: Attachment | null;
+
   constructor(init: WorkspaceInit<T>) {
     this.info = init.info;
     this.fs = init.fs;
+    this.#attachment = init.attachment;
     this.#registry = init.registry;
     this.#toolset = init.toolset;
     this.#options = init.options;
@@ -503,6 +511,7 @@ export class Workspace<T = unknown> {
       workspace: this.info,
       fetch: globalThis.fetch.bind(globalThis),
       fs: this.fs,
+      attachment: this.#attachment,
       signal: this.#controller.signal,
     };
   }
