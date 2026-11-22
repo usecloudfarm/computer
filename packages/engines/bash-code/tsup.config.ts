@@ -7,5 +7,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2023",
-  external: ["@cloudfarm/core", "just-bash", "zod"],
+  external: ["@cloudfarm/core", "@cloudfarm/bash", "just-bash", "zod"],
 });

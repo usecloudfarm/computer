@@ -33,10 +33,16 @@ its engine would accept. The "everything is SYNCHRONOUS" sentence moves out of
 `CodeInput`'s fixed schema text and into the generated description, where it
 can tell the truth about the engine in use.
 
-The guest has no Node globals. `js-exec` installs `fs`, `require`, `process`,
-`fetch` and `Buffer`; the bootstrap deletes them. `fs` was the one that
-mattered: this engine's sandbox is seeded with nothing, so `readFileSync` was
-ENOENT for a file the workspace had and `writeFileSync` reported success for a
-write the host never saw — silently, and without touching the bridge, so with
-no audit trail either. The isolate engine has none of them, so reaching for one
-would have forked the dialect.
+The guest keeps `require` and gets a real filesystem. The engine seeds its
+shell from the workspace and writes back after, so `require("fs").readFileSync`
+reads the file the workspace has and `writeFileSync` leaves one behind. This is
+the reason to run code mode inside the sandbox at all: without it a script
+reads a file by writing shell, quoted inside a JS string, inside JSON —
+`run("bash", { cmd: "cat " + path })` — to do what one line of JS does.
+
+Core gains `CodeEngineCapabilities.guestModules`, which makes the prelude, the
+validator and the `code` tool's description agree about whether `require`
+exists; previously each decided alone, so the modules were present and
+unusable. `CodeJob` gains an optional `fs`, handed over only to an engine
+declaring the capability — an engine without it gets no filesystem rather than
+a scratch one that discards writes.

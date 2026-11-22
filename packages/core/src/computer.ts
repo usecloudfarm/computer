@@ -261,6 +261,7 @@ export class Workspace<T = unknown> {
     return codeModeSpecs({
       hasCode: this.#options.codeEngine !== undefined,
       guestAwait: this.#options.codeEngine?.capabilities.guestAwait ?? false,
+      guestModules: this.#options.codeEngine?.capabilities.guestModules ?? false,
       // One source of truth: the same list `search` and `apps.list` use, so
       // the description cannot name a ref that dispatch would reject.
       builtins: this.#registry.builtins((needs) => this.#has(needs)).map((entry) => entry.ref),
@@ -461,6 +462,7 @@ export class Workspace<T = unknown> {
       registry: this.#registry,
       builtins: this.#builtinRefs(),
       allowAwait: engine.capabilities.guestAwait,
+      allowModules: engine.capabilities.guestModules,
     });
     if (engine.validate) diagnostics.push(...(await engine.validate(source)));
 
@@ -481,9 +483,13 @@ export class Workspace<T = unknown> {
     return engine.evaluate(
       {
         source,
-        prelude: buildPrelude(),
+        prelude: buildPrelude({ guestModules: engine.capabilities.guestModules }),
         limits,
         runId: `code-${++this.#runCounter}`,
+        // Handed over only when the engine says it can make these modules see
+        // the workspace. An engine without it gets no filesystem at all,
+        // which beats one that silently discards writes.
+        ...(engine.capabilities.guestModules ? { fs: this.fs } : {}),
       },
       bridge,
     );

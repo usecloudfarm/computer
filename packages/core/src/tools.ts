@@ -47,9 +47,8 @@ export const CodeInput = z.object({
     .describe(
       "JavaScript to run. Call actions with run(ref, input) — the same refs and the " +
         "same result shape as the `run` tool: run('slack.sendMessage', { channel: '#general', " +
-        "text: 'hi' }), run('bash', { cmd: 'cat /data/sales.csv' }). Files go through the " +
-        "shell here too; build the command with template strings rather than hand-quoting it. " +
-        "Every call returns { status: 'ok', value } or " +
+        "text: 'hi' }), run('bash', { cmd: 'npm test' }). Every call returns " +
+        "{ status: 'ok', value } or " +
         "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
         "Use `return` to report a value back; console.log is captured. The source is validated " +
         "before it runs, so unknown refs and syntax errors come back without executing anything.",
@@ -72,6 +71,8 @@ export interface ToolContext {
   readonly builtins: readonly string[];
   /** Whether the engine accepts `await` in the guest's source. */
   readonly guestAwait?: boolean | undefined;
+  /** Whether the guest has `require` and the Node-shaped shims behind it. */
+  readonly guestModules?: boolean | undefined;
   /** The sandbox's own words about what it can and cannot run. */
   readonly sandbox?: string | undefined;
   /** The storage provider's own words about where files live. */
@@ -172,10 +173,25 @@ function describeFiles(has: (ref: string) => boolean): string {
  */
 function describeCode(options: ToolContext): string {
   const bash = options.builtins.includes("bash") ? ' `run("bash", { cmd })` works here too.' : "";
+  // Files first, and emphatically: a script reaching for
+  // run('bash', { cmd: 'cat x' }) is writing shell inside a JS string inside
+  // JSON to do what one line of JS does. That is what the model reaches for
+  // unless told otherwise, so it is told otherwise.
+  const modules = options.guestModules
+    ? " For files, use `fs` directly — `const text = require('fs').readFileSync(path, 'utf8')` " +
+      "and `writeFileSync(path, text)`. It reads and writes the real workspace, so what you " +
+      "write is there afterwards. Do NOT shell out to read or write a file: " +
+      "run('bash', { cmd: 'cat ' + path }) is shell quoted inside a JS string to do what one " +
+      "line of JS already does. `require` also gives you path, os and util. Keep " +
+      "run('bash') for actually running something — a pipeline, a tool, a build. One caveat: " +
+      "`fs` is a snapshot taken when the script started, so a file written by run('bash') " +
+      "part-way through is not visible to it until the next script. Calls through these " +
+      "modules do not pass through run(), so they are neither recorded nor truncated."
+    : "";
   const concurrency = options.guestAwait
     ? " `await` is available, and optional: a call without it returns the same value."
     : " Everything is SYNCHRONOUS: no `await`, no promises.";
-  return `${DESCRIPTIONS.code}${concurrency}${bash}`;
+  return `${DESCRIPTIONS.code}${concurrency}${bash}${modules}`;
 }
 
 function spec(

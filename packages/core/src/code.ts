@@ -48,7 +48,12 @@ type HostCallErrorCode = HostCallError["code"];
  * filesystem, no require. `fetch` and `require` are throwing stubs rather than
  * undefined, because a clear message beats a bare ReferenceError.
  */
-export function buildPrelude(): string {
+export interface PreludeOptions {
+  /** From the engine: whether the guest has a real `require` to leave alone. */
+  readonly guestModules?: boolean;
+}
+
+export function buildPrelude(options: PreludeOptions = {}): string {
   return `"use strict";
 const console = {
   log: (...args) => __log("log", args),
@@ -58,8 +63,7 @@ const console = {
 };
 const run = (ref, input) => __host(ref, input);
 const fetch = () => { throw new Error('there is no network in code mode; use an action or run("bash", { cmd })'); };
-const require = () => { throw new Error("require is unavailable in code mode; every action is reachable through run()"); };
-`;
+${options.guestModules ? "" : `const require = () => { throw new Error("require is unavailable in code mode; every action is reachable through run()"); };\n`}`;
 }
 
 export interface BridgeOptions {

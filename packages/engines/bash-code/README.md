@@ -64,21 +64,35 @@ The ref travels as an _argument_, never as a property path. `tools.a.b()`
 would require every ref to be a chain of valid identifiers, and the first ref
 that is not one would split the dialect away from what `run` accepts.
 
-## The guest has no Node globals
+## The guest has a real `fs`
 
-`js-exec` installs `fs`, `require`, `process`, `fetch`, `Buffer` and `URL`.
-The bootstrap deletes them.
+`js-exec` gives the guest `require` and the `fs`, `path`, `os` and `process`
+shims behind it. The engine seeds its shell from the workspace and writes back
+after, so those are the real files:
 
-Not for safety — `process.env` is the shell's own env rather than the host's,
-and `fetch` is already refused because no network is configured. `fs` was the
-dangerous one for a duller reason: **this engine's sandbox is seeded with
-nothing**, so `fs.readFileSync("/a.txt")` was ENOENT for a file the workspace
-had, and `fs.writeFileSync` reported success for a write the host never saw.
-A silent discard is worse than an error, and those calls never touched the
-bridge, so they left no audit trail and skipped the clamp.
+```js
+const text = require("fs").readFileSync("/data.csv", "utf8");
+require("fs").writeFileSync("/out.md", summarise(text));
+```
 
-The isolate engine has none of them either, so a script reaching for one would
-have run here and failed there — the fork this engine exists to avoid.
+This is the point of running code mode inside the sandbox. Without it a script
+reads a file by writing **shell, quoted inside a JS string, inside JSON** —
+`run("bash", { cmd: "cat " + path })` — to do what one line of JS does, and it
+pays a host call for it.
+
+Core is told by `capabilities.guestModules`, which makes three things agree
+that would otherwise each decide alone: the prelude stops stubbing `require`,
+the validator stops rejecting it, and the `code` tool's description says to
+use it. The isolate engine declares `false` and all three flip back.
+
+Two things to know:
+
+- **`fs` is a snapshot** taken when the script starts. A file written by
+  `run("bash", …)` part-way through is not visible to `fs` until the next
+  script. Pick one of the two for a given file rather than interleaving them.
+- **Module calls bypass the bridge**, so they are not in `CodeResult.calls`
+  and are not clamped. That is the trade for not shelling out: use them for
+  the bulk work, and `run()` for the steps worth having in the record.
 
 ## Notes
 

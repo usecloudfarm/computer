@@ -206,6 +206,9 @@ importers:
 
   packages/engines/bash-code:
     dependencies:
+      '@cloudfarm/bash':
+        specifier: workspace:^
+        version: link:../../sandboxes/bash
       '@cloudfarm/core':
         specifier: workspace:^
         version: link:../../core

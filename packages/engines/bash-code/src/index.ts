@@ -1,4 +1,5 @@
 import { Bash } from "just-bash";
+import { snapshot, writeBack } from "@cloudfarm/bash";
 import { finishResult, Redactor } from "@cloudfarm/core";
 import type { ActionBridge, CodeEngine, CodeJob, CodeResult, HostBridge } from "@cloudfarm/core";
 
@@ -33,38 +34,6 @@ export function bashCode(options: BashCodeOptions = {}): CodeEngine {
   return new BashCodeEngine(options);
 }
 
-/**
- * Globals js-exec installs that code mode must not have.
- *
- * Not a security boundary. `process.env` is the shell's own env rather than
- * the host's — a canary set on the host comes back undefined — and `fetch` is
- * already refused by just-bash, which has no network configured. Two other
- * reasons, both worse than either of those:
- *
- * A trap. This engine's sandbox is its own and is seeded with nothing, so
- * `fs.readFileSync` is ENOENT for a file the workspace has, and
- * `fs.writeFileSync` reports success for a write the host never sees. A
- * silent discard is worse than an error. Those calls also never touch the
- * bridge, so they leave no audit trail and skip the clamp.
- *
- * And the dialect. The isolate engine has none of these, so a script reaching
- * for one would run here and fail there — the fork this engine exists to
- * avoid.
- */
-const DENIED = [
-  "fs",
-  "require",
-  "process",
-  "env",
-  "fetch",
-  "Buffer",
-  "URL",
-  "URLSearchParams",
-  "Headers",
-  "Request",
-  "Response",
-];
-
 /** Host function names. The guest reaches the host through these three only. */
 const HOST = "host";
 const LOG = "log";
@@ -79,6 +48,12 @@ class BashCodeEngine implements CodeEngine {
     asyncHostCalls: true,
     // The guest runs on its own thread, so `await` is ordinary syntax here.
     guestAwait: true,
+    // js-exec gives the guest require() and the fs, path, os and process
+    // shims behind it. Declaring this is what makes core hand over the
+    // workspace filesystem, stop stubbing `require` in the prelude, and stop
+    // rejecting it during validation — the three had to agree or the modules
+    // would be present and unusable.
+    guestModules: true,
     // The guest is parked on Atomics.wait inside a worker, so there is no
     // interrupt handler that can reclaim a non-yielding loop — the timeout
     // is what stops it, and it stops the whole worker.
@@ -94,7 +69,7 @@ class BashCodeEngine implements CodeEngine {
 
   async available(): Promise<{ ok: boolean; detail?: string }> {
     try {
-      const shell = this.#shell(async () => "", 1000);
+      const shell = this.#shell({}, async () => "", 1000);
       const probe = await shell.exec("js-exec -c 'void 0'");
       return probe.exitCode === 0
         ? { ok: true, detail: "QuickJS inside just-bash (Node and Bun only)" }
@@ -112,45 +87,55 @@ class BashCodeEngine implements CodeEngine {
     let seq = 0;
     let outcome: { ok: true; value?: unknown } | { ok: false; error: GuestError } | undefined;
 
-    const shell = this.#shell(async (path, argsJson, signal) => {
-      const payload: unknown = argsJson ? JSON.parse(argsJson) : {};
+    // Seeded before the shell exists, because just-bash takes its initial
+    // files at construction. Without it the guest's `fs` is a scratch
+    // filesystem: readFileSync was ENOENT for files the workspace had, and
+    // writeFileSync reported success for writes nobody ever saw.
+    const seeded = job.fs ? await snapshot(job.fs) : {};
 
-      if (path === LOG) {
-        const { level, args } = payload as { level: "log" | "warn" | "error"; args: unknown[] };
-        bridge.log(level, args ?? []);
-        return "";
-      }
+    const shell = this.#shell(
+      seeded,
+      async (path, argsJson, signal) => {
+        const payload: unknown = argsJson ? JSON.parse(argsJson) : {};
 
-      if (path === RESULT) {
-        // The script's return value, delivered as a call rather than read off
-        // stdout: stdout belongs to console.log, and a script that prints and
-        // returns must not have the two run into each other.
-        outcome = payload as typeof outcome;
-        return "";
-      }
+        if (path === LOG) {
+          const { level, args } = payload as { level: "log" | "warn" | "error"; args: unknown[] };
+          bridge.log(level, args ?? []);
+          return "";
+        }
 
-      if (path === HOST) {
-        const { action, args } = payload as { action: string; args?: unknown };
-        // The bridge expects the first call to be seq 0 and rejects a gap, so
-        // this post-increments. Starting at 1 made every run's first call
-        // come back as an out-of-order internal error.
-        const response = await bridge.call(
-          {
-            v: 1,
-            seq: seq++,
-            action,
-            ...(args === null || args === undefined ? {} : { args: args as never }),
-          },
-          signal,
-        );
-        return JSON.stringify(response);
-      }
+        if (path === RESULT) {
+          // The script's return value, delivered as a call rather than read off
+          // stdout: stdout belongs to console.log, and a script that prints and
+          // returns must not have the two run into each other.
+          outcome = payload as typeof outcome;
+          return "";
+        }
 
-      // The guest is given exactly three host functions. Anything else means
-      // the prelude was bypassed, which is worth failing loudly rather than
-      // quietly answering.
-      throw new Error(`the guest may only call run(); got "${path}"`);
-    }, job.limits.timeoutMs);
+        if (path === HOST) {
+          const { action, args } = payload as { action: string; args?: unknown };
+          // The bridge expects the first call to be seq 0 and rejects a gap, so
+          // this post-increments. Starting at 1 made every run's first call
+          // come back as an out-of-order internal error.
+          const response = await bridge.call(
+            {
+              v: 1,
+              seq: seq++,
+              action,
+              ...(args === null || args === undefined ? {} : { args: args as never }),
+            },
+            signal,
+          );
+          return JSON.stringify(response);
+        }
+
+        // The guest is given exactly three host functions. Anything else means
+        // the prelude was bypassed, which is worth failing loudly rather than
+        // quietly answering.
+        throw new Error(`the guest may only call run(); got "${path}"`);
+      },
+      job.limits.timeoutMs,
+    );
 
     const path = `/.cloudfarm/${job.runId}.js`;
     const script = wrap(job);
@@ -187,6 +172,10 @@ class BashCodeEngine implements CodeEngine {
     } finally {
       clearTimeout(timer);
       await shell.fs.rm(path).catch(() => {});
+      // Back out again, so a file the script wrote with `fs` is a file the
+      // workspace has. Runs even on the timeout path: partial work is still
+      // work, and the same is true of the `run("bash")` route.
+      if (job.fs) await writeBack(job.fs, shell, seeded);
     }
 
     if (timedOut) limitsHit.push("timeoutMs");
@@ -240,11 +229,13 @@ class BashCodeEngine implements CodeEngine {
   async dispose(): Promise<void> {}
 
   #shell(
+    files: Record<string, string>,
     invokeTool: (path: string, argsJson: string, signal: AbortSignal) => Promise<string>,
     timeoutMs: number,
   ): InstanceType<typeof Bash> {
     const cwd = this.#options.cwd ?? "/";
     return new Bash({
+      files,
       cwd,
       env: { ...this.#options.env, HOME: cwd, PWD: cwd },
       executionLimits: { maxJsTimeoutMs: timeoutMs },
@@ -284,10 +275,6 @@ const BOOTSTRAP = `
     return { status: "error", error: response.error };
   };
   try { delete globalThis.tools; } catch { globalThis.tools = undefined; }
-  // See DENIED: js-exec's Node-shaped globals go, so run() is the only door.
-  for (const name of ${JSON.stringify(DENIED)}) {
-    try { delete globalThis[name]; } catch { globalThis[name] = undefined; }
-  }
 })();
 `;
 

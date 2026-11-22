@@ -94,37 +94,50 @@ describe("bashCode", () => {
     expect(code).toMatchObject({ outcome: "ok", value: "undefined" });
   });
 
-  it("keeps fetch and require out of reach", async () => {
-    // Both are refused by validation, so neither reaches the sandbox — which
-    // matters here more than in the isolate, since this guest really does
-    // have a `require` underneath it.
+  it("keeps the network out, while letting require in", async () => {
+    // `require` is allowed here and refused on the isolate, which is why the
+    // validator reads the engine's capability rather than deciding alone.
+    // `fetch` stays refused on both: just-bash has no network configured, so
+    // allowing it would only move the failure later.
     const fetched = await (await workspace()).code(`fetch("https://example.test");`);
-    const required = await (await workspace()).code(`require("fs");`);
+    const required = await (await workspace()).code(`return typeof require("path").join;`);
 
     expect(fetched.outcome).toBe("invalid");
-    expect(required.outcome).toBe("invalid");
+    expect(required).toMatchObject({ outcome: "ok", value: "function" });
   });
 
-  it("takes away the Node globals js-exec installs", async () => {
-    // js-exec ships fs, require, process, fetch and Buffer. `fs` was the
-    // dangerous one: this engine's sandbox is seeded with nothing, so
-    // readFileSync was ENOENT for a file the workspace had and
-    // writeFileSync reported success for a write the host never saw —
-    // a silent discard, with no audit trail, because it never touched the
-    // bridge. They also do not exist on the isolate engine, so a script
-    // using one would run here and fail there.
-    const code = await (
-      await workspace()
-    ).code(`
-      return ["fs", "require", "process", "fetch", "Buffer"]
-        .map((name) => name + "=" + typeof globalThis[name])
-        .join(" ");
+  it("gives the guest a real fs, not a scratch one", async () => {
+    const ws = await workspace();
+    await ws.fs.write("/a.txt", "from the workspace");
+
+    const code = await ws.code(`
+      const fs = require("fs");
+      const read = fs.readFileSync("/a.txt", "utf8");
+      fs.writeFileSync("/out.txt", read.toUpperCase());
+      return read;
     `);
 
-    expect(code).toMatchObject({
-      outcome: "ok",
-      value: "fs=undefined require=undefined process=undefined fetch=undefined Buffer=undefined",
-    });
+    expect(code).toMatchObject({ outcome: "ok", value: "from the workspace" });
+    // The half that was broken: the guest's shell used to be seeded with
+    // nothing, so reads missed files the workspace had and writes were
+    // reported as successful and then discarded.
+    expect(await ws.fs.readText("/out.txt")).toBe("FROM THE WORKSPACE");
+  });
+
+  it("lets a script read a file without shelling out to cat", async () => {
+    const ws = await workspace();
+    await ws.fs.write("/data.csv", "a=1;b=2");
+
+    // The point of all of it: `run("bash", { cmd: "cat " + path })` is shell,
+    // quoted inside a JS string inside JSON, to do what one line of JS does.
+    const code = await ws.code(`
+      const rows = require("fs").readFileSync("/data.csv", "utf8").split(";");
+      return rows.map((row) => row.split("=")[1]).join("+");
+    `);
+
+    expect(code).toMatchObject({ outcome: "ok", value: "1+2" });
+    // And it costs no host calls, where the shell version costs one each.
+    expect(code.calls).toHaveLength(0);
   });
 
   it("stops a runaway script at the timeout", async () => {
