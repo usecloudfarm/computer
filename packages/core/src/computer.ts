@@ -3,6 +3,7 @@ import { clampForModel, toLargeRef } from "./clamp.js";
 import { createHttpClient } from "./http.js";
 import { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 import { validateSource } from "./validate.js";
+import { syncFor, type SandboxSync } from "./sync.js";
 import {
   ActionFailedError,
   classifyError,
@@ -234,6 +235,7 @@ export class Workspace<T = unknown> {
   readonly #redactor = new Redactor();
   readonly #controller = new AbortController();
   #sandbox: Promise<Sandbox> | undefined;
+  #sync: SandboxSync | undefined;
   #runCounter = 0;
 
   readonly #attachment: Attachment | null;
@@ -396,8 +398,20 @@ export class Workspace<T = unknown> {
       ]);
     }
     const sandbox = await this.#connectSandbox(provider);
+
+    // The sandbox's filesystem and the workspace are the same filesystem, as
+    // far as anything outside can tell. A provider that cannot move files
+    // syncs nothing and behaves as before — `bash-sandbox` is already the
+    // workspace, so it has nothing to copy.
+    this.#sync ??= syncFor(sandbox, this.fs);
+    await this.#sync?.push();
+
     const handle = sandbox.exec(command, options);
     const result = await handle.result();
+
+    // After, not only on success: a command that fails part-way has still
+    // written whatever it wrote, and losing that is worse than the failure.
+    await this.#sync?.pull();
 
     const limit = options.maxInlineBytes ?? 32_768;
     const runId = `run-${++this.#runCounter}`;
@@ -528,6 +542,7 @@ export class Workspace<T = unknown> {
     this.#controller.abort();
     const sandbox = this.#sandbox;
     this.#sandbox = undefined;
+    this.#sync = undefined;
     if (sandbox) await (await sandbox).close();
   }
 

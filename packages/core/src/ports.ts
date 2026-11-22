@@ -96,8 +96,40 @@ export interface ExecHandle extends ReadableStream<ExecEvent> {
   kill(): Promise<void>;
 }
 
+/**
+ * Moving files in and out without going through the shell.
+ *
+ * Optional, because a provider may not have it — and because the shell is a
+ * bad transport for a file: a heredoc has to be escaped, binary has to be
+ * base64'd, and both are bounded by the command length the provider accepts.
+ *
+ * A provider that implements this gets its sandbox kept in step with the
+ * workspace: core pushes before a command runs and pulls after. Without it
+ * the sandbox has a filesystem of its own that nothing else can see, which is
+ * what every remote provider did — a file written with `>` was invisible to
+ * `fs.readFileSync`, and the reverse.
+ */
+export interface SandboxFiles {
+  read(path: string): Promise<string>;
+  write(path: string, content: string): Promise<void>;
+  /** Absolute paths of every file under `prefix`, recursively. */
+  list(prefix: string): Promise<string[]>;
+  /**
+   * Immediate children of one directory, files and directories alike.
+   *
+   * Separate from `list` because the only caller is the baseline of the
+   * sandbox root, and recursing there means reading the whole image — /usr
+   * and /lib included. The first attempt did exactly that and never
+   * returned.
+   */
+  entries(path: string): Promise<string[]>;
+  remove(path: string): Promise<void>;
+}
+
 export interface Sandbox {
   exec(command: string, options?: ExecOptions): ExecHandle;
+  /** Present when the provider can move files without the shell. */
+  readonly files?: SandboxFiles;
   /** Everything needed to re-attach after a process or Durable Object restart. */
   serialize(): Json;
   close(): Promise<void>;

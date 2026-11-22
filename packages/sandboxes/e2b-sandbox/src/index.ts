@@ -54,6 +54,16 @@ export class E2B implements SandboxProvider {
           ...(timeoutMs !== undefined ? { timeoutMs } : {}),
         });
 
+    // Workspace paths are mirrored at their real locations — /data/sales.csv
+    // is /data/sales.csv — so the shell has to be able to create a top-level
+    // directory. It cannot by default: `mkdir /out` is denied, which left a
+    // script able to read seeded files and unable to write new ones anywhere
+    // but its home. The alternative was mirroring under /home/user and
+    // translating every path, which puts the two filesystems back out of step
+    // in a subtler way. This is an ephemeral microVM running model-written
+    // code either way.
+    await sandbox.commands.run("sudo chmod a+w / 2>/dev/null || true").catch(() => undefined);
+
     return new E2BSandbox(sandbox, host);
   }
 }
@@ -68,6 +78,45 @@ class E2BSandbox implements CloudfarmSandbox {
     readonly sandbox: Sandbox,
     readonly host: ComputerHost,
   ) {}
+
+  /**
+   * The SDK's filesystem, not the shell's.
+   *
+   * It matters which: the shell user cannot `mkdir /data`, but a write
+   * through here creates the directory owned by that user, after which the
+   * shell can read and write it freely. So workspace paths mirror exactly —
+   * `/data/sales.csv` means the same thing in storage and in the microVM,
+   * and nothing has to translate between them.
+   */
+  readonly files = {
+    read: async (path: string): Promise<string> => this.sandbox.files.read(path),
+    write: async (path: string, content: string): Promise<void> => {
+      await this.sandbox.files.write(path, content);
+    },
+    list: async (prefix: string): Promise<string[]> => {
+      const out: string[] = [];
+      const walk = async (dir: string, depth: number): Promise<void> => {
+        if (depth > 8) return;
+        // depth 1, always. The default recurses, and listing `/` that way
+        // walks the whole image — it turned `echo hi` into 96 seconds.
+        const entries = await this.sandbox.files.list(dir, { depth: 1 }).catch(() => []);
+        for (const entry of entries) {
+          const path = dir.endsWith("/") ? `${dir}${entry.name}` : `${dir}/${entry.name}`;
+          if (entry.type === "dir") await walk(path, depth + 1);
+          else out.push(path);
+        }
+      };
+      await walk(prefix, 0);
+      return out;
+    },
+    entries: async (path: string): Promise<string[]> =>
+      (await this.sandbox.files.list(path, { depth: 1 }).catch(() => [])).map(
+        (entry) => entry.name,
+      ),
+    remove: async (path: string): Promise<void> => {
+      await this.sandbox.files.remove(path);
+    },
+  };
 
   exec(command: string, options: ExecOptions = {}): ExecHandle {
     const startedAt = Date.now();
