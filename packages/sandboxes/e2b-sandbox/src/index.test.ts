@@ -6,9 +6,20 @@ const kill = vi.fn(async () => true);
 const create = vi.fn(async () => ({ sandboxId: "sbx_1", commands: { run }, kill }));
 const connect = vi.fn(async () => ({ sandboxId: "sbx_1", commands: { run }, kill }));
 
+/** The SDK's own error for a non-zero exit: it carries the whole result. */
+class CommandExitError extends Error {
+  constructor(
+    readonly exitCode: number,
+    readonly stdout: string,
+    readonly stderr: string,
+  ) {
+    super(`exit status ${exitCode}`);
+  }
+}
+
 // The SDK is an optional peer, so the provider is tested against a stand-in
 // rather than a live microVM.
-vi.mock("e2b", () => ({ Sandbox: { create, connect } }));
+vi.mock("e2b", () => ({ Sandbox: { create, connect }, CommandExitError }));
 
 const { e2b } = await import("./index.js");
 
@@ -45,5 +56,39 @@ describe("e2b", () => {
 
     await provider.connect({} as never, { kind: "e2b", sandboxId: "sbx_1" });
     expect(connect).toHaveBeenCalledWith("sbx_1", { apiKey: "k" });
+  });
+
+  it("reports a non-zero exit as a result, not a thrown error", async () => {
+    // The SDK throws when a command exits non-zero, and a non-zero exit is a
+    // result: `grep` finding nothing exits 1, and so does any `&&` chain
+    // whose last link does. Thrown, it reached the model as
+    // `{ code: "internal", message: "exit status 1" }` — no stdout, no exit
+    // code, nothing to act on. This is the contract bash-sandbox already has.
+    const ws = await new Computer({ provider: e2b({ apiKey: "k" }) }).createWorkspace("u");
+    // Connect runs a command of its own — `chmod a+w /`, so a script can
+    // create a top-level directory — so arm the mock after the sandbox is up.
+    await ws.exec("echo warm");
+    run.mockImplementationOnce(async () => {
+      throw new CommandExitError(1, "partial output\n", "cat: no such file\n");
+    });
+
+    expect(await ws.exec("cat /nope")).toMatchObject({
+      status: "failed",
+      exitCode: 1,
+      stdout: "partial output\n",
+      stderr: "cat: no such file\n",
+    });
+  });
+
+  it("still throws for a failure that is not the command's own", async () => {
+    // A network error is not a result. Swallowing it would report a healthy
+    // command that never ran.
+    const ws = await new Computer({ provider: e2b({ apiKey: "k" }) }).createWorkspace("u");
+    await ws.exec("echo warm");
+    run.mockImplementationOnce(async () => {
+      throw new Error("fetch failed");
+    });
+
+    await expect(ws.exec("echo hi")).rejects.toThrow(/fetch failed/);
   });
 });

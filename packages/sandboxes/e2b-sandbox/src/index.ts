@@ -7,7 +7,7 @@ import type {
   Sandbox as CloudfarmSandbox,
   SandboxProvider,
 } from "@cloudfarm/core";
-import { Sandbox } from "e2b";
+import { CommandExitError, Sandbox } from "e2b";
 
 export interface E2BOptions {
   /** An E2B API key. */
@@ -122,18 +122,34 @@ class E2BSandbox implements CloudfarmSandbox {
     const startedAt = Date.now();
 
     const run = (async () => {
-      const result = await this.sandbox.commands.run(command, {
-        ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
-        ...(options.env !== undefined ? { envs: options.env } : {}),
-        ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
-      });
+      try {
+        const result = await this.sandbox.commands.run(command, {
+          ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
+          ...(options.env !== undefined ? { envs: options.env } : {}),
+          ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
+        });
 
-      return toExecResult({
-        exitCode: result.exitCode,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        startedAt,
-      });
+        return toExecResult({
+          exitCode: result.exitCode,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          startedAt,
+        });
+      } catch (error) {
+        // The SDK throws when a command exits non-zero. A non-zero exit is a
+        // result, not a failure of the call: `grep` finding nothing exits 1,
+        // and so does any `&&` chain whose last link does. Thrown, it reached
+        // the model as `{ code: "internal", message: "exit status 1" }` —
+        // no stdout, no stderr, no exit code, nothing to act on. The error
+        // carries the whole result, so hand back what the shell actually did.
+        if (!(error instanceof CommandExitError)) throw error;
+        return toExecResult({
+          exitCode: error.exitCode,
+          stdout: error.stdout,
+          stderr: error.stderr,
+          startedAt,
+        });
+      }
     })();
 
     return execHandle({ id: `e2b-${this.sandbox.sandboxId}-${startedAt}`, run });
