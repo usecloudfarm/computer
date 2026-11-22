@@ -72,6 +72,19 @@ repeating the product name was only taking vertical space — the workspace
 square at the top of the rail carries the identity, and its tooltip the model
 name.
 
+## The sandbox
+
+With `E2B_API_KEY` set the playground runs on a Firecracker microVM, and
+without it on the in-process shell. The difference is visible to the agent:
+`just-bash` cannot run npm, node or python; E2B can, and says so in `run`'s
+description because the provider describes itself.
+
+It is also the configuration worth testing, because a remote sandbox has a
+disk of its own. The shell and the workspace are one filesystem only because
+core pushes changed files in before each command and pulls them out after.
+Watch the file explorer: a file the agent writes with `>` inside the VM
+appears there, and a file seeded here is readable with `cat`.
+
 ## Notes
 
 - **Markdown is `@pierre/words`** in `streaming` mode, which copes with

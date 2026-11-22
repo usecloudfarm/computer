@@ -13,6 +13,7 @@ import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
 import { quickjs } from "@cloudfarm/qjs-engine";
+import { e2b } from "@cloudfarm/e2b-sandbox";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
@@ -52,8 +53,25 @@ const search = process.env["FIRECRAWL_API_KEY"]
   ? [firecrawl({ apiKey: process.env["FIRECRAWL_API_KEY"] })]
   : [];
 
+/**
+ * A real microVM when there is a key for one, the in-process shell otherwise.
+ *
+ * The difference is visible to the agent: just-bash cannot run npm, node or
+ * python, and E2B can. It is also the configuration that exercises the
+ * filesystem sync — the shell and the workspace are one filesystem here only
+ * because core pushes and pulls around every command.
+ *
+ * `timeoutMs` is generous because the playground holds one sandbox for the
+ * life of the process, and E2B kills an idle one; the default would expire
+ * part-way through a conversation.
+ */
+const provider = process.env["E2B_API_KEY"]
+  ? e2b({ apiKey: process.env["E2B_API_KEY"], timeoutMs: 30 * 60 * 1000 })
+  : undefined;
+
 const computer = new Computer({
   toolset: new AISDKToolset(),
+  ...(provider ? { provider } : {}),
   // Named rather than left to `defaultCodeEngine`, which would resolve the
   // same package: a playground is read as a reference, and "where does code
   // mode come from" should not need the resolution rules to answer.

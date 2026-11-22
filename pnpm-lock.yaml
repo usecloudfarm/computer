@@ -53,6 +53,9 @@ importers:
       '@cloudfarm/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@cloudfarm/e2b-sandbox':
+        specifier: workspace:^
+        version: link:../../packages/sandboxes/e2b-sandbox
       '@cloudfarm/firecrawl':
         specifier: workspace:^
         version: link:../../packages/integrations/firecrawl
@@ -89,6 +92,9 @@ importers:
       cn:
         specifier: ^0.5.2
         version: 0.5.2
+      e2b:
+        specifier: ^2.64.0
+        version: 2.64.0
       hono:
         specifier: ^4.6.0
         version: 4.13.19
