@@ -54,15 +54,17 @@ import, which only your own bundler can do.
 
 ## Why code mode
 
-An agent with ten apps installed does not get a hundred tools. It gets **four**,
-and the list does not grow:
+An agent with ten apps installed does not get a hundred tools. It gets
+**three**, and the list does not grow:
 
-| tool        | what it does                                                              |
-| ----------- | ------------------------------------------------------------------------- |
-| `search`    | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
-| `code`      | run JavaScript that calls several actions in one go                       |
-| `run`       | run one action — an app's, or the computer's own (`bash`, `fs.read`, …)   |
-| `list_apps` | what is installed, including the computer itself                          |
+| tool     | what it does                                                              |
+| -------- | ------------------------------------------------------------------------- |
+| `search` | find actions by intent; returns signatures, examples and a scoped `.d.ts` |
+| `code`   | run JavaScript that calls several actions in one go                       |
+| `run`    | run one action — an app's, or the computer's own (`bash`, `apps.list`)    |
+
+`search` finds, `code` chains, `run` does. Everything else is an action behind
+`run`, listing what is installed included — ask `search` for "what can you do".
 
 The shell is not a tool of its own. `bash` is an action **of the computer**,
 found with `search` and called with `run`, exactly like `slack.sendMessage` —

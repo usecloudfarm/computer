@@ -108,4 +108,13 @@ describe("Bm25ActionIndex", () => {
     // "notify" is a synonym of message/send; sendMessage lists it as a use case.
     expect(index().search("notify the team")[0]?.ref).toBe("slack.sendMessage");
   });
+
+  it("does not let stopword removal empty a query", () => {
+    // "what can you do" is every stopword and nothing else, and it is the
+    // most natural way to ask what a computer has. It used to return nothing
+    // at all — the worst possible answer to that question, and one that cost
+    // more once `list_apps` stopped being a tool you could just call.
+    expect(tokenize("what can you do")).not.toEqual([]);
+    expect(tokenize("send a message")).toEqual(["send", "message"]);
+  });
 });

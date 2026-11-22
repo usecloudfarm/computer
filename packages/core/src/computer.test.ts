@@ -461,8 +461,8 @@ describe("Workspace.tools", () => {
 
     expect(names).toEqual(many.toolSpecs().map((spec) => spec.name));
     // The fixed set, whether or not an engine resolved on this runtime.
-    expect(names).toEqual(expect.arrayContaining(["search", "run", "list_apps"]));
-    expect(names.length).toBeLessThanOrEqual(4);
+    expect(names).toEqual(expect.arrayContaining(["search", "run"]));
+    expect(names.length).toBeLessThanOrEqual(3);
   });
 
   it("treats a null codeEngine exactly like an unset one", async () => {

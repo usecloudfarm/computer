@@ -6,9 +6,15 @@ import type { ToolSpec } from "./schemas.js";
 /**
  * The tools handed to a model.
  *
- * In `code` mode there are six of them whatever is installed: adding a tenth
- * app adds zero tokens to the system prompt. That is the whole bet — the model
- * discovers actions with `search` instead of carrying them all in context.
+ * Three, whatever is installed: adding a tenth app adds zero tokens to the
+ * system prompt. That is the whole bet — the model discovers actions with
+ * `search` instead of carrying them all in context.
+ *
+ * `search` finds, `code` chains, `run` does. Everything else a computer can do
+ * is an action behind `run`, including listing what is installed: `list_apps`
+ * was `search` with an empty query and a different result shape, and it was
+ * the second place a model could learn a ref exists without learning how to
+ * call it.
  */
 
 export const BashInput = z.object({
@@ -26,7 +32,7 @@ export const SearchInput = z.object({
     .string()
     .optional()
     .describe(
-      "Restrict the search to one app's actions, by id — 'slack', or 'computer' for the shell and filesystem. Use list_apps to see the ids.",
+      "Restrict the search to one app's actions, by id — 'slack', or 'computer' for the shell. Search for 'what is installed' to see the ids.",
     ),
 });
 
@@ -50,8 +56,6 @@ export const CodeInput = z.object({
     ),
 });
 
-export const ListAppsInput = z.object({});
-
 const DESCRIPTIONS = {
   search:
     "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`. Pass `app` to search within one app only.",
@@ -60,8 +64,6 @@ const DESCRIPTIONS = {
   // sentence saying "no `await`" was still being emitted in front of the
   // generated one saying it is available.
   code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other.",
-  list_apps:
-    "List the apps installed in this workspace and the actions each one contributes. Use it to see what is available at all; use `search` when you know what you want to do.",
 } as const;
 
 export interface ToolContext {
@@ -80,7 +82,6 @@ export function codeModeSpecs(options: ToolContext): ToolSpec[] {
   const specs: ToolSpec[] = [
     spec("search", "search", DESCRIPTIONS.search, SearchInput, "read"),
     spec("run", "run", describeRun(options), RunInput),
-    spec("list_apps", "apps.list", DESCRIPTIONS.list_apps, ListAppsInput, "read"),
   ];
   if (options.hasCode) {
     specs.splice(1, 0, spec("code", "code", describeCode(options), CodeInput));

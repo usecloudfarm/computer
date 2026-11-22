@@ -96,17 +96,23 @@ const SYNONYMS: Record<string, readonly string[]> = {
 };
 
 export function tokenize(text: string): string[] {
-  return (
-    text
-      // Split camelCase first, so a query of "createIssue" matches an indexed
-      // "create" + "issue" exactly as the identifier splitter produces them.
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter(Boolean)
-      .map(stem)
-      .filter((token) => token.length > 1 && !STOPWORDS.has(token))
-  );
+  const words = text
+    // Split camelCase first, so a query of "createIssue" matches an indexed
+    // "create" + "issue" exactly as the identifier splitter produces them.
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map(stem)
+    .filter((token) => token.length > 1);
+
+  const kept = words.filter((token) => !STOPWORDS.has(token));
+  // Never let stopword removal empty a query. "what can you do" is every
+  // stopword and nothing else, and it is the most natural way to ask what a
+  // computer has — it returned nothing at all, which is the worst possible
+  // answer to that question. Indexed text keeps its stopwords out; a query
+  // made only of them falls back to matching on them.
+  return kept.length > 0 ? kept : words;
 }
 
 /** Light suffix stripping. Not linguistics — just enough to match plurals. */
