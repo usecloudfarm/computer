@@ -36,7 +36,7 @@ export interface RegistryEntry {
 export class ActionRegistry {
   readonly #entries = new Map<string, RegistryEntry>();
   readonly #builtins = new Map<string, RegistryEntry>();
-  readonly #needs = new Map<string, "sandbox" | "code" | "memory">();
+  readonly #needs = new Map<string, "sandbox" | "code">();
   readonly #index: ActionIndex;
 
   constructor(
@@ -145,7 +145,7 @@ export class ActionRegistry {
   search(
     query: string,
     limit = 8,
-    available: (needs: "sandbox" | "code" | "memory") => boolean = () => true,
+    available: (needs: "sandbox" | "code") => boolean = () => true,
     app?: string,
   ): Array<{ entry: RegistryEntry; score: number }> {
     // Filtering happens after ranking, so a scoped search has to ask the
@@ -177,13 +177,11 @@ export class ActionRegistry {
   }
 
   /** The computer's own actions, for listing beside the installed apps. */
-  builtins(
-    available: (needs: "sandbox" | "code" | "memory") => boolean = () => true,
-  ): RegistryEntry[] {
+  builtins(available: (needs: "sandbox" | "code") => boolean = () => true): RegistryEntry[] {
     return [...this.#builtins.values()].filter((entry) => this.#usable(entry.ref, available));
   }
 
-  #usable(ref: string, available: (needs: "sandbox" | "code" | "memory") => boolean): boolean {
+  #usable(ref: string, available: (needs: "sandbox" | "code") => boolean): boolean {
     const needs = this.#needs.get(ref);
     return needs === undefined || available(needs);
   }

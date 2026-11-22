@@ -344,14 +344,3 @@ export const ToolSpec = z.object({
     .optional(),
 });
 export type ToolSpec = z.infer<typeof ToolSpec>;
-
-// --- memory (interface only in v1) -----------------------------------------
-
-export const MemoryRecord = z.object({
-  id: z.string(),
-  text: z.string(),
-  metadata: z.record(z.string(), Json).optional(),
-  createdAt: z.number().int(),
-  score: z.number().optional(),
-});
-export type MemoryRecord = z.infer<typeof MemoryRecord>;

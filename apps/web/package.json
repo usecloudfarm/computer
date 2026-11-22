@@ -25,7 +25,6 @@
     "@cloudfarm/hackernews": "workspace:^",
     "@cloudfarm/quickjs": "workspace:^",
     "@cloudfarm/slack": "workspace:^",
-    "@cloudfarm/sqlite-memory": "workspace:^",
     "@hono/node-server": "^1.15.0",
     "@pierre/highlights": "^0.5.1",
     "@pierre/words": "^0.3.0",

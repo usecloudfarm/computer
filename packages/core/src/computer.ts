@@ -23,7 +23,6 @@ import type {
   CodeEngine,
   ComputerHost,
   FileSystem,
-  MemoryStore,
   Sandbox,
   SandboxProvider,
   StorageProvider,
@@ -63,7 +62,6 @@ export interface ComputerOptions<T = unknown> {
    * has to be a static import, which only your bundler can do.
    */
   codeEngine?: CodeEngine | null;
-  memory?: MemoryStore;
   apps?: readonly App[];
   limits?: Partial<CodeLimits>;
   /** Literal secrets to scrub from anything the model reads. */
@@ -369,8 +367,6 @@ export class Workspace<T = unknown> {
         } as unknown as Json;
       case "fs":
         return this.#runFs(member ?? stringField(args, "op"), args);
-      case "memory":
-        return this.#runMemory(member ?? "", args);
       default:
         return this.#runAction(ref, args);
     }
@@ -503,20 +499,15 @@ export class Workspace<T = unknown> {
    * does not reject `run("bash", …)` as an unknown action.
    */
   /** Whether the optional package a built-in needs actually resolved. */
-  #has(needs: "sandbox" | "code" | "memory"): boolean {
-    if (needs === "sandbox") return this.#options.provider !== undefined;
-    if (needs === "memory") return this.#options.memory !== undefined;
-    return this.#options.codeEngine !== undefined;
+  #has(needs: "sandbox" | "code"): boolean {
+    return needs === "sandbox"
+      ? this.#options.provider !== undefined
+      : this.#options.codeEngine !== undefined;
   }
 
   #builtinRefs(): Set<string> {
     const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search", "apps.list"]);
     if (this.#options.provider) refs.add("bash");
-    if (this.#options.memory) {
-      refs.add("memory.remember");
-      refs.add("memory.search");
-      refs.add("memory.forget");
-    }
     return refs;
   }
 
@@ -600,24 +591,6 @@ export class Workspace<T = unknown> {
         return null;
       default:
         throw new UnknownRefError(`fs.${member}`, ["fs.read", "fs.write", "fs.list", "fs.remove"]);
-    }
-  }
-
-  async #runMemory(member: string, args?: Json): Promise<Json> {
-    const memory = this.#options.memory;
-    if (!memory) {
-      throw new UnknownRefError(`memory.${member}`, ["no memory store is configured"]);
-    }
-    switch (member) {
-      case "remember":
-        return (await memory.remember(stringField(args, "text"))) as unknown as Json;
-      case "search":
-        return (await memory.search(stringField(args, "query"))) as unknown as Json;
-      case "forget":
-        await memory.forget(stringField(args, "id"));
-        return null;
-      default:
-        throw new UnknownRefError(`memory.${member}`, ["memory.remember", "memory.search"]);
     }
   }
 }

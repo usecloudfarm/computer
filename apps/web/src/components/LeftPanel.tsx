@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { AppInfo, FileEntry, MemoryRecordInfo } from "../types.ts";
+import type { AppInfo, FileEntry } from "../types.ts";
 
 /**
  * The workspace's own state: what is on disk, and what is installed.
@@ -11,17 +11,15 @@ import type { AppInfo, FileEntry, MemoryRecordInfo } from "../types.ts";
 export function LeftPanel({
   files,
   apps,
-  memories,
   onOpenFile,
   openPath,
 }: {
   files: FileEntry[];
   apps: AppInfo[];
-  memories: MemoryRecordInfo[];
   onOpenFile: (path: string) => void;
   openPath: string | null;
 }) {
-  const [tab, setTab] = useState<"files" | "apps" | "memory">("files");
+  const [tab, setTab] = useState<"files" | "apps">("files");
 
   return (
     <aside className="panel panel--left">
@@ -39,19 +37,11 @@ export function LeftPanel({
           Apps
           <span className="panel__count">{apps.length}</span>
         </button>
-        <button
-          className={`panel__tab ${tab === "memory" ? "is-active" : ""}`}
-          onClick={() => setTab("memory")}
-        >
-          Memory
-          <span className="panel__count">{memories.length}</span>
-        </button>
       </div>
 
       <div className="panel__body">
         {tab === "files" && <FileTree files={files} onOpenFile={onOpenFile} openPath={openPath} />}
         {tab === "apps" && <AppList apps={apps} />}
-        {tab === "memory" && <MemoryList memories={memories} />}
       </div>
     </aside>
   );
@@ -139,43 +129,6 @@ function AppList({ apps }: { apps: AppInfo[] }) {
       ))}
     </ul>
   );
-}
-
-/**
- * What the agent has chosen to remember.
- *
- * Newest first, because the useful question while watching is "what did it
- * just learn", not "what does it know in general".
- */
-function MemoryList({ memories }: { memories: MemoryRecordInfo[] }) {
-  if (memories.length === 0) {
-    return (
-      <p className="panel__empty">
-        Nothing remembered yet. Tell the agent something about how you like to work.
-      </p>
-    );
-  }
-
-  return (
-    <ul className="memlist">
-      {memories.map((record) => (
-        <li key={record.id} className="memlist__item">
-          <p className="memlist__text">{record.text}</p>
-          <time className="memlist__when" dateTime={new Date(record.createdAt).toISOString()}>
-            {formatWhen(record.createdAt)}
-          </time>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function formatWhen(at: number): string {
-  const seconds = Math.round((Date.now() - at) / 1000);
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
-  if (seconds < 86_400) return `${Math.round(seconds / 3600)}h ago`;
-  return new Date(at).toLocaleDateString();
 }
 
 function formatSize(bytes: number): string {

@@ -12,7 +12,6 @@ import type {
   HostCallResponse,
   Json,
   LargeRef,
-  MemoryRecord,
   Ref,
   RunResult,
   SideEffects,
@@ -242,13 +241,4 @@ export type Invoke = (ref: Ref, args?: Json) => Promise<RunResult>;
  */
 export interface Toolset<T = unknown> {
   materialize(specs: readonly ToolSpec[], invoke: Invoke): T;
-}
-
-// --- memory (contract only in v1) ------------------------------------------
-
-export interface MemoryStore extends Described {
-  remember(text: string, metadata?: Record<string, Json>): Promise<MemoryRecord>;
-  search(query: string, options?: { limit?: number }): Promise<MemoryRecord[]>;
-  get(id: string): Promise<MemoryRecord | null>;
-  forget(id: string): Promise<void>;
 }

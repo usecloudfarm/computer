@@ -120,9 +120,6 @@ function describeRun(options: ToolContext): string {
   if (has("bash")) parts.push("'bash' for the shell ({ cmd })");
   if (has("code")) parts.push("'code' to script several calls in one pass");
   if (has("fs.read")) parts.push("'fs.read' / 'fs.write' / 'fs.list' for files");
-  if (has("memory.remember")) {
-    parts.push("'memory.remember' / 'memory.search' to carry things across sessions");
-  }
 
   const own = parts.length > 0 ? ` The computer's own: ${parts.join(", ")}.` : "";
   // The sandbox gets its own sentence. Inline it reads as a run-on, and what

@@ -31,7 +31,7 @@ export interface BuiltinAction {
   readonly ref: string;
   readonly definition: ActionDefinition;
   /** Which optional package has to be installed for this to work. */
-  readonly needs?: "sandbox" | "code" | "memory";
+  readonly needs?: "sandbox" | "code";
 }
 
 export function builtinActions(): BuiltinAction[] {
@@ -122,60 +122,6 @@ export function builtinActions(): BuiltinAction[] {
         input: z.object({ path: z.string() }),
         output: z.null(),
         example: 'run("fs.remove", { path: "/tmp/scratch.txt" })',
-        sideEffects: "destructive",
-      }),
-    },
-    {
-      ref: "memory.remember",
-      needs: "memory",
-      definition: define({
-        name: "remember",
-        summary: "Write something down to recall in a later session.",
-        useCases: [
-          "remember this for later",
-          "save it to memory",
-          "note that I prefer",
-          "write this down",
-          "keep this in mind next time",
-        ],
-        keywords: ["memory", "recall", "note", "memorise", "preference"],
-        input: z.object({ text: z.string() }),
-        output: z.object({ id: z.string(), text: z.string(), createdAt: z.number() }),
-        example: 'run("memory.remember", { text: "Ada wants deploy summaries as a table." })',
-        sideEffects: "write",
-      }),
-    },
-    {
-      ref: "memory.search",
-      needs: "memory",
-      definition: define({
-        name: "search",
-        summary: "Find something remembered in an earlier session.",
-        useCases: [
-          "search my memory",
-          "check memory for a preference",
-          "have we discussed this before",
-          "what did I learn last time",
-          "recall what I was told",
-        ],
-        keywords: ["memory", "recall", "remember", "past", "history"],
-        input: z.object({ query: z.string() }),
-        output: z.array(z.unknown()),
-        example: 'run("memory.search", { query: "how should I format the summary" })',
-        sideEffects: "read",
-      }),
-    },
-    {
-      ref: "memory.forget",
-      needs: "memory",
-      definition: define({
-        name: "forget",
-        summary: "Delete something remembered.",
-        useCases: ["forget that", "delete a memory", "that is no longer true"],
-        keywords: ["memory", "recall", "delete"],
-        input: z.object({ id: z.string() }),
-        output: z.null(),
-        example: 'run("memory.forget", { id: "mem_abc" })',
         sideEffects: "destructive",
       }),
     },

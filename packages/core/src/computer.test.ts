@@ -32,17 +32,6 @@ function slackish(calls: Array<{ input: unknown }> = []): App {
   };
 }
 
-function fakeMemory() {
-  return {
-    id: "fake-memory",
-    description: "Remembers things for tests.",
-    remember: async (text: string) => ({ id: "m1", text, createdAt: 0 }),
-    search: async () => [],
-    get: async () => null,
-    forget: async () => {},
-  };
-}
-
 describe("Computer", () => {
   it("creates a workspace per user with its own filesystem", async () => {
     const computer = new Computer({ storage: new MemoryStorage() });
@@ -155,14 +144,6 @@ describe("Workspace.run", () => {
     expect(await workspace.run("bash", { cmd: "ls" })).toMatchObject({
       status: "error",
       error: { code: "unknown_ref", message: expect.stringContaining("install @cloudfarm/bash") },
-    });
-  });
-
-  it("says so when no memory store is configured", async () => {
-    const workspace = await new Computer().createWorkspace("u1");
-    expect(await workspace.run("memory.search", { query: "x" })).toMatchObject({
-      status: "error",
-      error: { message: expect.stringContaining("no memory store is configured") },
     });
   });
 });
@@ -468,7 +449,6 @@ describe("Workspace.tools", () => {
     const full = await new Computer({
       storage: new MemoryStorage(),
       provider: fakeSandbox(),
-      memory: fakeMemory(),
     }).createWorkspace("u");
 
     const runDescription = (workspace: typeof bare) =>
@@ -477,9 +457,7 @@ describe("Workspace.tools", () => {
     // A fixed string either advertises a shell that is not installed or stays
     // silent about memory that is, and a model only finds out by failing.
     expect(runDescription(bare)).not.toContain("'bash'");
-    expect(runDescription(bare)).not.toContain("memory.remember");
     expect(runDescription(full)).toContain("'bash'");
-    expect(runDescription(full)).toContain("memory.remember");
   });
 
   it("quotes the sandbox's own description, so limits reach the model", async () => {
