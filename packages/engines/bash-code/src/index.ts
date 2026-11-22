@@ -33,6 +33,38 @@ export function bashCode(options: BashCodeOptions = {}): CodeEngine {
   return new BashCodeEngine(options);
 }
 
+/**
+ * Globals js-exec installs that code mode must not have.
+ *
+ * Not a security boundary. `process.env` is the shell's own env rather than
+ * the host's — a canary set on the host comes back undefined — and `fetch` is
+ * already refused by just-bash, which has no network configured. Two other
+ * reasons, both worse than either of those:
+ *
+ * A trap. This engine's sandbox is its own and is seeded with nothing, so
+ * `fs.readFileSync` is ENOENT for a file the workspace has, and
+ * `fs.writeFileSync` reports success for a write the host never sees. A
+ * silent discard is worse than an error. Those calls also never touch the
+ * bridge, so they leave no audit trail and skip the clamp.
+ *
+ * And the dialect. The isolate engine has none of these, so a script reaching
+ * for one would run here and fail there — the fork this engine exists to
+ * avoid.
+ */
+const DENIED = [
+  "fs",
+  "require",
+  "process",
+  "env",
+  "fetch",
+  "Buffer",
+  "URL",
+  "URLSearchParams",
+  "Headers",
+  "Request",
+  "Response",
+];
+
 /** Host function names. The guest reaches the host through these three only. */
 const HOST = "host";
 const LOG = "log";
@@ -252,6 +284,10 @@ const BOOTSTRAP = `
     return { status: "error", error: response.error };
   };
   try { delete globalThis.tools; } catch { globalThis.tools = undefined; }
+  // See DENIED: js-exec's Node-shaped globals go, so run() is the only door.
+  for (const name of ${JSON.stringify(DENIED)}) {
+    try { delete globalThis[name]; } catch { globalThis[name] = undefined; }
+  }
 })();
 `;
 

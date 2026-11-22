@@ -105,6 +105,28 @@ describe("bashCode", () => {
     expect(required.outcome).toBe("invalid");
   });
 
+  it("takes away the Node globals js-exec installs", async () => {
+    // js-exec ships fs, require, process, fetch and Buffer. `fs` was the
+    // dangerous one: this engine's sandbox is seeded with nothing, so
+    // readFileSync was ENOENT for a file the workspace had and
+    // writeFileSync reported success for a write the host never saw —
+    // a silent discard, with no audit trail, because it never touched the
+    // bridge. They also do not exist on the isolate engine, so a script
+    // using one would run here and fail there.
+    const code = await (
+      await workspace()
+    ).code(`
+      return ["fs", "require", "process", "fetch", "Buffer"]
+        .map((name) => name + "=" + typeof globalThis[name])
+        .join(" ");
+    `);
+
+    expect(code).toMatchObject({
+      outcome: "ok",
+      value: "fs=undefined require=undefined process=undefined fetch=undefined Buffer=undefined",
+    });
+  });
+
   it("stops a runaway script at the timeout", async () => {
     const code = await (
       await workspace()

@@ -32,3 +32,11 @@ rather than resolving, and `await` is a syntax error there. Validation and the
 its engine would accept. The "everything is SYNCHRONOUS" sentence moves out of
 `CodeInput`'s fixed schema text and into the generated description, where it
 can tell the truth about the engine in use.
+
+The guest has no Node globals. `js-exec` installs `fs`, `require`, `process`,
+`fetch` and `Buffer`; the bootstrap deletes them. `fs` was the one that
+mattered: this engine's sandbox is seeded with nothing, so `readFileSync` was
+ENOENT for a file the workspace had and `writeFileSync` reported success for a
+write the host never saw — silently, and without touching the bridge, so with
+no audit trail either. The isolate engine has none of them, so reaching for one
+would have forked the dialect.

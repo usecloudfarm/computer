@@ -64,6 +64,22 @@ The ref travels as an _argument_, never as a property path. `tools.a.b()`
 would require every ref to be a chain of valid identifiers, and the first ref
 that is not one would split the dialect away from what `run` accepts.
 
+## The guest has no Node globals
+
+`js-exec` installs `fs`, `require`, `process`, `fetch`, `Buffer` and `URL`.
+The bootstrap deletes them.
+
+Not for safety — `process.env` is the shell's own env rather than the host's,
+and `fetch` is already refused because no network is configured. `fs` was the
+dangerous one for a duller reason: **this engine's sandbox is seeded with
+nothing**, so `fs.readFileSync("/a.txt")` was ENOENT for a file the workspace
+had, and `fs.writeFileSync` reported success for a write the host never saw.
+A silent discard is worse than an error, and those calls never touched the
+bridge, so they left no audit trail and skipped the clamp.
+
+The isolate engine has none of them either, so a script reaching for one would
+have run here and failed there — the fork this engine exists to avoid.
+
 ## Notes
 
 - **Results come back through a host call, not stdout.** `js-exec` runs a
