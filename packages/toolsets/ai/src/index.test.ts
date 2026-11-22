@@ -53,7 +53,7 @@ describe("AISDKToolset", () => {
   it("produces an object keyed by tool name, as the AI SDK expects", async () => {
     const result = await tools();
 
-    expect(Object.keys(result)).toEqual(["search", "code", "run", "list_apps", "fs"]);
+    expect(Object.keys(result)).toEqual(["search", "code", "run", "list_apps"]);
   });
 
   it("wraps each input schema the way the AI SDK reads JSON Schema", async () => {
@@ -107,9 +107,12 @@ describe("AISDKToolset", () => {
 
   it("truncates oversized string output", async () => {
     const result = await tools({ maxOutputChars: 100 });
-    await result["fs"]!.execute({ op: "write", path: "/big.txt", content: "y".repeat(5000) });
+    await result["run"]!.execute({
+      ref: "fs.write",
+      args: { path: "/big.txt", content: "y".repeat(5000) },
+    });
 
-    const read = await result["fs"]!.execute({ op: "read", path: "/big.txt" });
+    const read = await result["run"]!.execute({ ref: "fs.read", args: { path: "/big.txt" } });
 
     expect(JSON.stringify(read)).toContain("truncated");
   });
@@ -117,10 +120,9 @@ describe("AISDKToolset", () => {
   it("truncates an oversized object into a preview", async () => {
     const result = await tools({ maxOutputChars: 20 });
 
-    const written = (await result["fs"]!.execute({
-      op: "write",
-      path: "/a.txt",
-      content: "x",
+    const written = (await result["run"]!.execute({
+      ref: "fs.write",
+      args: { path: "/a.txt", content: "x" },
     })) as Record<string, unknown>;
 
     expect(written).toMatchObject({ truncated: true, preview: expect.any(String) });
@@ -157,9 +159,9 @@ const repair = (
 
 describe("repairToRun", () => {
   it("rewrites a call to a built-in's name into a run call for that ref", async () => {
-    // The failure this exists for: `code` and `fs` are tools as well as refs,
-    // so a model handed those calls `bash` the same way — and an undeclared
-    // tool name is rejected before anything runs, costing the whole turn.
+    // The failure this exists for: `code` is a tool as well as a ref, so a
+    // model handed it called `bash` the same way — and an undeclared tool
+    // name is rejected before anything runs, costing the whole turn.
     const repaired = await repair("bash", JSON.stringify({ cmd: "ls /data" }));
 
     expect(repaired?.toolName).toBe("run");

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BashInput, CodeInput, FsInput } from "./tools.js";
+import { BashInput, CodeInput } from "./tools.js";
 import { CodeResult, ExecResult, FileStat } from "./schemas.js";
 import type { ActionDefinition, App } from "./ports.js";
 
@@ -139,9 +139,6 @@ export function builtinActions(): BuiltinAction[] {
     },
   ];
 }
-
-/** The merged `fs` tool's schema, exported so the tool and the action agree. */
-export const FS_TOOL_INPUT = FsInput;
 
 function define(
   spec: Omit<ActionDefinition, "handler"> & { input: z.ZodType; output: z.ZodType },

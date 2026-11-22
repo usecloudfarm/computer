@@ -288,13 +288,11 @@ describe("Workspace.tools", () => {
     const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
     await workspace.fs.write("/gone.txt", "x");
 
-    const ops = workspace.toolSpecs().find((tool) => tool.name === "fs")?.inputSchema as {
-      properties?: { op?: { enum?: string[] } };
-    };
-    expect(ops.properties?.op?.enum).toEqual(["read", "write", "list"]);
+    // Destructive deletion is reachable by ref, just never named in the
+    // description — unchanged by the fs tool going away.
+    const run = workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "";
+    expect(run).not.toContain("fs.remove");
 
-    // Unchanged from before the merge: destructive deletion is reachable by
-    // ref, just not offered as a one-token choice.
     expect(await workspace.run("fs.remove", { path: "/gone.txt" })).toMatchObject({ status: "ok" });
   });
 
@@ -455,12 +453,25 @@ describe("Workspace.tools", () => {
     expect(run?.description).toContain("A scripted sandbox for tests.");
   });
 
-  it("says where files actually live in the fs description", async () => {
+  it("says where files actually live", async () => {
     const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
 
-    expect(workspace.toolSpecs().find((spec) => spec.name === "fs")?.description).toContain(
+    // Moved into `run` with the fs tool: whether a file survives the turn
+    // changes whether writing it was worth doing.
+    expect(workspace.toolSpecs().find((spec) => spec.name === "run")?.description).toContain(
       "lost when the process ends",
     );
+  });
+
+  it("tells the model how to read a file without flooding its context", () => {
+    const description = runDescriptionFor(["bash", "fs.read"]);
+
+    // `cat` on an unsized file is the cheapest way a model has to fill its
+    // own context with something it cannot use — and the result is clamped
+    // anyway, so it pays for the whole file and gets a truncated one.
+    expect(description).toContain("head -n 50");
+    expect(description).toContain("truncated");
+    expect(description).toContain("<<'EOF'");
   });
 
   it("stays a fixed, small set however many apps are installed", async () => {
@@ -482,8 +493,8 @@ describe("Workspace.tools", () => {
 
     expect(names).toEqual(many.toolSpecs().map((spec) => spec.name));
     // The fixed set, whether or not an engine resolved on this runtime.
-    expect(names).toEqual(expect.arrayContaining(["search", "run", "list_apps", "fs"]));
-    expect(names.length).toBeLessThanOrEqual(6);
+    expect(names).toEqual(expect.arrayContaining(["search", "run", "list_apps"]));
+    expect(names.length).toBeLessThanOrEqual(4);
   });
 
   it("treats a null codeEngine exactly like an unset one", async () => {

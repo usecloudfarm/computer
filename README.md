@@ -54,7 +54,7 @@ import, which only your own bundler can do.
 
 ## Why code mode
 
-An agent with ten apps installed does not get a hundred tools. It gets **six**,
+An agent with ten apps installed does not get a hundred tools. It gets **four**,
 and the list does not grow:
 
 | tool        | what it does                                                              |
@@ -63,11 +63,17 @@ and the list does not grow:
 | `code`      | run JavaScript that calls several actions in one go                       |
 | `run`       | run one action — an app's, or the computer's own (`bash`, `fs.read`, …)   |
 | `list_apps` | what is installed, including the computer itself                          |
-| `fs`        | the workspace filesystem: read, write, list                               |
 
 The shell is not a tool of its own. `bash` is an action **of the computer**,
 found with `search` and called with `run`, exactly like `slack.sendMessage` —
 because running the shell is running something in the computer.
+
+Neither is the filesystem. Files are what a shell is for: `cat`, `grep`, `ls`
+and a heredoc cover what a dedicated tool did, so `run`'s description teaches
+those instead — along with how to stay inside a context window, since `cat` on
+an unsized file is the cheapest way a model has to fill its own. `fs.read`,
+`fs.write` and `fs.list` remain as refs, for content that would be awkward to
+quote and for code mode, which has nothing else to call.
 
 Adding an app adds zero tokens to the system prompt. The model finds what it
 needs, then writes a script:
