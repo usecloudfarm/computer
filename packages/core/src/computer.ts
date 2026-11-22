@@ -276,6 +276,7 @@ export class Workspace<T = unknown> {
       actions: hits.map((hit) => summarize(hit.entry, hit.score, true)),
       types: renderDeclarations(
         hits.map((hit) => ({
+          ref: hit.entry.ref,
           appId: hit.entry.app.id,
           appName: hit.entry.app.name,
           appDescription: hit.entry.app.description,

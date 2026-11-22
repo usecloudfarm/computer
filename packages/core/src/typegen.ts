@@ -94,6 +94,15 @@ export function renderSignature(action: ActionDefinition): string {
 }
 
 export interface DeclarationEntry {
+  /**
+   * The ref exactly as `run` takes it.
+   *
+   * Not rebuilt from `appId` and the action name: a built-in's app is
+   * "computer" while its ref is `bash` or `memory.remember`, so reconstructing
+   * produced `computer.bash` — a ref that does not exist, declared to the one
+   * reader who cannot check.
+   */
+  readonly ref: string;
   readonly appId: string;
   readonly appName: string;
   readonly appDescription: string;
@@ -116,7 +125,7 @@ export function renderDeclarations(entries: readonly DeclarationEntry[]): string
     )
     .map((entry) => {
       const { action } = entry;
-      const ref = `${entry.appId}.${action.name}`;
+      const ref = entry.ref;
       const input = renderType(toJsonSchema(action.input), 0);
       const output = renderType(toJsonSchema(action.output), 0);
       const docs = [

@@ -66,6 +66,7 @@ describe("renderSignature", () => {
 
 describe("renderDeclarations", () => {
   const entry = {
+    ref: "slack.sendMessage",
     appId: "slack",
     appName: "Slack",
     appDescription: "Team messaging.",
@@ -98,8 +99,33 @@ describe("renderDeclarations", () => {
     );
   });
 
+  it("declares the ref it was given rather than rebuilding one", () => {
+    // A built-in's app is "computer" while its ref is `bash` or
+    // `memory.remember`. Rebuilding from appId + name declared
+    // `computer.bash` to the one reader who cannot check it.
+    const builtin = {
+      ref: "memory.remember",
+      appId: "computer",
+      appName: "Computer",
+      appDescription: "The workspace itself.",
+      action: sendMessage,
+      authenticated: true,
+    };
+
+    const declarations = renderDeclarations([builtin]);
+
+    expect(declarations).toContain('run(ref: "memory.remember"');
+    expect(declarations).not.toContain("computer.sendMessage");
+  });
+
   it("orders overloads stably by ref", () => {
-    const other = { ...entry, appId: "gmail", appName: "Gmail", appDescription: "Email." };
+    const other = {
+      ...entry,
+      ref: "gmail.sendMessage",
+      appId: "gmail",
+      appName: "Gmail",
+      appDescription: "Email.",
+    };
     const declarations = renderDeclarations([entry, other]);
 
     expect(declarations.indexOf('"gmail.sendMessage"')).toBeLessThan(
