@@ -185,9 +185,12 @@ function describeCode(options: ToolContext): string {
   // that read a file by shelling out to `cat`: shell, quoted inside a JS
   // string, inside JSON, to do what one line of JS does.
   lines.push(
-    "- Files: require('fs').readFileSync(path, 'utf8') and writeFileSync(path, text). Also require('path'), 'os', 'util'.",
+    // The bare-global spelling, because that is the one that is shortest and
+    // the one a model writes unprompted. `require` works too, but naming it
+    // first made the description read as though the import were required.
+    "- Files: fs.readFileSync(path, 'utf8'), fs.writeFileSync(path, text), fs.readdirSync(dir), fs.existsSync(path) — already in scope, no import. Also path, os, util, and require() for the same four.",
     "",
-    "`fs` calls go over the same bridge as `run`, so they are recorded and count against the call limit. There is no network and no other module.",
+    "`fs` is the workspace, and its calls go over the same bridge as `run`, so they are recorded and count against the call limit. There is no network and no other module.",
   );
 
   return lines.join("\n");

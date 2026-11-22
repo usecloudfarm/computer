@@ -448,7 +448,10 @@ describe("Workspace.tools", () => {
     // what produced scripts that read a file by shelling out to `cat` —
     // shell, quoted inside a JS string, inside JSON, for one line of JS.
     expect(`${code?.description} ${source}`).not.toMatch(/bash|shell/i);
-    expect(code?.description).toContain("readFileSync");
+    expect(code?.description).toContain("fs.readFileSync(path, 'utf8')");
+    // The bare-global spelling, not `require('fs').readFileSync`: naming the
+    // import first read as though it were required.
+    expect(code?.description).toContain("already in scope, no import");
   });
 
   it("tells the model how to read a file without flooding its context", () => {
