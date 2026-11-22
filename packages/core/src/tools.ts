@@ -72,27 +72,74 @@ export const FsInput = z.object({
 const DESCRIPTIONS = {
   search:
     "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`. Pass `app` to search within one app only.",
-  run: "Run one action by reference — an app's, or one of the computer's own: 'bash' for the shell ({ cmd }), 'code' to script several calls, 'fs.read' / 'fs.write' / 'fs.list'. Find others with `search`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
+  run: "Run one action by reference. Find others with `search`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
   code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other. Actions are synchronous here: no `await`.",
   list_apps:
     "List the apps installed in this workspace and the actions each one contributes. Use it to see what is available at all; use `search` when you know what you want to do.",
   fs: "Read, write and list files in the workspace. op 'read' needs path, 'write' needs path and content, 'list' takes an optional path prefix.",
 } as const;
 
-export function codeModeSpecs(options: { hasCode: boolean }): ToolSpec[] {
+export interface ToolContext {
+  readonly hasCode: boolean;
+  /** Built-in refs that are actually available right now. */
+  readonly builtins: readonly string[];
+  /** The sandbox's own words about what it can and cannot run. */
+  readonly sandbox?: string | undefined;
+  /** The storage provider's own words about where files live. */
+  readonly storage?: string | undefined;
+}
+
+export function codeModeSpecs(options: ToolContext): ToolSpec[] {
   const specs: ToolSpec[] = [
     spec("search", "search", DESCRIPTIONS.search, SearchInput, "read"),
-    spec("run", "run", DESCRIPTIONS.run, RunInput),
+    spec("run", "run", describeRun(options), RunInput),
     spec("list_apps", "apps.list", DESCRIPTIONS.list_apps, ListAppsInput, "read"),
     // "write" is the honest annotation for the merged tool: it is the
     // superset of what the three ops do. A reading call loses the read-only
     // hint it used to carry — the one real cost of collapsing these.
-    spec("fs", "fs", DESCRIPTIONS.fs, FsInput, "write"),
+    spec("fs", "fs", describeFs(options), FsInput, "write"),
   ];
   if (options.hasCode) {
-    specs.splice(1, 0, spec("code", "code", DESCRIPTIONS.code, CodeInput));
+    specs.splice(1, 0, spec("code", "code", describeCode(options), CodeInput));
   }
   return specs;
+}
+
+/**
+ * `run`'s description, built from what this computer actually has.
+ *
+ * A fixed string either names a shell that is not installed or stays silent
+ * about memory that is — and a model only learns which by calling and
+ * failing. The refs here come from the registry, filtered by availability, so
+ * the description cannot drift from the dispatch.
+ */
+function describeRun(options: ToolContext): string {
+  const has = (ref: string) => options.builtins.includes(ref);
+  const parts: string[] = [];
+
+  if (has("bash")) parts.push("'bash' for the shell ({ cmd })");
+  if (has("code")) parts.push("'code' to script several calls in one pass");
+  if (has("fs.read")) parts.push("'fs.read' / 'fs.write' / 'fs.list' for files");
+  if (has("memory.remember")) {
+    parts.push("'memory.remember' / 'memory.search' to carry things across sessions");
+  }
+
+  const own = parts.length > 0 ? ` The computer's own: ${parts.join(", ")}.` : "";
+  // The sandbox gets its own sentence. Inline it reads as a run-on, and what
+  // the shell cannot do — npm, python — is the part worth landing clearly.
+  const shell = options.sandbox ? ` The shell: ${options.sandbox}` : "";
+  return `Run one action by reference — an app's, or one of the computer's own.${own}${shell} Find others with \`search\`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.`;
+}
+
+/** The same for `fs`: where the files go is worth saying when it is known. */
+function describeFs(options: ToolContext): string {
+  return options.storage ? `${DESCRIPTIONS.fs} ${options.storage}` : DESCRIPTIONS.fs;
+}
+
+/** And for `code`: only name a shell the script can actually reach. */
+function describeCode(options: ToolContext): string {
+  const bash = options.builtins.includes("bash") ? ' `run("bash", { cmd })` works here too.' : "";
+  return `${DESCRIPTIONS.code}${bash}`;
 }
 
 function spec(

@@ -138,6 +138,7 @@ export class Computer<T = unknown> {
       info,
       fs,
       attachment,
+      storageDescription: this.#storage.description,
       registry: this.#registry,
       toolset: this.#toolset,
       options: await this.#resolved(),
@@ -211,6 +212,8 @@ interface WorkspaceInit<T> {
   info: WorkspaceInfo;
   fs: FileSystem;
   attachment: Attachment | null;
+  /** The storage provider's own words, for the `fs` tool description. */
+  storageDescription: string;
   registry: ActionRegistry;
   toolset: Toolset<T>;
   options: ResolvedOptions;
@@ -230,11 +233,13 @@ export class Workspace<T = unknown> {
   #runCounter = 0;
 
   readonly #attachment: Attachment | null;
+  readonly #storageDescription: string;
 
   constructor(init: WorkspaceInit<T>) {
     this.info = init.info;
     this.fs = init.fs;
     this.#attachment = init.attachment;
+    this.#storageDescription = init.storageDescription;
     this.#registry = init.registry;
     this.#toolset = init.toolset;
     this.#options = init.options;
@@ -248,8 +253,14 @@ export class Workspace<T = unknown> {
   }
 
   toolSpecs(): readonly ToolSpec[] {
+    const provider = this.#options.provider;
     return codeModeSpecs({
       hasCode: this.#options.codeEngine !== undefined,
+      // One source of truth: the same list `search` and `list_apps` use, so
+      // the description cannot name a ref that dispatch would reject.
+      builtins: this.#registry.builtins((needs) => this.#has(needs)).map((entry) => entry.ref),
+      ...(provider ? { sandbox: provider.description } : {}),
+      ...(this.#storageDescription ? { storage: this.#storageDescription } : {}),
     });
   }
 

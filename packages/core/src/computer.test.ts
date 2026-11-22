@@ -32,6 +32,17 @@ function slackish(calls: Array<{ input: unknown }> = []): App {
   };
 }
 
+function fakeMemory() {
+  return {
+    id: "fake-memory",
+    description: "Remembers things for tests.",
+    remember: async (text: string) => ({ id: "m1", text, createdAt: 0 }),
+    search: async () => [],
+    get: async () => null,
+    forget: async () => {},
+  };
+}
+
 describe("Computer", () => {
   it("creates a workspace per user with its own filesystem", async () => {
     const computer = new Computer({ storage: new MemoryStorage() });
@@ -447,6 +458,47 @@ describe("Workspace.tools", () => {
       status: "error",
       error: { code: "unknown_ref", message: /apps\.list/ },
     });
+  });
+
+  it("names only the built-ins this computer actually has", async () => {
+    const bare = await new Computer({
+      storage: new MemoryStorage(),
+      provider: null,
+    }).createWorkspace("u");
+    const full = await new Computer({
+      storage: new MemoryStorage(),
+      provider: fakeSandbox(),
+      memory: fakeMemory(),
+    }).createWorkspace("u");
+
+    const runDescription = (workspace: typeof bare) =>
+      workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "";
+
+    // A fixed string either advertises a shell that is not installed or stays
+    // silent about memory that is, and a model only finds out by failing.
+    expect(runDescription(bare)).not.toContain("'bash'");
+    expect(runDescription(bare)).not.toContain("memory.remember");
+    expect(runDescription(full)).toContain("'bash'");
+    expect(runDescription(full)).toContain("memory.remember");
+  });
+
+  it("quotes the sandbox's own description, so limits reach the model", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: fakeSandbox(),
+    }).createWorkspace("u");
+
+    const run = workspace.toolSpecs().find((spec) => spec.name === "run");
+
+    expect(run?.description).toContain("A scripted sandbox for tests.");
+  });
+
+  it("says where files actually live in the fs description", async () => {
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+
+    expect(workspace.toolSpecs().find((spec) => spec.name === "fs")?.description).toContain(
+      "lost when the process ends",
+    );
   });
 
   it("stays a fixed, small set however many apps are installed", async () => {
