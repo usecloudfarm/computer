@@ -197,8 +197,6 @@ function describeCode(options: ToolContext): string {
     // the one a model writes unprompted. `require` works too, but naming it
     // first made the description read as though the import were required.
     "- Files: fs.readFileSync(path, 'utf8'), fs.writeFileSync(path, text), fs.readdirSync(dir), fs.existsSync(path) — already in scope, no import. Also path, os, util, and require() for the same four.",
-    "",
-    "`fs` is the workspace, and its calls go over the same bridge as `run`, so they are recorded and count against the call limit. There is no network and no other module.",
   );
 
   return lines.join("\n");

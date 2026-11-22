@@ -429,6 +429,9 @@ describe("Workspace.tools", () => {
     // contradicted itself on an engine that accepts it.
     expect(describeCode(true)).toContain("`await` is available");
     expect(describeCode(true)).not.toContain("Promise.all");
+    // Mechanism, not instruction: how fs reaches the workspace changes
+    // nothing a script would write.
+    expect(describeCode(true)).not.toContain("same bridge");
     expect(describeCode(true)).not.toContain("SYNCHRONOUS");
   });
 
