@@ -155,8 +155,12 @@ function describeFiles(has: (ref: string) => boolean, hasCode: boolean): string 
   // `code`, where one line of `fs` does it. Two descriptions in one request
   // teaching different filesystems is a coin toss, so this one stops
   // teaching and points at the other.
+  // Neither a tutorial nor a prohibition. Teaching cat/ls/grep/heredocs here
+  // had a model shelling out from inside `code`; banning them outright sent
+  // it to `code` for a single read. One call is one call either way — the
+  // difference only shows up once there are several.
   const files = hasCode
-    ? " For files use the `code` tool — fs.readFileSync, writeFileSync, readdirSync, existsSync — not the shell: `cat` and `ls` through here cost a call each and come back as text to parse."
+    ? " `cat`, `ls` and `>` are fine here for a single file. For several, or for anything you want as data rather than text, the `code` tool has fs.readFileSync / writeFileSync / readdirSync and does the lot in one call."
     : "";
 
   return (

@@ -454,7 +454,7 @@ describe("Workspace.tools", () => {
     expect(code?.description).toContain("already in scope, no import");
   });
 
-  it("points file work at code mode rather than teaching shell file commands", () => {
+  it("neither teaches nor forbids shell file commands", () => {
     const description = runDescriptionFor(["bash", "fs.read"]);
 
     // `cat` on an unsized file is the cheapest way a model has to fill its
@@ -466,10 +466,13 @@ describe("Workspace.tools", () => {
     // where one line of fs does it — two descriptions in one request
     // teaching different filesystems is a coin toss. This one points at the
     // other rather than competing with it.
-    expect(description).toContain("For files use the `code` tool");
+    // Teaching cat/ls/grep/heredocs here had a model shelling out from
+    // inside `code`; banning them sent it to `code` for a single read.
+    // Neither: the shell is fine for one file, `code` wins at several.
+    expect(description).toContain("fine here for a single file");
+    expect(description).toContain("For several");
     expect(description).toContain("truncated");
     expect(description).not.toContain("<<'EOF'");
-    expect(description).not.toContain("ls -la");
   });
 
   it("stays a fixed, small set however many apps are installed", async () => {
