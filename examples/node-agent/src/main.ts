@@ -6,13 +6,13 @@
  */
 import { Computer } from "@cloudfarm/core";
 import { slack } from "@cloudfarm/slack";
-import { AISDKToolset } from "@cloudfarm/ai";
+import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 
 const computer = new Computer({
   toolset: new AISDKToolset(),
   apps: [slack({ apiKey: process.env["SLACK_TOKEN"] ?? "" })],
   secrets: [process.env["SLACK_TOKEN"] ?? ""],
-  // provider defaults to @cloudfarm/bash and codeEngine to @cloudfarm/qjs
+  // provider defaults to @cloudfarm/bash-sandbox and codeEngine to @cloudfarm/qjs-engine
   // when those packages are installed. Pass your own — `new E2B({ apiKey })` —
   // to swap either, or `null` to turn it off.
 });

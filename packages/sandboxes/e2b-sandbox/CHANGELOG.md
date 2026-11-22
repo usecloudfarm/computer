@@ -1,4 +1,4 @@
-# @cloudfarm/bash
+# @cloudfarm/e2b-sandbox
 
 ## 0.0.1
 

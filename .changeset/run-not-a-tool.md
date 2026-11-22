@@ -1,6 +1,6 @@
 ---
 "@cloudfarm/core": patch
-"@cloudfarm/ai": minor
+"@cloudfarm/ai-sdk-toolset": minor
 ---
 
 Stop models calling `bash` as a tool of its own.
@@ -16,7 +16,7 @@ tool name is rejected before anything executes, so the slip cost a whole turn.
 { cmd } }` — so a ref can never be read as a tool name, and says outright that
 the shell has no tool of its own.
 
-`@cloudfarm/ai` gains `repairToRun()` for the other half, since a description
+`@cloudfarm/ai-sdk-toolset` gains `repairToRun()` for the other half, since a description
 cannot make a model infallible:
 
 ```ts

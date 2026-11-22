@@ -15,14 +15,14 @@ path tells you the contract:
 packages/
 ├── core/                    @cloudfarm/core — the Computer, and every interface below
 ├── sandboxes/               SandboxProvider — where bash runs
-│   ├── bash/                @cloudfarm/bash   (default: just-bash, no infrastructure)
-│   └── e2b/                 @cloudfarm/e2b    (planned)
+│   ├── bash/                @cloudfarm/bash-sandbox   (default: just-bash, no infrastructure)
+│   └── e2b/                 @cloudfarm/e2b-sandbox    (planned)
 ├── integrations/            App — third-party actions
 │   └── slack/               @cloudfarm/slack
 ├── engines/                 CodeEngine — where code mode executes
-│   └── quickjs/             @cloudfarm/qjs
+│   └── quickjs/             @cloudfarm/qjs-engine
 ├── toolsets/                Toolset — adapters for agent frameworks
-│   └── ai/                  @cloudfarm/ai     (Vercel AI SDK)
+│   └── ai/                  @cloudfarm/ai-sdk-toolset     (Vercel AI SDK)
 ├── storage/                 StorageProvider — where workspace files live  (empty)
 └── memory/                  MemoryStore — searchable agent memory         (empty)
 
@@ -43,7 +43,7 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 1. **Pick the folder from the interface you implement.** A thing that runs
    shell commands is a `SandboxProvider`, so it goes in `packages/sandboxes/`.
    A thing that exposes third-party actions is an `App` → `integrations/`.
-2. **Copy the nearest sibling.** `packages/sandboxes/bash` is the best template
+2. **Copy the nearest sibling.** `packages/sandboxes/bash-sandbox` is the best template
    for a provider; `packages/integrations/slack` for an app. Both are small and
    already have the right config.
 3. **Fix the relative paths** — grouped packages sit one level deeper than
@@ -193,7 +193,7 @@ new apps should use the factory.
 
 ## The default packages
 
-`@cloudfarm/bash` and `@cloudfarm/qjs` are the defaults for `provider` and
+`@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` are the defaults for `provider` and
 `codeEngine`. Core cannot import them — they depend on core — so it declares
 them as **optional peer dependencies** and resolves them at runtime through a
 dynamic import in `packages/core/src/defaults.ts`. Installed means default;

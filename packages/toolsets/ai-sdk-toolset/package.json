@@ -1,5 +1,5 @@
 {
-  "name": "@cloudfarm/ai",
+  "name": "@cloudfarm/ai-sdk-toolset",
   "version": "0.0.1",
   "description": "Computer tools for the Vercel AI SDK",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "@cloudfarm/core": "workspace:^"
   },
   "devDependencies": {
-    "@cloudfarm/qjs": "workspace:^",
+    "@cloudfarm/qjs-engine": "workspace:^",
     "ai": "^7.0.178",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
@@ -46,9 +46,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/usecloudfarm/computer.git",
-    "directory": "packages/toolsets/ai"
+    "directory": "packages/toolsets/ai-sdk-toolset"
   },
-  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/toolsets/ai#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/toolsets/ai-sdk-toolset#readme",
   "bugs": {
     "url": "https://github.com/usecloudfarm/computer/issues"
   }

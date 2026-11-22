@@ -23,5 +23,5 @@
   - **Toolsets** — `ai`, for the Vercel AI SDK.
 
 - Updated dependencies
-  - @cloudfarm/bash@0.0.1
+  - @cloudfarm/bash-sandbox@0.0.1
   - @cloudfarm/quickjs@0.0.1

@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.107",
-    "@cloudfarm/ai": "workspace:^",
-    "@cloudfarm/bash": "workspace:^",
+    "@cloudfarm/ai-sdk-toolset": "workspace:^",
+    "@cloudfarm/bash-sandbox": "workspace:^",
     "@cloudfarm/core": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",
-    "@cloudfarm/qjs": "workspace:^",
+    "@cloudfarm/qjs-engine": "workspace:^",
     "@cloudfarm/slack": "workspace:^",
     "ai": "^7.0.178"
   },

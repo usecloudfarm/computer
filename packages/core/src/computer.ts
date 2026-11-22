@@ -47,7 +47,7 @@ export interface ComputerOptions<T = unknown> {
    * Where bash runs.
    *
    * There is no way to turn the shell off: `null` and `undefined` both fall
-   * back to `@cloudfarm/bash`. A shell is part of what makes this a computer
+   * back to `@cloudfarm/bash-sandbox`. A shell is part of what makes this a computer
    * rather than a tool router, and the one thing an agent reaches for when no
    * action fits — a Computer without it is a different, worse product rather
    * than a configuration of this one.
@@ -59,7 +59,7 @@ export interface ComputerOptions<T = unknown> {
    * Runs code mode.
    *
    * There is no way to turn code mode off: `null` and `undefined` both fall
-   * back to `@cloudfarm/qjs`. Chaining several actions in one pass is the
+   * back to `@cloudfarm/qjs-engine`. Chaining several actions in one pass is the
    * reason the tool surface stays small, so a Computer without it is a
    * different, worse product rather than a configuration of this one.
    *
@@ -392,7 +392,7 @@ export class Workspace<T = unknown> {
     const provider = this.#options.provider;
     if (!provider) {
       throw new UnknownRefError("bash", [
-        "install @cloudfarm/bash and pass `provider` to get a shell",
+        "install @cloudfarm/bash-sandbox and pass `provider` to get a shell",
       ]);
     }
     const sandbox = await this.#connectSandbox(provider);
@@ -436,7 +436,7 @@ export class Workspace<T = unknown> {
         error: {
           name: "NoCodeEngineError",
           message:
-            "Code mode could not start: @cloudfarm/qjs is not installed. " +
+            "Code mode could not start: @cloudfarm/qjs-engine is not installed. " +
             "Install it, or pass `codeEngine` directly — on Workers that means " +
             "quickjsForWorkers(wasmModule), since the wasm must be a static import.",
         },

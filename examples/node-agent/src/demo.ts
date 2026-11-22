@@ -8,7 +8,7 @@
  */
 import { Computer } from "@cloudfarm/core";
 import { slack } from "@cloudfarm/slack";
-import { AISDKToolset } from "@cloudfarm/ai";
+import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 import { createServer } from "node:http";
 
 // --- a stand-in Slack, so the demo needs no credentials ---------------------
@@ -33,7 +33,7 @@ await new Promise<void>((resolve) => server.listen(0, resolve));
 const port = (server.address() as { port: number }).port;
 
 // --- the computer -----------------------------------------------------------
-// No provider and no codeEngine: @cloudfarm/bash and @cloudfarm/qjs are
+// No provider and no codeEngine: @cloudfarm/bash-sandbox and @cloudfarm/qjs-engine are
 // installed, so they are the defaults.
 const computer = new Computer({
   toolset: new AISDKToolset(),

@@ -41,12 +41,12 @@ importers:
       '@ai-sdk/react':
         specifier: ^4.0.183
         version: 4.0.183(react@19.3.1)(zod@4.6.7)
-      '@cloudfarm/ai':
+      '@cloudfarm/ai-sdk-toolset':
         specifier: workspace:^
-        version: link:../../packages/toolsets/ai
-      '@cloudfarm/bash':
+        version: link:../../packages/toolsets/ai-sdk-toolset
+      '@cloudfarm/bash-sandbox':
         specifier: workspace:^
-        version: link:../../packages/sandboxes/bash
+        version: link:../../packages/sandboxes/bash-sandbox
       '@cloudfarm/cloudflare-browser':
         specifier: workspace:^
         version: link:../../packages/integrations/cloudflare-browser
@@ -59,9 +59,9 @@ importers:
       '@cloudfarm/hackernews':
         specifier: workspace:^
         version: link:../../packages/integrations/hackernews
-      '@cloudfarm/qjs':
+      '@cloudfarm/qjs-engine':
         specifier: workspace:^
-        version: link:../../packages/engines/qjs
+        version: link:../../packages/engines/qjs-engine
       '@cloudfarm/slack':
         specifier: workspace:^
         version: link:../../packages/integrations/slack
@@ -141,21 +141,21 @@ importers:
       '@ai-sdk/anthropic':
         specifier: ^4.0.107
         version: 4.0.107(zod@4.6.7)
-      '@cloudfarm/ai':
+      '@cloudfarm/ai-sdk-toolset':
         specifier: workspace:^
-        version: link:../../packages/toolsets/ai
-      '@cloudfarm/bash':
+        version: link:../../packages/toolsets/ai-sdk-toolset
+      '@cloudfarm/bash-sandbox':
         specifier: workspace:^
-        version: link:../../packages/sandboxes/bash
+        version: link:../../packages/sandboxes/bash-sandbox
       '@cloudfarm/core':
         specifier: workspace:^
         version: link:../../packages/core
       '@cloudfarm/firecrawl':
         specifier: workspace:^
         version: link:../../packages/integrations/firecrawl
-      '@cloudfarm/qjs':
+      '@cloudfarm/qjs-engine':
         specifier: workspace:^
-        version: link:../../packages/engines/qjs
+        version: link:../../packages/engines/qjs-engine
       '@cloudfarm/slack':
         specifier: workspace:^
         version: link:../../packages/integrations/slack
@@ -172,12 +172,12 @@ importers:
 
   packages/core:
     dependencies:
-      '@cloudfarm/bash':
+      '@cloudfarm/bash-sandbox':
         specifier: workspace:^
-        version: link:../sandboxes/bash
-      '@cloudfarm/qjs':
+        version: link:../sandboxes/bash-sandbox
+      '@cloudfarm/qjs-engine':
         specifier: workspace:^
-        version: link:../engines/qjs
+        version: link:../engines/qjs-engine
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -201,7 +201,7 @@ importers:
         specifier: ^4.166.0
         version: 4.166.0(@cloudflare/workers-types@5.20261120.1)(@types/node@26.6.6)(vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)))
 
-  packages/engines/qjs:
+  packages/engines/qjs-engine:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -213,9 +213,9 @@ importers:
         specifier: ^0.32.0
         version: 0.32.0
     devDependencies:
-      '@cloudfarm/bash':
+      '@cloudfarm/bash-sandbox':
         specifier: workspace:^
-        version: link:../../sandboxes/bash
+        version: link:../../sandboxes/bash-sandbox
       tsup:
         specifier: ^9.0.0
         version: 9.0.0(jiti@2.7.0)(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
@@ -305,7 +305,7 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/sandboxes/agent37:
+  packages/sandboxes/agent37-sandbox:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -321,7 +321,7 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/sandboxes/bash:
+  packages/sandboxes/bash-sandbox:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -340,7 +340,7 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/sandboxes/boat:
+  packages/sandboxes/boat-sandbox:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -356,7 +356,7 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/sandboxes/e2b:
+  packages/sandboxes/e2b-sandbox:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -394,7 +394,7 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/storage/s3:
+  packages/storage/s3-storage:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -403,9 +403,9 @@ importers:
         specifier: ^1.0.20
         version: 1.0.20
     devDependencies:
-      '@cloudfarm/qjs':
+      '@cloudfarm/qjs-engine':
         specifier: workspace:^
-        version: link:../../engines/qjs
+        version: link:../../engines/qjs-engine
       tsup:
         specifier: ^9.0.0
         version: 9.0.0(jiti@2.7.0)(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
@@ -416,15 +416,15 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/toolsets/ai:
+  packages/toolsets/ai-sdk-toolset:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
         version: link:../../core
     devDependencies:
-      '@cloudfarm/qjs':
+      '@cloudfarm/qjs-engine':
         specifier: workspace:^
-        version: link:../../engines/qjs
+        version: link:../../engines/qjs-engine
       ai:
         specifier: ^7.0.178
         version: 7.0.179(zod@4.6.7)

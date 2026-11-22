@@ -14,7 +14,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs } from "ai";
 import { createAction, Computer, createApp, noAuth } from "@cloudfarm/core";
-import { AISDKToolset } from "@cloudfarm/ai";
+import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 import { firecrawl } from "@cloudfarm/firecrawl";
 import { z } from "zod";
 

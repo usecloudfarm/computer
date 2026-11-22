@@ -1,4 +1,4 @@
-# @cloudfarm/boat
+# @cloudfarm/agent37-sandbox
 
 ## 0.0.1
 

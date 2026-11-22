@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // `defaultProvider` constructs `module.JustBash`, which is undefined here, and
 // the catch turns that into "no default". Passing `null` no longer does this —
 // it resolves the default, same as leaving the field unset.
-vi.mock("@cloudfarm/bash", () => ({}));
-vi.mock("@cloudfarm/qjs", () => ({}));
+vi.mock("@cloudfarm/bash-sandbox", () => ({}));
+vi.mock("@cloudfarm/qjs-engine", () => ({}));
 
 import { Computer } from "./computer.js";
 import { MemoryStorage } from "./vfs.js";
@@ -20,7 +20,10 @@ describe("a computer whose optional packages are not installed", () => {
   it("says how to get a shell rather than failing blankly", async () => {
     expect(await (await bare()).run("bash", { cmd: "ls" })).toMatchObject({
       status: "error",
-      error: { code: "unknown_ref", message: expect.stringContaining("install @cloudfarm/bash") },
+      error: {
+        code: "unknown_ref",
+        message: expect.stringContaining("install @cloudfarm/bash-sandbox"),
+      },
     });
   });
 

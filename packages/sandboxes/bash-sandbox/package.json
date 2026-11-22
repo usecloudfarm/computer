@@ -1,7 +1,7 @@
 {
-  "name": "@cloudfarm/agent37",
+  "name": "@cloudfarm/bash-sandbox",
   "version": "0.0.1",
-  "description": "SandboxProvider over Agent37: gVisor sandboxes and VMs, via its REST API",
+  "description": "The default Computer sandbox: a bash implementation that runs anywhere, with no infrastructure",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -27,7 +27,8 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^"
+    "@cloudfarm/core": "workspace:^",
+    "just-bash": "^3.6.1"
   },
   "devDependencies": {
     "tsup": "^9.0.0",
@@ -40,9 +41,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/usecloudfarm/computer.git",
-    "directory": "packages/sandboxes/agent37"
+    "directory": "packages/sandboxes/bash-sandbox"
   },
-  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/sandboxes/agent37#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/sandboxes/bash-sandbox#readme",
   "bugs": {
     "url": "https://github.com/usecloudfarm/computer/issues"
   }

@@ -3,7 +3,7 @@ import type { CodeEngine, SandboxProvider } from "./ports.js";
 /**
  * The batteries, found rather than imported.
  *
- * `@cloudfarm/bash` and `@cloudfarm/qjs` both depend on core, so core
+ * `@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` both depend on core, so core
  * cannot depend on them back without a cycle. Instead it looks for them at
  * runtime: install them and they become the defaults, so `new Computer()`
  * with no options has a shell and code mode. Leave them out and the
@@ -16,8 +16,8 @@ import type { CodeEngine, SandboxProvider } from "./ports.js";
  * Worker should configure `codeEngine` itself.
  */
 
-const BASH = "@cloudfarm/bash";
-const QUICKJS = "@cloudfarm/qjs";
+const BASH = "@cloudfarm/bash-sandbox";
+const QUICKJS = "@cloudfarm/qjs-engine";
 
 let provider: Promise<SandboxProvider | undefined> | undefined;
 let engine: Promise<CodeEngine | undefined> | undefined;

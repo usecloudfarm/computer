@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/qjs": minor
+"@cloudfarm/qjs-engine": minor
 "@cloudfarm/core": patch
 ---
 

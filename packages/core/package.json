@@ -44,14 +44,14 @@
     "wrangler": "^4.166.0"
   },
   "peerDependencies": {
-    "@cloudfarm/bash": "workspace:^",
-    "@cloudfarm/qjs": "workspace:^"
+    "@cloudfarm/bash-sandbox": "workspace:^",
+    "@cloudfarm/qjs-engine": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@cloudfarm/bash": {
+    "@cloudfarm/bash-sandbox": {
       "optional": true
     },
-    "@cloudfarm/qjs": {
+    "@cloudfarm/qjs-engine": {
       "optional": true
     }
   },

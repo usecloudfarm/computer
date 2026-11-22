@@ -1,7 +1,7 @@
 {
-  "name": "@cloudfarm/s3",
+  "name": "@cloudfarm/agent37-sandbox",
   "version": "0.0.1",
-  "description": "StorageProvider over any S3-compatible bucket: bring your own storage",
+  "description": "SandboxProvider over Agent37: gVisor sandboxes and VMs, via its REST API",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -27,11 +27,9 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^",
-    "aws4fetch": "^1.0.20"
+    "@cloudfarm/core": "workspace:^"
   },
   "devDependencies": {
-    "@cloudfarm/qjs": "workspace:^",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.1"
@@ -42,9 +40,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/usecloudfarm/computer.git",
-    "directory": "packages/storage/s3"
+    "directory": "packages/sandboxes/agent37-sandbox"
   },
-  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/storage/s3#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/sandboxes/agent37-sandbox#readme",
   "bugs": {
     "url": "https://github.com/usecloudfarm/computer/issues"
   }

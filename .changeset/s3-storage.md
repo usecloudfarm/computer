@@ -1,9 +1,9 @@
 ---
-"@cloudfarm/s3": minor
+"@cloudfarm/s3-storage": minor
 "@cloudfarm/core": minor
 ---
 
-Add `@cloudfarm/s3`: workspace files in any S3-compatible bucket you own —
+Add `@cloudfarm/s3-storage`: workspace files in any S3-compatible bucket you own —
 AWS, R2, MinIO, B2. Signed with `aws4fetch` (SigV4 over WebCrypto), so it runs
 unchanged on Node and Workers where an AWS SDK would not.
 

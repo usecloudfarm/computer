@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Computer } from "@cloudfarm/core";
-import { JustBash } from "@cloudfarm/bash";
+import { JustBash } from "@cloudfarm/bash-sandbox";
 
 /**
  * The zero-config path. These assertions only mean something where both

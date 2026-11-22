@@ -30,7 +30,7 @@ export interface JustBashOptions {
  * isolation: it covers a large subset of bash and coreutils rather than all of
  * it, and it is a compatibility boundary, not a security one. For untrusted
  * code, or anything needing npm, python or real binaries, pass a provider like
- * `@cloudfarm/e2b` instead.
+ * `@cloudfarm/e2b-sandbox` instead.
  */
 export class JustBash implements SandboxProvider {
   readonly id = "just-bash";

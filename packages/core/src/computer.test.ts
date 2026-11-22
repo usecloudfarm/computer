@@ -512,7 +512,7 @@ describe("Workspace.tools", () => {
     // `null` used to mean "off". It now resolves the default, so the two are
     // indistinguishable — which is the point: there is no way to opt out.
     // Whether the default resolves at all is a platform question, asserted in
-    // @cloudfarm/qjs where an engine actually exists.
+    // @cloudfarm/qjs-engine where an engine actually exists.
     expect(nulled.toolSpecs().map((spec) => spec.name)).toEqual(
       unset.toolSpecs().map((spec) => spec.name),
     );

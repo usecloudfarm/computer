@@ -53,7 +53,7 @@ describe("AISDKToolset", () => {
   it("produces an object keyed by tool name, as the AI SDK expects", async () => {
     const result = await tools();
 
-    // `code` is here because @cloudfarm/qjs resolves as the default engine.
+    // `code` is here because @cloudfarm/qjs-engine resolves as the default engine.
     // It is a devDependency so turbo builds it first: without the
     // declaration the assertion passed or failed on build order, and did
     // fail the moment the package was renamed and its dist went away.

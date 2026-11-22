@@ -1,4 +1,4 @@
-# @cloudfarm/ai
+# @cloudfarm/bash-sandbox
 
 ## 0.0.1
 

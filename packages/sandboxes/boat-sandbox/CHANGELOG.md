@@ -1,4 +1,4 @@
-# @cloudfarm/e2b
+# @cloudfarm/boat-sandbox
 
 ## 0.0.1
 
