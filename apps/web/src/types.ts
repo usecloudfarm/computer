@@ -30,3 +30,9 @@ export interface WorkspaceState {
   apps: AppInfo[];
   tools: ToolSpecInfo[];
 }
+
+/** What /api/info returns: enough to name what you are talking to. */
+export interface Info {
+  model: string;
+  workspace: string;
+}

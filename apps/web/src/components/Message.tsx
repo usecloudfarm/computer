@@ -13,20 +13,22 @@ import { ToolCall } from "./ToolCall.tsx";
 export function Message({ message, streaming }: { message: UIMessage; streaming: boolean }) {
   if (message.role === "user") {
     return (
-      <div className="msg msg--user">
-        <div className="msg__bubble">{textOf(message)}</div>
+      <div className="flex justify-end">
+        <div className="bg-muted max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-[15px] leading-7 whitespace-pre-wrap">
+          {textOf(message)}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="msg msg--assistant">
+    <div className="space-y-4">
       {group(message.parts).map((block, blockIndex) => {
         if (block.kind === "text") {
           return (
             <Markdown
               key={blockIndex}
-              className="msg__markdown"
+              className="prose-chat"
               // Streaming mode copes with half-written markdown — an unclosed
               // code fence mid-token renders as a code block, not as literal
               // backticks that reflow when the next chunk lands.
@@ -43,7 +45,10 @@ export function Message({ message, streaming }: { message: UIMessage; streaming:
         // boxes: consecutive calls are one unit of work, and the gaps between
         // them read as pauses that did not happen.
         return (
-          <div className="toolgroup" key={blockIndex}>
+          <div
+            key={blockIndex}
+            className="bg-muted/40 divide-border divide-y overflow-hidden rounded-xl border"
+          >
             {block.calls.map(({ part, index }) => (
               <ToolCall
                 key={index}

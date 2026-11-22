@@ -35,27 +35,37 @@ the client a Computer to drive.
 | `src/App.tsx`                   | `useChat`, composer, suggested prompts                     |
 | `src/components/Message.tsx`    | parts in order: markdown and tool calls interleaved        |
 | `src/components/ToolCall.tsx`   | the accordion                                              |
-| `src/components/LeftPanel.tsx`  | file explorer and installed apps, as tabs                  |
-| `src/components/RightPanel.tsx` | the tool list, and this session's call history             |
-| `src/components/FileViewer.tsx` | a file's contents, over the thread                         |
+| `src/components/Sidebar.tsx`    | the icon rail and the panel beside it                      |
+| `src/components/sections/*`     | one file per section: files, apps, tools, history          |
+| `src/components/ui/*`           | shadcn/ui primitives, generated and then owned here        |
+| `src/components/FileViewer.tsx` | a file's contents, in a dialog over the thread             |
+| `src/lib/history.ts`            | tool calls derived from the transcript                     |
 
-## The panels
+## The sidebar
 
-- **Left — Files / Apps.** The filesystem is refetched after each turn, so a
-  file appearing there is the clearest evidence a tool call did what it said.
-  Click one to read it. The Apps tab lists what is installed, the computer
-  included, with each action's **full ref** — the string you would pass to
-  `run`.
-- **Right — Tools / History.** Tools is what the model is actually handed, with
-  its arguments. History is derived from the transcript rather than tracked
-  separately: the messages already are the record, and a second copy would be
-  a second thing to keep correct. Clicking a row scrolls the thread to that
-  call.
-- There is no title bar: the panels say what the workspace holds and the
-  transcript says what happened, so a strip repeating the product name was
-  only taking vertical space.
-- Below 1100px the right panel goes, below 820px both do. They are context,
-  not content, and squeezing the transcript to keep them is the wrong trade.
+An icon rail picks a section; one panel beside it shows that section. This
+replaced two panels of tabs, one either side of the thread — tabs put every
+label on screen at all times and still showed one section, and two columns of
+them left the transcript about 500px wide. A rail costs 48px, names its
+sections on hover, and keeps the chat the widest thing in the window.
+
+- **Files.** Refetched after each turn, so a file appearing there is the
+  clearest evidence a tool call did what it said. Click one to read it.
+- **Apps.** What is installed, the computer included, with each action's
+  **full ref** — the string you would pass to `run`.
+- **Tools.** What the model is actually handed, with its arguments and the
+  descriptions it was given. Those descriptions are built from what this
+  computer has, so this is also where you check that.
+- **History.** Derived from the transcript rather than tracked separately: the
+  messages already are the record, and a second copy would be a second thing
+  to keep correct. Clicking a row scrolls the thread to that call.
+
+Clicking the open section collapses the panel, the way an activity bar does.
+Below 1024px it starts collapsed. There is no title bar: the panel says what
+the workspace holds and the transcript says what happened, so a strip
+repeating the product name was only taking vertical space — the workspace
+square at the top of the rail carries the identity, and its tooltip the model
+name.
 
 ## Notes
 
@@ -76,5 +86,9 @@ the client a Computer to drive.
 - A failed `run` is a _successful_ tool call carrying `{ status: "error" }`.
   The accordion marks those failed too — otherwise the row reads green while
   the model is looking at an error.
+- **shadcn/ui on Tailwind v4.** Components are generated into
+  `src/components/ui` and then owned here, so a variant that does not suit a
+  dense panel is edited rather than overridden. `components.json` keeps
+  `shadcn add` working for the next one.
 - Swap `reports` for `slack({ apiKey })` in `server/index.ts` and the UI is
   unchanged; that is the plugin boundary doing its job.

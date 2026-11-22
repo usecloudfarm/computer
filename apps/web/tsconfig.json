@@ -7,7 +7,9 @@
     "noEmit": true,
     "declaration": false,
     "declarationMap": false,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "server/**/*.ts", "vite.config.ts"]
 }
