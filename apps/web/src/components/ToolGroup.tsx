@@ -67,23 +67,23 @@ export function ToolGroup({
   }, [wanted, reveal]);
 
   return (
-    <div className="bg-muted/40 overflow-hidden rounded-xl border">
+    // No card. A run of calls is an aside to the answer, and a filled, bordered
+    // box gave it more visual weight than the prose it interrupts. The summary
+    // reads as a line of text; the calls hang off a rule when opened.
+    <div>
       <button
         onClick={() => {
           touched.current = true;
           setOpen(!open);
         }}
         aria-expanded={open}
-        className="hover:bg-muted/60 flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
+        className="group text-muted-foreground hover:text-foreground -ml-1 flex max-w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors"
       >
         <ChevronRight
-          className={cn(
-            "text-muted-foreground size-3.5 shrink-0 transition-transform",
-            open && "rotate-90",
-          )}
+          className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")}
         />
         {pending && <Loader2 className="text-running size-3.5 shrink-0 animate-spin" />}
-        <span className="text-muted-foreground truncate text-xs">
+        <span className="truncate text-xs">
           {pending ? workingLabel(elapsed) : workedLabel(elapsed)}
           <Dot />
           {calls.length} tool call{calls.length === 1 ? "" : "s"}
@@ -96,14 +96,14 @@ export function ToolGroup({
         </span>
         {/* The names, so a collapsed group still says what it did. */}
         {!open && (
-          <span className="text-muted-foreground/70 ml-auto hidden shrink-0 truncate font-mono text-[10px] sm:block">
+          <span className="hidden shrink truncate font-mono text-[10px] opacity-60 sm:block">
             {[...new Set(calls.map(({ part }) => getToolName(part)))].join(" ")}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="divide-border border-border divide-y border-t">
+        <div className="border-border mt-1 ml-[7px] space-y-1 border-l pl-3">
           {calls.map(({ part, index }) => (
             <ToolCall
               key={index}

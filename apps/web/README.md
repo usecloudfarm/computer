@@ -85,6 +85,9 @@ name.
   you can watch, and closes when it settles, so you can read; clicking it
   either way pins your choice. Prose breaks a run, so order is still exactly
   what occurred.
+- **No card behind it.** A run of calls is an aside to the answer, and a
+  filled, bordered box gave it more weight than the prose it interrupts. The
+  summary reads as a line of text; opened, the calls hang off a rule.
 - **Duration is measured in the browser.** Message parts carry no timestamps,
   so a group that was already finished on its first render reports no
   duration rather than a made-up one.

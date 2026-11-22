@@ -25,7 +25,7 @@ export function ToolCall({ id, part, name }: { id: string; part: AnyToolPart; na
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="hover:bg-muted/60 flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
+        className="hover:bg-muted/60 -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 rounded px-1 py-1 text-left transition-colors"
       >
         <ChevronRight
           className={cn(
@@ -49,7 +49,7 @@ export function ToolCall({ id, part, name }: { id: string; part: AnyToolPart; na
       </button>
 
       {open && (
-        <div className="space-y-3 px-3 pb-3">
+        <div className="space-y-2 py-1.5">
           <Field label="input">
             {typeof source === "string" ? <Code>{source}</Code> : <Code>{pretty(part.input)}</Code>}
           </Field>
@@ -86,7 +86,7 @@ function Code({ className, children }: { className?: string; children: React.Rea
   return (
     <pre
       className={cn(
-        "bg-background max-h-80 overflow-auto rounded-md border p-2.5 font-mono text-[11.5px] leading-relaxed",
+        "bg-muted/60 max-h-80 overflow-auto rounded-md p-2.5 font-mono text-[11.5px] leading-relaxed",
         className,
       )}
     >
