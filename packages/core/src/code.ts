@@ -162,6 +162,14 @@ const __modules = {
     inspect: (value) => { try { return JSON.stringify(value); } catch (error) { return String(value); } },
   },
 };
+// Also as bare globals: fs.readFileSync(path) is what a model writes
+// unprompted, and a missing require line is a silly way to fail. Assigned,
+// not declared, so a script writing its own const path shadows the module
+// instead of colliding with a const in the same scope.
+globalThis.fs = __modules.fs;
+globalThis.path = __modules.path;
+globalThis.os = __modules.os;
+globalThis.util = __modules.util;
 const require = (name) => {
   const key = String(name).replace(/^node:/, "");
   if (Object.prototype.hasOwnProperty.call(__modules, key)) return __modules[key];

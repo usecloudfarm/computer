@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Computer } from "@cloudfarm/core";
+import { quickjs } from "@cloudfarm/quickjs";
 import { s3 } from "./index.js";
 
 const OPTIONS = {
@@ -250,5 +251,25 @@ describe("s3 storage", () => {
       value: { stdout: "# Done", exitCode: 0 },
     });
     expect(await workspace.fs.readText("/out/summary.md")).toBe("# Done");
+  });
+
+  it("is the filesystem a script reads and writes in code mode", async () => {
+    const { objects } = fakeBucket();
+    const workspace = await new Computer({
+      storage: s3(OPTIONS),
+      codeEngine: quickjs(),
+    }).createWorkspace("ada");
+
+    // Nothing in the isolate knows about S3. The `fs` shim calls the host,
+    // the host calls the workspace filesystem, and that is whatever storage
+    // provider was configured — so attaching a bucket is the whole of it.
+    const result = await workspace.code(`
+      const fs = require("fs");
+      fs.writeFileSync("/notes/plan.md", "# from the isolate");
+      return fs.readFileSync("/notes/plan.md", "utf8");
+    `);
+
+    expect(result).toMatchObject({ outcome: "ok", value: "# from the isolate" });
+    expect([...objects.keys()].some((key) => key.endsWith("notes/plan.md"))).toBe(true);
   });
 });

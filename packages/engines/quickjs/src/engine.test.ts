@@ -296,6 +296,32 @@ describe("QuickJSEngine", () => {
     expect(second.value).toBe("undefined");
   });
 
+  it("puts fs and path in scope without a require line", async () => {
+    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    await ws.fs.write("/a.csv", "x,1");
+
+    // What a model writes unprompted. A missing `require` line is a silly
+    // way to fail, so the modules are globals too.
+    const result = await ws.code(`return fs.readFileSync(path.join("/", "a.csv"), "utf8");`);
+
+    expect(result).toMatchObject({ outcome: "ok", value: "x,1" });
+  });
+
+  it("lets a script shadow a module name with its own variable", async () => {
+    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    await ws.fs.write("/a.csv", "x,1");
+
+    // The globals are assigned, not declared, so `const path = …` shadows
+    // the module rather than colliding with a const in the same scope —
+    // which would be a syntax error before anything ran.
+    const result = await ws.code(`
+      const path = "/a.csv";
+      return fs.readFileSync(path, "utf8");
+    `);
+
+    expect(result).toMatchObject({ outcome: "ok", value: "x,1" });
+  });
+
   it("gives a script require, with fs over the bridge", async () => {
     const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
     await ws.fs.write("/data/in.txt", "alpha");

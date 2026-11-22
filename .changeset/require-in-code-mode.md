@@ -2,14 +2,18 @@
 "@cloudfarm/core": minor
 ---
 
-`require` works in code mode, with `fs`, `path`, `os` and `util`.
+`fs`, `path`, `os` and `util` work in code mode, as globals and through
+`require`.
 
 It was forbidden because there was nothing behind it: QuickJS is a bare
 ECMAScript engine with no Node standard library, and the isolate has no
 filesystem. The validator and the throwing stub were belt-and-braces over
 genuine absence.
 
-The modules are built in the prelude instead. `path`, `os` and `util` are
+The modules are built in the prelude instead, and are in scope without a
+`require` line, since `fs.readFileSync(path)` is what a model writes
+unprompted. They are assigned rather than declared, so a script writing its
+own `const path` shadows the module instead of colliding with it. `path`, `os` and `util` are
 plain JavaScript and cost nothing. `fs` goes over the same bridge `run` and
 `console` use, so `readFileSync` is a host call — which means it appears in
 `CodeResult.calls` and counts against `maxHostCalls`, where a native `fs`
