@@ -42,17 +42,18 @@ export const RunInput = z.object({
 });
 
 export const CodeInput = z.object({
-  source: z
-    .string()
-    .describe(
-      "JavaScript to run. Call actions with run(ref, input) — the same refs and the " +
-        "same result shape as the `run` tool: run('slack.sendMessage', { channel: '#general', " +
-        "text: 'hi' }), run('bash', { cmd: 'npm test' }). Every call returns " +
-        "{ status: 'ok', value } or " +
-        "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
-        "Use `return` to report a value back; console.log is captured. The source is validated " +
-        "before it runs, so unknown refs and syntax errors come back without executing anything.",
-    ),
+  source: z.string().describe(
+    // The example is an app's action, not a built-in. Naming the shell here
+    // is what produced scripts that read a file by shelling out to `cat`,
+    // and the refs a script needs are the ones `search` just returned.
+    "JavaScript to run. Call actions with run(ref, input) — the same refs and the " +
+      "same result shape as the `run` tool: run('slack.sendMessage', { channel: '#general', " +
+      "text: 'hi' }). Every call returns " +
+      "{ status: 'ok', value } or " +
+      "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
+      "Use `return` to report a value back; console.log is captured. The source is validated " +
+      "before it runs, so unknown refs and syntax errors come back without executing anything.",
+  ),
 });
 
 const DESCRIPTIONS = {
@@ -180,27 +181,16 @@ function describeCode(options: ToolContext): string {
       : "- Actions: run(ref, input). Everything is SYNCHRONOUS: no `await`, no promises.",
   );
 
-  // Files before the shell, because the order is the advice. A script that
-  // reads a file by writing shell inside a JS string inside JSON — to do what
-  // one line of JS does — is what a model produces when the shell is the
-  // first thing it reads about.
+  // The shell is not named here, deliberately. It is an action like any
+  // other — `run` describes it and `search` finds it — and naming it in the
+  // tool whose whole point is writing JavaScript is what produced scripts
+  // that read a file by shelling out to `cat`: shell, quoted inside a JS
+  // string, inside JSON, to do what one line of JS does.
   if (options.guestModules) {
     lines.push(
       "- Files: require('fs').readFileSync(path, 'utf8') and writeFileSync(path, text), on the real workspace. Also path, os, util.",
-    );
-  }
-  if (options.builtins.includes("bash")) {
-    lines.push(
-      options.guestModules
-        ? "- Shell: run('bash', { cmd }) to *run* something — a pipeline, a tool, a build. Not to read or write a file; `fs` does that in one line without a host call."
-        : "- Shell: run('bash', { cmd }).",
-    );
-  }
-
-  if (options.guestModules) {
-    lines.push(
       "",
-      "`fs` is a snapshot from when the script started: a file written by run('bash') part-way through is not visible to it until the next script. Module calls do not pass through run(), so they are neither recorded nor truncated.",
+      "`fs` is a snapshot from when the script started, so a file an action writes part-way through is not visible to it until the next script. Module calls do not pass through run(), so they are neither recorded nor truncated.",
     );
   }
 

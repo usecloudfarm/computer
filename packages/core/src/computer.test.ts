@@ -431,21 +431,24 @@ describe("Workspace.tools", () => {
     expect(describeCode(true)).not.toContain("SYNCHRONOUS");
   });
 
-  it("puts files before the shell when the guest has modules", () => {
-    const withModules =
-      codeModeSpecs({
-        hasCode: true,
-        builtins: ["bash"],
-        guestAwait: true,
-        guestModules: true,
-      }).find((spec) => spec.name === "code")?.description ?? "";
+  it("never names the shell, even when one is installed", () => {
+    const specs = codeModeSpecs({
+      hasCode: true,
+      builtins: ["bash"],
+      guestAwait: true,
+      guestModules: true,
+    });
+    const code = specs.find((spec) => spec.name === "code");
+    const source = (
+      code?.inputSchema as { properties?: { source?: { description?: string } } } | undefined
+    )?.properties?.source?.description;
 
-    // Order is the advice. A model told about the shell first reads a file by
-    // writing shell inside a JS string inside JSON, to do what one line of JS
-    // does — so files come first and the shell line says what it is not for.
-    expect(withModules.indexOf("- Files:")).toBeLessThan(withModules.indexOf("- Shell:"));
-    expect(withModules).toContain("readFileSync");
-    expect(withModules).toContain("Not to read or write a file");
+    // The shell is an action like any other: `run` describes it and `search`
+    // finds it. Naming it in the tool whose point is writing JavaScript is
+    // what produced scripts that read a file by shelling out to `cat` —
+    // shell, quoted inside a JS string, inside JSON, for one line of JS.
+    expect(`${code?.description} ${source}`).not.toMatch(/bash|shell/i);
+    expect(code?.description).toContain("readFileSync");
   });
 
   it("tells the model how to read a file without flooding its context", () => {
