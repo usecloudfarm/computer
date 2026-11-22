@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BashInput } from "./tools.js";
-import { ExecResult, FileStat } from "./schemas.js";
+import { ExecResult } from "./schemas.js";
 import type { ActionDefinition, App } from "./ports.js";
 
 /**
@@ -12,6 +12,13 @@ import type { ActionDefinition, App } from "./ports.js";
  * reachable by ref but invisible to search: asking "how do I run a shell
  * command?" returned nothing, and the only way to learn the ref was to
  * already know it.
+ *
+ * `fs.*` is deliberately absent too, and for the same reason one level down:
+ * the shell already reads, writes and lists, so a second filesystem surface
+ * was a second thing for the model to choose between on every file it
+ * touched. `cat`, `ls` and a heredoc are the spelling now. The host keeps its
+ * own `workspace.fs` — that is an API for the program embedding a Computer,
+ * not a surface the model sees.
  *
  * `code` is deliberately absent. It is a tool, and a tool is in context on
  * every request — it never needed `search` to be found, and indexing it put a
@@ -62,54 +69,6 @@ export function builtinActions(): BuiltinAction[] {
         output: ExecResult,
         example: 'run("bash", { cmd: "ls -la /data" })',
         sideEffects: "write",
-      }),
-    },
-    {
-      ref: "fs.read",
-      definition: define({
-        name: "read",
-        summary: "Read a text file from the workspace.",
-        useCases: ["read a file", "open a document", "see what is in a file"],
-        input: z.object({ path: z.string() }),
-        output: z.string(),
-        example: 'run("fs.read", { path: "/data/sales.csv" })',
-        sideEffects: "read",
-      }),
-    },
-    {
-      ref: "fs.write",
-      definition: define({
-        name: "write",
-        summary: "Write a text file to the workspace.",
-        useCases: ["write a file", "save a document", "store the result somewhere"],
-        input: z.object({ path: z.string(), content: z.string() }),
-        output: FileStat,
-        example: 'run("fs.write", { path: "/out/summary.md", content: "# Summary" })',
-        sideEffects: "write",
-      }),
-    },
-    {
-      ref: "fs.list",
-      definition: define({
-        name: "list",
-        summary: "List files in the workspace.",
-        useCases: ["list files", "what files are there", "browse a directory"],
-        input: z.object({ prefix: z.string().optional() }),
-        output: z.array(FileStat),
-        example: 'run("fs.list", { prefix: "/data" })',
-        sideEffects: "read",
-      }),
-    },
-    {
-      ref: "fs.remove",
-      definition: define({
-        name: "remove",
-        summary: "Delete a file or directory from the workspace.",
-        useCases: ["delete a file", "remove a directory", "clean up"],
-        input: z.object({ path: z.string() }),
-        output: z.null(),
-        example: 'run("fs.remove", { path: "/tmp/scratch.txt" })',
-        sideEffects: "destructive",
       }),
     },
     {

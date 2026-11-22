@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Computer, MemoryStorage } from "@cloudfarm/core";
-import { fakeSandbox } from "@cloudfarm/core/testing";
 import { bashCode } from "./index.js";
 
+// A real shell, not `fakeSandbox`: files are reached through bash now, and a
+// provider that only answers scripted commands cannot read or write one.
 const workspace = () =>
-  new Computer({
-    storage: new MemoryStorage(),
-    provider: fakeSandbox(),
-    codeEngine: bashCode(),
-  }).createWorkspace("u");
+  new Computer({ storage: new MemoryStorage(), codeEngine: bashCode() }).createWorkspace("u");
 
 describe("bashCode", () => {
   it("reports itself available on Node", async () => {
@@ -19,8 +16,8 @@ describe("bashCode", () => {
     const code = await (
       await workspace()
     ).code(`
-      run("fs.write", { path: "/a.txt", content: "hello" });
-      return run("fs.read", { path: "/a.txt" }).value;
+      run("bash", { cmd: "printf hello > /a.txt" });
+      return run("bash", { cmd: "cat /a.txt" }).value.stdout;
     `);
 
     expect(code).toMatchObject({ outcome: "ok", value: "hello" });
@@ -35,8 +32,8 @@ describe("bashCode", () => {
     ).code(`
       const names = [];
       for (const n of ["a", "b"]) {
-        run("fs.write", { path: "/" + n, content: n });
-        names.push(run("fs.read", { path: "/" + n }).value);
+        run("bash", { cmd: "printf " + n + " > /" + n });
+        names.push(run("bash", { cmd: "cat /" + n }).value.stdout);
       }
       return names.join(",");
     `);
@@ -48,8 +45,8 @@ describe("bashCode", () => {
     const code = await (
       await workspace()
     ).code(`
-      const written = await run("fs.write", { path: "/b.txt", content: "awaited" });
-      return written.status + ":" + (await run("fs.read", { path: "/b.txt" })).value;
+      const written = await run("bash", { cmd: "printf awaited > /b.txt" });
+      return written.status + ":" + (await run("bash", { cmd: "cat /b.txt" })).value.stdout;
     `);
 
     expect(code).toMatchObject({ outcome: "ok", value: "ok:awaited" });
@@ -61,11 +58,13 @@ describe("bashCode", () => {
     const code = await (
       await workspace()
     ).code(`
-      const result = run("fs.read", { path: "/does-not-exist" });
-      return result.status;
+      const result = run("bash", { cmd: "cat /does-not-exist" });
+      return result.status + ":" + result.value.exitCode;
     `);
 
-    expect(code).toMatchObject({ outcome: "ok", value: "error" });
+    // The call succeeded; the command inside it failed, which is a result
+    // the model reads rather than an error the host raises.
+    expect(code).toMatchObject({ outcome: "ok", value: "ok:1" });
   });
 
   it("still refuses an unknown ref before anything executes", async () => {

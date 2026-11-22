@@ -124,13 +124,15 @@ app.post("/api/chat", async (context) => {
  * each turn rather than trying to mirror writes it only partly observes.
  */
 app.get("/api/workspace", async (context) => {
-  const [files, apps] = await Promise.all([
-    workspace.run("fs.list", { prefix: "/" }),
-    workspace.run("apps.list", {}),
-  ]);
+  // `workspace.fs` rather than `run("fs.list")`: the filesystem is an API for
+  // the program embedding a Computer, and the agent reaches files through the
+  // shell. The panel is the program, not the agent.
+  const files = [];
+  for await (const entry of workspace.fs.list("/")) files.push(entry);
+  const apps = await workspace.run("apps.list", {});
 
   return context.json({
-    files: files.status === "ok" ? files.value : [],
+    files,
     apps: apps.status === "ok" ? (apps.value as { apps: unknown[] }).apps : [],
     tools: workspace.toolSpecs(),
   });
@@ -141,11 +143,11 @@ app.get("/api/file", async (context) => {
   const path = context.req.query("path");
   if (!path) return context.json({ error: "path is required" }, 400);
 
-  const result = await workspace.run("fs.read", { path });
-  if (result.status !== "ok") {
-    return context.json({ error: result.error.message }, 404);
+  try {
+    return context.json({ path, content: await workspace.fs.readText(path) });
+  } catch (error) {
+    return context.json({ error: error instanceof Error ? error.message : String(error) }, 404);
   }
-  return context.json({ path, content: result.value });
 });
 
 /** Lets the UI name the model it is talking to without hardcoding it. */

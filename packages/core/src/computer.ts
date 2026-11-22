@@ -375,8 +375,6 @@ export class Workspace<T = unknown> {
             ...this.#registry.apps(),
           ],
         } as unknown as Json;
-      case "fs":
-        return this.#runFs(member ?? stringField(args, "op"), args);
       default:
         return this.#runAction(ref, args);
     }
@@ -517,7 +515,7 @@ export class Workspace<T = unknown> {
   }
 
   #builtinRefs(): Set<string> {
-    const refs = new Set(["fs.read", "fs.write", "fs.list", "fs.remove", "search", "apps.list"]);
+    const refs = new Set(["search", "apps.list"]);
     if (this.#options.provider) refs.add("bash");
     return refs;
   }
@@ -576,32 +574,6 @@ export class Workspace<T = unknown> {
         this.#redactor.text(error instanceof Error ? error.message : String(error)),
         error,
       );
-    }
-  }
-
-  async #runFs(member: string, args?: Json): Promise<Json> {
-    switch (member) {
-      case "read":
-        return this.fs.readText(stringField(args, "path"));
-      case "write": {
-        const stat = await this.fs.write(stringField(args, "path"), stringField(args, "content"));
-        return stat as unknown as Json;
-      }
-      case "list": {
-        const entries: Json[] = [];
-        // `prefix` is the ref's own field; `path` is what the merged tool
-        // sends, since one field across three ops beats three near-synonyms.
-        const prefix = optionalString(args, "prefix") ?? optionalString(args, "path") ?? "/";
-        for await (const entry of this.fs.list(prefix)) {
-          entries.push(entry as unknown as Json);
-        }
-        return entries;
-      }
-      case "remove":
-        await this.fs.remove(stringField(args, "path"), { recursive: true });
-        return null;
-      default:
-        throw new UnknownRefError(`fs.${member}`, ["fs.read", "fs.write", "fs.list", "fs.remove"]);
     }
   }
 }

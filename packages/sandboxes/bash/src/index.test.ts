@@ -35,13 +35,16 @@ describe("JustBash", () => {
     expect(await ws.fs.readText("/out/note.txt")).toBe("written\n");
   });
 
-  it("sees files another tool wrote, without a sync step", async () => {
+  it("sees files the host wrote, without a sync step", async () => {
     const ws = await workspace();
-    await ws.run("fs.write", { path: "/from-fs.txt", content: "via fs tool\n" });
+    // `workspace.fs` is the embedding program's filesystem; the shell is the
+    // agent's. The snapshot the provider takes is what keeps them the same
+    // one, and that is what this asserts.
+    await ws.fs.write("/from-host.txt", "via the host\n");
 
-    const result = await ws.exec("cat /from-fs.txt");
+    const result = await ws.exec("cat /from-host.txt");
 
-    expect(result.stdout).toBe("via fs tool\n");
+    expect(result.stdout).toBe("via the host\n");
   });
 
   it("reports a non-zero exit without throwing", async () => {

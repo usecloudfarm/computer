@@ -41,10 +41,9 @@ export const CodeInput = z.object({
     .describe(
       "JavaScript to run. Call actions with run(ref, input) — the same refs and the " +
         "same result shape as the `run` tool: run('slack.sendMessage', { channel: '#general', " +
-        "text: 'hi' }), run('fs.read', { path }), run('fs.write', { path, content }), " +
-        "run('bash', { cmd }). Use the fs refs for files here rather than shell " +
-        "redirection: they take the content as an argument, where a heredoc would be " +
-        "quoted inside a JS string inside JSON. Every call returns { status: 'ok', value } or " +
+        "text: 'hi' }), run('bash', { cmd: 'cat /data/sales.csv' }). Files go through the " +
+        "shell here too; build the command with template strings rather than hand-quoting it. " +
+        "Every call returns { status: 'ok', value } or " +
         "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
         "Use `return` to report a value back; console.log is captured. The source is validated " +
         "before it runs, so unknown refs and syntax errors come back without executing anything.",
@@ -146,22 +145,20 @@ function describeRun(options: ToolContext): string {
  * is more useful than telling it to be careful.
  */
 function describeFiles(has: (ref: string) => boolean): string {
-  const shell = has("bash");
-  const refs = has("fs.read");
-  if (!shell && !refs) return "";
+  // No shell means no files at all now that `fs.*` is gone — which only
+  // happens when @cloudfarm/bash is not installed. Saying nothing is right:
+  // the alternative is describing a filesystem the model cannot reach.
+  if (!has("bash")) return "";
 
-  const how = shell
-    ? " Files go through the shell: read with `cat`, `head -n 50` or `sed -n '1,80p'`, search with `grep -n`, list with `ls -la`, and write with a heredoc — { ref: 'bash', args: { cmd: \"cat > /out/notes.md <<'EOF'\\n…\\nEOF\" } }." +
-      (refs
-        ? " `fs.read` / `fs.write` / `fs.list` do the same with { path } and { path, content } as arguments, which is safer when the content would be awkward to quote."
-        : "")
-    : " Files go through { ref: 'fs.read', args: { path } }, and fs.write / fs.list.";
-
-  const budget = shell
-    ? " Keep results small: `wc -l` or `ls -la` before reading something you have not sized, `grep` instead of reading a file to search it, and `head`/`tail` instead of whole files. Long output is truncated, so reading a large file costs context and still arrives incomplete."
-    : " Long output is truncated, so prefer reading what you need over whole files.";
-
-  return how + budget;
+  return (
+    " Files go through the shell: read with `cat`, `head -n 50` or `sed -n '1,80p'`, search" +
+    " with `grep -n`, list with `ls -la`, write with `>` or a heredoc —" +
+    " { ref: 'bash', args: { cmd: \"cat > /out/notes.md <<'EOF'\\n…\\nEOF\" } } — and delete" +
+    " with `rm`. Keep results small: `wc -l` or `ls -la` before reading something you have" +
+    " not sized, `grep` instead of reading a file to search it, and `head`/`tail` instead of" +
+    " whole files. Long output is truncated, so reading a large file costs context and still" +
+    " arrives incomplete."
+  );
 }
 
 /**

@@ -120,20 +120,19 @@ describe("Workspace.run", () => {
     });
   });
 
-  it("reads and writes the workspace through fs refs", async () => {
+  it("reads and writes the workspace through the shell", async () => {
     const computer = new Computer();
     const workspace = await computer.createWorkspace("u1");
 
-    await workspace.run("fs.write", { path: "/a.txt", content: "hello" });
+    await workspace.run("bash", { cmd: "mkdir -p / && printf hello > /a.txt" });
 
-    expect(await workspace.run("fs.read", { path: "/a.txt" })).toEqual({
+    expect(await workspace.run("bash", { cmd: "cat /a.txt" })).toMatchObject({
       status: "ok",
-      value: "hello",
+      value: { stdout: "hello", exitCode: 0 },
     });
-    expect(await workspace.run("fs.list", { prefix: "/" })).toMatchObject({
-      status: "ok",
-      value: [expect.objectContaining({ path: "/a.txt", type: "file" })],
-    });
+    // And the host still sees it: `workspace.fs` is the embedding program's
+    // API, which is why it survived the agent's `fs.*` refs going away.
+    expect(await workspace.fs.readText("/a.txt")).toBe("hello");
   });
 
   it("runs bash through the configured provider", async () => {
@@ -228,80 +227,6 @@ describe("Workspace.exec", () => {
 });
 
 describe("Workspace.tools", () => {
-  it("serves all three filesystem ops through one tool", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
-
-    expect(
-      await workspace.run("fs", { op: "write", path: "/a.txt", content: "hello" }),
-    ).toMatchObject({ status: "ok" });
-    expect(await workspace.run("fs", { op: "read", path: "/a.txt" })).toEqual({
-      status: "ok",
-      value: "hello",
-    });
-
-    const listed = (await workspace.run("fs", { op: "list" })) as {
-      value: { path: string }[];
-    };
-    expect(listed.value.map((entry) => entry.path)).toContain("/a.txt");
-  });
-
-  it("takes `path` as the prefix when listing through the merged tool", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
-    await workspace.fs.write("/docs/one.md", "1");
-    await workspace.fs.write("/other/two.md", "2");
-
-    const listed = (await workspace.run("fs", { op: "list", path: "/docs" })) as {
-      value: { path: string }[];
-    };
-
-    expect(listed.value.map((entry) => entry.path)).toEqual(["/docs/one.md"]);
-  });
-
-  it("keeps the per-op refs working, which is what code mode writes", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
-
-    await workspace.run("fs.write", { path: "/b.txt", content: "kept" });
-
-    expect(await workspace.run("fs.read", { path: "/b.txt" })).toEqual({
-      status: "ok",
-      value: "kept",
-    });
-  });
-
-  it("says which field is missing rather than failing obscurely", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
-
-    expect(await workspace.run("fs", { op: "write", path: "/c.txt" })).toMatchObject({
-      status: "error",
-      error: { code: "invalid_args", message: /content/ },
-    });
-    expect(await workspace.run("fs", {})).toMatchObject({
-      status: "error",
-      error: { code: "invalid_args", message: /op/ },
-    });
-  });
-
-  it("rejects an op it does not have, naming the ones it does", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
-
-    expect(await workspace.run("fs", { op: "chmod", path: "/a" })).toMatchObject({
-      status: "error",
-      error: { code: "unknown_ref", message: /fs\.read/ },
-    });
-  });
-
-  it("does not advertise remove, but leaves the ref reachable", async () => {
-    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
-    await workspace.fs.write("/gone.txt", "x");
-
-    // Destructive deletion is reachable by ref, just never named in the
-    // description — unchanged by the fs tool going away.
-    const run = workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "";
-    expect(run).not.toContain("fs.remove");
-
-    expect(await workspace.run("fs.remove", { path: "/gone.txt" })).toMatchObject({ status: "ok" });
-  });
-
   it("lists the installed apps, with the actions each contributes", async () => {
     const workspace = await new Computer({
       storage: new MemoryStorage(),
@@ -312,11 +237,12 @@ describe("Workspace.tools", () => {
       value: { apps: { id: string; name: string; actions: string[] }[] };
     };
 
-    // The computer lists itself first: `run` treats the shell and the
-    // filesystem as things you run, so they are listed as things you have.
+    // The computer lists itself first: `run` treats the shell as a thing you
+    // run, so it is listed as a thing you have.
     expect(result.value.apps.map((app) => app.id)).toEqual(["computer", "slack", "notes"]);
     expect(result.value.apps[1]).toMatchObject({ name: "Slack", actions: ["slack.sendMessage"] });
-    expect(result.value.apps[0]?.actions).toContain("fs.read");
+    // Its whole surface now: a shell, and a way to see what is installed.
+    expect(result.value.apps[0]?.actions).toEqual(["bash", "apps.list"]);
   });
 
   it("reports an app's auth kind rather than guessing whether it works", async () => {
@@ -468,20 +394,6 @@ describe("Workspace.tools", () => {
     expect(workspace.toolSpecs().find((spec) => spec.name === "run")?.description).toContain(
       "lost when the process ends",
     );
-  });
-
-  it("points code mode at the fs refs, not at shell redirection", () => {
-    // `run` sends files to the shell and `code` sends them to fs.*, which
-    // reads like one of them is stale unless the reason is given: inside a
-    // script a heredoc is quoted in a JS string inside JSON, three levels
-    // deep, while fs.write takes the content as an argument.
-    const code = codeModeSpecs({ hasCode: true, builtins: ["bash", "fs.read"] }).find(
-      (spec) => spec.name === "code",
-    );
-    const schema = code?.inputSchema as
-      { properties?: { source?: { description?: string } } } | undefined;
-
-    expect(schema?.properties?.source?.description).toContain("rather than shell redirection");
   });
 
   it("keeps code mode as a tool, not a second ref to find", async () => {

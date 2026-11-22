@@ -32,8 +32,8 @@ describe("Computer defaults", () => {
     const workspace = await new Computer().createWorkspace("u");
 
     const result = await workspace.code(`
-      run("fs.write", { path: "/note.txt", content: "from the default engine" });
-      return run("fs.read", { path: "/note.txt" }).value;
+      run("bash", { cmd: "printf 'from the default engine' > /note.txt" });
+      return run("bash", { cmd: "cat /note.txt" }).value.stdout;
     `);
 
     expect(result).toMatchObject({ outcome: "ok", value: "from the default engine" });
@@ -41,14 +41,13 @@ describe("Computer defaults", () => {
 
   it("offers the code tool with no apps installed at all", async () => {
     // It used to wait for an app to exist. Code mode is useful with the
-    // computer's own actions alone — run("fs.read"), run("bash") — so gating
-    // it on the registry withheld the tool exactly when a bare Computer most
-    // needed it.
+    // computer's own actions alone — run("bash") — so gating it on the
+    // registry withheld the tool exactly when a bare Computer most needed it.
     const bare = await new Computer().createWorkspace("u");
 
     expect(bare.toolSpecs().map((spec) => spec.name)).toContain("code");
     expect(
-      await bare.code('return run("fs.write", { path: "/a.txt", content: "x" }).status;'),
+      await bare.code('return run("bash", { cmd: "echo ok" }).value.stdout.trim();'),
     ).toMatchObject({ outcome: "ok", value: "ok" });
   });
 

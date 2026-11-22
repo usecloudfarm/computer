@@ -237,15 +237,18 @@ describe("s3 storage", () => {
     });
   });
 
-  it("gives a Computer real storage, reachable through fs refs", async () => {
+  it("gives a Computer real storage, reachable from the shell", async () => {
     fakeBucket();
     const workspace = await new Computer({ storage: s3(OPTIONS) }).createWorkspace("ada");
 
-    await workspace.run("fs.write", { path: "/out/summary.md", content: "# Done" });
+    // What the agent writes with `>` lands in the bucket, and reading it back
+    // through the shell returns it: the storage provider is behind both.
+    await workspace.run("bash", { cmd: "mkdir -p /out && printf '# Done' > /out/summary.md" });
 
-    expect(await workspace.run("fs.read", { path: "/out/summary.md" })).toEqual({
+    expect(await workspace.run("bash", { cmd: "cat /out/summary.md" })).toMatchObject({
       status: "ok",
-      value: "# Done",
+      value: { stdout: "# Done", exitCode: 0 },
     });
+    expect(await workspace.fs.readText("/out/summary.md")).toBe("# Done");
   });
 });

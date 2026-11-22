@@ -248,9 +248,9 @@ describe("QuickJSEngine", () => {
     await ws.fs.write("/data/input.txt", "alpha\nbeta\ngamma\n");
 
     const result = await ws.code(`
-      const text = run("fs.read", { path: "/data/input.txt" }).value;
+      const text = run("bash", { cmd: "cat /data/input.txt" }).value.stdout;
       const lines = text.trim().split("\\n").map(line => line.toUpperCase());
-      run("fs.write", { path: "/data/output.txt", content: lines.join("\\n") + "\\n" });
+      run("bash", { cmd: "printf '" + lines.join("\\n") + "\\n' > /data/output.txt" });
       return lines.length;
     `);
 
