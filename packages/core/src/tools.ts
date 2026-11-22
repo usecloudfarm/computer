@@ -109,23 +109,40 @@ export function codeModeSpecs(options: ToolContext): ToolSpec[] {
  * `run`'s description, built from what this computer actually has.
  *
  * A fixed string either names a shell that is not installed or stays silent
- * about memory that is — and a model only learns which by calling and
- * failing. The refs here come from the registry, filtered by availability, so
- * the description cannot drift from the dispatch.
+ * about one that is — and a model only learns which by calling and failing.
+ * The refs here come from the registry, filtered by availability, so the
+ * description cannot drift from the dispatch.
+ *
+ * Refs are shown in call position — `{ ref: 'bash', args: { cmd } }` — rather
+ * than as a list of quoted names. Models were calling `bash` as a tool of its
+ * own and losing the turn to it. The old phrasing invited that: `'bash' for
+ * the shell ({ cmd })` reads exactly like a tool signature, and two of the
+ * three names it listed beside it, `code` and `fs`, really are tool names in
+ * the same request. Given `code` and `fs` as tools, "and `bash`" is the
+ * reasonable generalisation, so the description has to close it explicitly
+ * rather than leave the model to infer the exception.
  */
 function describeRun(options: ToolContext): string {
   const has = (ref: string) => options.builtins.includes(ref);
-  const parts: string[] = [];
+  const calls: string[] = [];
 
-  if (has("bash")) parts.push("'bash' for the shell ({ cmd })");
-  if (has("code")) parts.push("'code' to script several calls in one pass");
-  if (has("fs.read")) parts.push("'fs.read' / 'fs.write' / 'fs.list' for files");
+  if (has("bash")) calls.push("{ ref: 'bash', args: { cmd: 'ls -la /data' } } for the shell");
+  if (has("fs.read")) calls.push("{ ref: 'fs.read', args: { path } }, and fs.write / fs.list");
+  if (has("code")) calls.push("{ ref: 'code', args: { source } } to script several calls at once");
 
-  const own = parts.length > 0 ? ` The computer's own: ${parts.join(", ")}.` : "";
+  const own =
+    calls.length > 0
+      ? ` The computer's own actions are called the same way: ${calls.join("; ")}.`
+      : "";
+  // Worth one blunt sentence: this is the mistake that costs a whole turn,
+  // because an undeclared tool name is rejected before anything runs.
+  const only = has("bash")
+    ? " The shell is reached through this tool — there is no separate `bash` tool."
+    : "";
   // The sandbox gets its own sentence. Inline it reads as a run-on, and what
   // the shell cannot do — npm, python — is the part worth landing clearly.
   const shell = options.sandbox ? ` The shell: ${options.sandbox}` : "";
-  return `Run one action by reference — an app's, or one of the computer's own.${own}${shell} Find others with \`search\`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.`;
+  return `Run one action by reference, as { ref, args } — an app's, or one of the computer's own.${own}${only}${shell} Find others with \`search\`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.`;
 }
 
 /** The same for `fs`: where the files go is worth saying when it is known. */

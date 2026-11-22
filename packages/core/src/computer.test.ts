@@ -455,9 +455,28 @@ describe("Workspace.tools", () => {
       workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "";
 
     // A fixed string either advertises a shell that is not installed or stays
-    // silent about memory that is, and a model only finds out by failing.
+    // silent about one that is, and a model only finds out by failing.
     expect(runDescription(bare)).not.toContain("'bash'");
     expect(runDescription(full)).toContain("'bash'");
+  });
+
+  it("shows built-in refs in call position, not as bare names", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: fakeSandbox(),
+    }).createWorkspace("u");
+
+    const description =
+      workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "";
+
+    // Models were calling `bash` as a tool of its own and losing the turn to
+    // it: an undeclared tool name is rejected before anything executes. The
+    // old phrasing invited it — `'bash' for the shell ({ cmd })` reads as a
+    // tool signature, and `code` and `fs`, listed beside it, really are tools
+    // in the same request. A ref has to appear as an argument to `run`.
+    expect(description).toContain("{ ref: 'bash', args:");
+    expect(description).toContain("there is no separate `bash` tool");
+    expect(description).not.toMatch(/'bash' for the shell/);
   });
 
   it("quotes the sandbox's own description, so limits reach the model", async () => {

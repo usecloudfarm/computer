@@ -1,5 +1,5 @@
-import { jsonSchema, tool } from "ai";
-import type { Tool, ToolSet } from "ai";
+import { jsonSchema, tool, NoSuchToolError } from "ai";
+import type { Tool, ToolCallRepairFunction, ToolSet } from "ai";
 import type { Invoke, Toolset } from "@cloudfarm/core";
 import type { ToolSpec } from "@cloudfarm/core";
 
@@ -93,4 +93,58 @@ function clamp(value: unknown, limit: number): unknown {
   const serialized = JSON.stringify(value);
   if (serialized === undefined || serialized.length <= limit) return value;
   return { truncated: true, preview: serialized.slice(0, limit) };
+}
+
+/**
+ * Turn a call to a tool that does not exist into a `run` call for that ref.
+ *
+ * ```ts
+ * streamText({ model, tools: await workspace.tools(), repairToolCall: repairToRun() });
+ * ```
+ *
+ * A computer's actions are refs reached through `run`, but two of them —
+ * `code` and `fs` — are also tools in their own right, and a model that has
+ * been handed those reasonably generalises to calling `bash` the same way.
+ * The SDK rejects an undeclared tool name before anything executes, so that
+ * slip costs the whole turn rather than one call.
+ *
+ * Rewriting it as `{ ref: <the name it used>, args: <what it passed> }` is a
+ * faithful reading of the intent, and it is safe when the guess is wrong:
+ * dispatch answers an unknown ref with `{ status: 'error' }` carrying a hint,
+ * which the model can act on. Either way it gets a result instead of a dead
+ * conversation.
+ *
+ * This repairs the name only. A tool whose *arguments* are malformed is a
+ * different failure — the SDK raises `InvalidToolInputError` for that, and
+ * guessing at a fix there would hide a real schema mismatch.
+ */
+export function repairToRun<TOOLS extends ToolSet>(): ToolCallRepairFunction<TOOLS> {
+  return async ({ toolCall, tools, error }) => {
+    if (!NoSuchToolError.isInstance(error)) return null;
+    // Without `run` there is nothing to repair to, and rewriting to a tool
+    // this computer does not expose would only trade one bad name for another.
+    if (!("run" in tools)) return null;
+
+    return {
+      ...toolCall,
+      toolName: "run",
+      input: JSON.stringify({ ref: toolCall.toolName, args: parseInput(toolCall.input) }),
+    };
+  };
+}
+
+/**
+ * The model's arguments, as an object.
+ *
+ * `input` is a JSON string by contract, but a repair runs on calls that were
+ * already wrong once — so a malformed one goes through as empty rather than
+ * throwing inside the hook and taking the turn with it.
+ */
+function parseInput(input: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(input);
+    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }

@@ -12,7 +12,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
-import { AISDKToolset } from "@cloudfarm/ai";
+import { AISDKToolset, repairToRun } from "@cloudfarm/ai";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
 import { firecrawl } from "@cloudfarm/firecrawl";
@@ -103,6 +103,9 @@ app.post("/api/chat", async (context) => {
     messages: await convertToModelMessages(messages),
     tools: await workspace.tools(),
     stopWhen: stepCountIs(16),
+    // A model that calls `bash` as a tool of its own gets the call rewritten
+    // into `run` rather than losing the turn to an undeclared tool name.
+    repairToolCall: repairToRun(),
     onError: ({ error }) => console.error("[chat]", error),
   });
 

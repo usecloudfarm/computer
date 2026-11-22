@@ -3,7 +3,8 @@ import { z } from "zod";
 import { Computer } from "@cloudfarm/core";
 import type { App } from "@cloudfarm/core";
 import { fakeSandbox } from "@cloudfarm/core/testing";
-import { AISDKToolset } from "./index.js";
+import { AISDKToolset, repairToRun } from "./index.js";
+import { NoSuchToolError } from "ai";
 
 const app: App = {
   id: "demo",
@@ -137,5 +138,76 @@ describe("AISDKToolset", () => {
     const result = await tools({ only: ["search", "run"] });
 
     expect(Object.keys(result)).toEqual(["search", "run"]);
+  });
+});
+
+const call = (toolName: string, input: string) =>
+  ({ type: "tool-call", toolCallId: "call-1", toolName, input }) as const;
+
+const repair = (
+  toolName: string,
+  input: string,
+  available: Record<string, unknown> = { run: {} },
+) =>
+  repairToRun()({
+    toolCall: call(toolName, input),
+    tools: available as never,
+    error: new NoSuchToolError({ toolName, availableTools: Object.keys(available) }),
+  } as never);
+
+describe("repairToRun", () => {
+  it("rewrites a call to a built-in's name into a run call for that ref", async () => {
+    // The failure this exists for: `code` and `fs` are tools as well as refs,
+    // so a model handed those calls `bash` the same way — and an undeclared
+    // tool name is rejected before anything runs, costing the whole turn.
+    const repaired = await repair("bash", JSON.stringify({ cmd: "ls /data" }));
+
+    expect(repaired?.toolName).toBe("run");
+    expect(JSON.parse(repaired?.input ?? "{}")).toEqual({
+      ref: "bash",
+      args: { cmd: "ls /data" },
+    });
+  });
+
+  it("keeps the tool call id, so the result lands on the right call", async () => {
+    const repaired = await repair("bash", "{}");
+
+    expect(repaired?.toolCallId).toBe("call-1");
+  });
+
+  it("passes a name that is not a real ref through anyway", async () => {
+    // Being wrong here is cheap: dispatch answers an unknown ref with an
+    // error envelope carrying a hint, which the model can act on. A dead
+    // turn gives it nothing to act on at all.
+    const repaired = await repair("teleport", JSON.stringify({ to: "mars" }));
+
+    expect(JSON.parse(repaired?.input ?? "{}")).toEqual({
+      ref: "teleport",
+      args: { to: "mars" },
+    });
+  });
+
+  it("treats unparseable arguments as none rather than throwing", async () => {
+    // The hook runs on a call that was already wrong once; throwing inside it
+    // would take the turn it exists to save.
+    const repaired = await repair("bash", "{ not json");
+
+    expect(JSON.parse(repaired?.input ?? "{}")).toEqual({ ref: "bash", args: {} });
+  });
+
+  it("declines when there is no run tool to repair to", async () => {
+    expect(await repair("bash", "{}", { search: {} })).toBeNull();
+  });
+
+  it("leaves a malformed-arguments error alone", async () => {
+    // That is InvalidToolInputError, a real schema mismatch. Guessing at a
+    // fix would hide it.
+    const repaired = await repairToRun()({
+      toolCall: call("run", "{}"),
+      tools: { run: {} } as never,
+      error: new Error("invalid input") as never,
+    } as never);
+
+    expect(repaired).toBeNull();
   });
 });
