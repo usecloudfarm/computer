@@ -20,7 +20,7 @@ packages/
 ├── integrations/            App — third-party actions
 │   └── slack/               @cloudfarm/slack
 ├── engines/                 CodeEngine — where code mode executes
-│   └── quickjs/             @cloudfarm/quickjs
+│   └── quickjs/             @cloudfarm/qjs
 ├── toolsets/                Toolset — adapters for agent frameworks
 │   └── ai/                  @cloudfarm/ai     (Vercel AI SDK)
 ├── storage/                 StorageProvider — where workspace files live  (empty)
@@ -193,7 +193,7 @@ new apps should use the factory.
 
 ## The default packages
 
-`@cloudfarm/bash` and `@cloudfarm/quickjs` are the defaults for `provider` and
+`@cloudfarm/bash` and `@cloudfarm/qjs` are the defaults for `provider` and
 `codeEngine`. Core cannot import them — they depend on core — so it declares
 them as **optional peer dependencies** and resolves them at runtime through a
 dynamic import in `packages/core/src/defaults.ts`. Installed means default;

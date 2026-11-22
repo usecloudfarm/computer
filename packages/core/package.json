@@ -45,13 +45,13 @@
   },
   "peerDependencies": {
     "@cloudfarm/bash": "workspace:^",
-    "@cloudfarm/quickjs": "workspace:^"
+    "@cloudfarm/qjs": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@cloudfarm/bash": {
       "optional": true
     },
-    "@cloudfarm/quickjs": {
+    "@cloudfarm/qjs": {
       "optional": true
     }
   },

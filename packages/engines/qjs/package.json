@@ -1,5 +1,5 @@
 {
-  "name": "@cloudfarm/quickjs",
+  "name": "@cloudfarm/qjs",
   "version": "0.0.1",
   "description": "Code mode for Computer: a QuickJS isolate that runs on Node and on Cloudflare Workers",
   "license": "MIT",
@@ -59,9 +59,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/usecloudfarm/computer.git",
-    "directory": "packages/engines/quickjs"
+    "directory": "packages/engines/qjs"
   },
-  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/engines/quickjs#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/engines/qjs#readme",
   "bugs": {
     "url": "https://github.com/usecloudfarm/computer/issues"
   }

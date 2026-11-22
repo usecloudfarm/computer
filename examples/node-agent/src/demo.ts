@@ -33,7 +33,7 @@ await new Promise<void>((resolve) => server.listen(0, resolve));
 const port = (server.address() as { port: number }).port;
 
 // --- the computer -----------------------------------------------------------
-// No provider and no codeEngine: @cloudfarm/bash and @cloudfarm/quickjs are
+// No provider and no codeEngine: @cloudfarm/bash and @cloudfarm/qjs are
 // installed, so they are the defaults.
 const computer = new Computer({
   toolset: new AISDKToolset(),

@@ -59,7 +59,7 @@ export interface ComputerOptions<T = unknown> {
    * Runs code mode.
    *
    * There is no way to turn code mode off: `null` and `undefined` both fall
-   * back to `@cloudfarm/quickjs`. Chaining several actions in one pass is the
+   * back to `@cloudfarm/qjs`. Chaining several actions in one pass is the
    * reason the tool surface stays small, so a Computer without it is a
    * different, worse product rather than a configuration of this one.
    *
@@ -436,7 +436,7 @@ export class Workspace<T = unknown> {
         error: {
           name: "NoCodeEngineError",
           message:
-            "Code mode could not start: @cloudfarm/quickjs is not installed. " +
+            "Code mode could not start: @cloudfarm/qjs is not installed. " +
             "Install it, or pass `codeEngine` directly — on Workers that means " +
             "quickjsForWorkers(wasmModule), since the wasm must be a static import.",
         },

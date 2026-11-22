@@ -9,7 +9,7 @@ gets typed signatures back, and writes code that runs in an isolate.
 ```ts
 import { Computer } from "@cloudfarm/core";
 import { JustBash } from "@cloudfarm/bash";
-import { quickjs } from "@cloudfarm/quickjs";
+import { quickjs } from "@cloudfarm/qjs";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai";
 
@@ -32,7 +32,7 @@ const result = await generateText({
 ## Defaults
 
 `provider` and `codeEngine` are optional. With `@cloudfarm/bash` and
-`@cloudfarm/quickjs` installed, `new Computer()` already has a shell and code
+`@cloudfarm/qjs` installed, `new Computer()` already has a shell and code
 mode — they are found at runtime rather than imported, because both packages
 depend on core and a dependency back would be a cycle.
 
@@ -110,13 +110,13 @@ calls made  0
 
 ## Packages
 
-| package              | what it is                                                                   | runs on              |
-| -------------------- | ---------------------------------------------------------------------------- | -------------------- |
-| `@cloudfarm/core`    | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
-| `@cloudfarm/bash`    | the default sandbox: bash in TypeScript, no infrastructure                   | Node and Workers     |
-| `@cloudfarm/quickjs` | code mode in a WebAssembly isolate                                           | Node and Workers     |
-| `@cloudfarm/ai`      | tools for the Vercel AI SDK                                                  | Node and Workers     |
-| `@cloudfarm/slack`   | Slack as an app plugin                                                       | Node and Workers     |
+| package            | what it is                                                                   | runs on              |
+| ------------------ | ---------------------------------------------------------------------------- | -------------------- |
+| `@cloudfarm/core`  | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
+| `@cloudfarm/bash`  | the default sandbox: bash in TypeScript, no infrastructure                   | Node and Workers     |
+| `@cloudfarm/qjs`   | code mode in a WebAssembly isolate                                           | Node and Workers     |
+| `@cloudfarm/ai`    | tools for the Vercel AI SDK                                                  | Node and Workers     |
+| `@cloudfarm/slack` | Slack as an app plugin                                                       | Node and Workers     |
 
 `@cloudfarm/core` is isomorphic by construction, not by discipline: it has no
 `@types/node`, oxlint refuses `node:*` imports inside it, and **its entire test

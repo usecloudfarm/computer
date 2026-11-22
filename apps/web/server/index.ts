@@ -12,7 +12,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
-import { quickjs } from "@cloudfarm/quickjs";
+import { quickjs } from "@cloudfarm/qjs";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";

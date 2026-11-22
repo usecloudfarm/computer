@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Computer } from "@cloudfarm/core";
-import { quickjs } from "@cloudfarm/quickjs";
+import { quickjs } from "@cloudfarm/qjs";
 import { s3 } from "./index.js";
 
 const OPTIONS = {

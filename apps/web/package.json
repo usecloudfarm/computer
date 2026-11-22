@@ -23,7 +23,7 @@
     "@cloudfarm/core": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",
     "@cloudfarm/hackernews": "workspace:^",
-    "@cloudfarm/quickjs": "workspace:^",
+    "@cloudfarm/qjs": "workspace:^",
     "@cloudfarm/slack": "workspace:^",
     "@hono/node-server": "^1.15.0",
     "@pierre/highlights": "^0.5.1",

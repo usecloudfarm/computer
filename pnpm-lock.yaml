@@ -59,9 +59,9 @@ importers:
       '@cloudfarm/hackernews':
         specifier: workspace:^
         version: link:../../packages/integrations/hackernews
-      '@cloudfarm/quickjs':
+      '@cloudfarm/qjs':
         specifier: workspace:^
-        version: link:../../packages/engines/quickjs
+        version: link:../../packages/engines/qjs
       '@cloudfarm/slack':
         specifier: workspace:^
         version: link:../../packages/integrations/slack
@@ -153,9 +153,9 @@ importers:
       '@cloudfarm/firecrawl':
         specifier: workspace:^
         version: link:../../packages/integrations/firecrawl
-      '@cloudfarm/quickjs':
+      '@cloudfarm/qjs':
         specifier: workspace:^
-        version: link:../../packages/engines/quickjs
+        version: link:../../packages/engines/qjs
       '@cloudfarm/slack':
         specifier: workspace:^
         version: link:../../packages/integrations/slack
@@ -175,9 +175,9 @@ importers:
       '@cloudfarm/bash':
         specifier: workspace:^
         version: link:../sandboxes/bash
-      '@cloudfarm/quickjs':
+      '@cloudfarm/qjs':
         specifier: workspace:^
-        version: link:../engines/quickjs
+        version: link:../engines/qjs
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -201,7 +201,7 @@ importers:
         specifier: ^4.166.0
         version: 4.166.0(@cloudflare/workers-types@5.20261120.1)(@types/node@26.6.6)(vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)))
 
-  packages/engines/quickjs:
+  packages/engines/qjs:
     dependencies:
       '@cloudfarm/core':
         specifier: workspace:^
@@ -403,9 +403,9 @@ importers:
         specifier: ^1.0.20
         version: 1.0.20
     devDependencies:
-      '@cloudfarm/quickjs':
+      '@cloudfarm/qjs':
         specifier: workspace:^
-        version: link:../../engines/quickjs
+        version: link:../../engines/qjs
       tsup:
         specifier: ^9.0.0
         version: 9.0.0(jiti@2.7.0)(postcss@8.5.33)(typescript@5.9.3)(yaml@2.9.1)
@@ -422,6 +422,9 @@ importers:
         specifier: workspace:^
         version: link:../../core
     devDependencies:
+      '@cloudfarm/qjs':
+        specifier: workspace:^
+        version: link:../../engines/qjs
       ai:
         specifier: ^7.0.178
         version: 7.0.179(zod@4.6.7)

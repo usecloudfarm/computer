@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // the catch turns that into "no default". Passing `null` no longer does this —
 // it resolves the default, same as leaving the field unset.
 vi.mock("@cloudfarm/bash", () => ({}));
-vi.mock("@cloudfarm/quickjs", () => ({}));
+vi.mock("@cloudfarm/qjs", () => ({}));
 
 import { Computer } from "./computer.js";
 import { MemoryStorage } from "./vfs.js";

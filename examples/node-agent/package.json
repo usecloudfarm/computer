@@ -18,7 +18,7 @@
     "@cloudfarm/bash": "workspace:^",
     "@cloudfarm/core": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",
-    "@cloudfarm/quickjs": "workspace:^",
+    "@cloudfarm/qjs": "workspace:^",
     "@cloudfarm/slack": "workspace:^",
     "ai": "^7.0.178"
   },
