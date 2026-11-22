@@ -70,13 +70,21 @@ describe("validateSource", () => {
   it.each([
     ["const x = await run('bash', {});", "synchronous"],
     ["import fs from 'fs';", "Modules are not available"],
-    ["const x = require('fs');", "`require` is not available"],
     ["fetch('https://example.com');", "no network access"],
   ])("rejects %s", (source, expected) => {
     const [diagnostic] = check(source);
 
     expect(diagnostic).toMatchObject({ code: "forbidden_construct" });
     expect(diagnostic?.message).toContain(expected);
+  });
+
+  it("allows require, which now returns real modules", () => {
+    // It used to be forbidden because there was nothing behind it: QuickJS
+    // has no Node standard library. The prelude builds the modules instead —
+    // path/os/util in plain JS, fs over the bridge — so the ban would now
+    // reject a call that works.
+    expect(check(`const fs = require('fs');`)).toEqual([]);
+    expect(check(`const { join } = require("node:path");`)).toEqual([]);
   });
 
   it("does not mistake a word inside a string for a construct", () => {

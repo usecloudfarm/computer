@@ -295,4 +295,48 @@ describe("QuickJSEngine", () => {
 
     expect(second.value).toBe("undefined");
   });
+
+  it("gives a script require, with fs over the bridge", async () => {
+    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    await ws.fs.write("/data/in.txt", "alpha");
+
+    const result = await ws.code(`
+      const fs = require("fs");
+      const path = require("path");
+      const text = fs.readFileSync("/data/in.txt", "utf8");
+      fs.writeFileSync(path.join("/data", "out.txt"), text.toUpperCase());
+      return fs.readdirSync("/data").join(",");
+    `);
+
+    expect(result).toMatchObject({ outcome: "ok", value: "in.txt,out.txt" });
+    expect(await ws.fs.readText("/data/out.txt")).toBe("ALPHA");
+    // Over the bridge, so unlike a native fs these are in the audit trail and
+    // counted against maxHostCalls.
+    expect(result.calls.map((call) => call.action)).toEqual(["fs.read", "fs.write", "fs.list"]);
+  });
+
+  it("throws ENOENT for a missing file rather than returning an envelope", async () => {
+    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+
+    // `fs` pretends to be Node, so it throws; `run` keeps the envelope. A
+    // script checks e.code, not the host's taxonomy, which files a missing
+    // file under "internal" for want of a better bucket.
+    const result = await ws.code(`
+      try { require("fs").readFileSync("/nope"); } catch (error) { return error.code; }
+      return "did not throw";
+    `);
+
+    expect(result).toMatchObject({ outcome: "ok", value: "ENOENT" });
+  });
+
+  it("refuses a module it does not have, naming the ones it does", async () => {
+    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+
+    const result = await ws.code(`
+      try { require("http"); } catch (error) { return error.message; }
+    `);
+
+    expect(result.value).toContain("Cannot find module 'http'");
+    expect(result.value).toContain("fs, path, os, util");
+  });
 });

@@ -261,7 +261,6 @@ export class Workspace<T = unknown> {
     return codeModeSpecs({
       hasCode: this.#options.codeEngine !== undefined,
       guestAwait: this.#options.codeEngine?.capabilities.guestAwait ?? false,
-      guestModules: this.#options.codeEngine?.capabilities.guestModules ?? false,
       // One source of truth: the same list `search` and `apps.list` use, so
       // the description cannot name a ref that dispatch would reject.
       builtins: this.#registry.builtins((needs) => this.#has(needs)).map((entry) => entry.ref),
@@ -358,6 +357,13 @@ export class Workspace<T = unknown> {
         return (await this.search(stringField(args, "useCase"), options)) as unknown as Json;
       }
 
+      // The filesystem the `require("fs")` shim calls, and nothing else.
+      // Deliberately not in `builtinActions` or `#builtinRefs`: `search` never
+      // offers it, and a script writing run("fs.read", …) is rejected by
+      // validation. The prelude reaches it through __host, which does not go
+      // through that check — so there is exactly one spelling, `require`.
+      case "fs":
+        return this.#runFs(member ?? stringField(args, "op"), args);
       case "apps":
         if (member !== "list") {
           throw new UnknownRefError(`apps.${member ?? ""}`, ["apps.list"]);
@@ -462,7 +468,6 @@ export class Workspace<T = unknown> {
       registry: this.#registry,
       builtins: this.#builtinRefs(),
       allowAwait: engine.capabilities.guestAwait,
-      allowModules: engine.capabilities.guestModules,
     });
     if (engine.validate) diagnostics.push(...(await engine.validate(source)));
 
@@ -483,16 +488,40 @@ export class Workspace<T = unknown> {
     return engine.evaluate(
       {
         source,
-        prelude: buildPrelude({ guestModules: engine.capabilities.guestModules }),
+        prelude: buildPrelude(),
         limits,
         runId: `code-${++this.#runCounter}`,
-        // Handed over only when the engine says it can make these modules see
-        // the workspace. An engine without it gets no filesystem at all,
-        // which beats one that silently discards writes.
-        ...(engine.capabilities.guestModules ? { fs: this.fs } : {}),
       },
       bridge,
     );
+  }
+
+  async #runFs(member: string, args?: Json): Promise<Json> {
+    switch (member) {
+      case "read":
+        return this.fs.readText(stringField(args, "path"));
+      case "write": {
+        const stat = await this.fs.write(stringField(args, "path"), stringField(args, "content"));
+        return stat as unknown as Json;
+      }
+      case "list": {
+        const entries: Json[] = [];
+        const prefix = optionalString(args, "prefix") ?? optionalString(args, "path") ?? "/";
+        for await (const entry of this.fs.list(prefix)) {
+          entries.push(entry as unknown as Json);
+        }
+        return entries;
+      }
+      case "stat": {
+        const stat = await this.fs.stat(stringField(args, "path"));
+        return (stat ?? null) as unknown as Json;
+      }
+      case "remove":
+        await this.fs.remove(stringField(args, "path"), { recursive: true });
+        return null;
+      default:
+        throw new UnknownRefError(`fs.${member}`, ["fs.read", "fs.write", "fs.list", "fs.remove"]);
+    }
   }
 
   async close(): Promise<void> {

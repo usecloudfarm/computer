@@ -72,8 +72,6 @@ export interface ToolContext {
   readonly builtins: readonly string[];
   /** Whether the engine accepts `await` in the guest's source. */
   readonly guestAwait?: boolean | undefined;
-  /** Whether the guest has `require` and the Node-shaped shims behind it. */
-  readonly guestModules?: boolean | undefined;
   /** The sandbox's own words about what it can and cannot run. */
   readonly sandbox?: string | undefined;
   /** The storage provider's own words about where files live. */
@@ -186,13 +184,11 @@ function describeCode(options: ToolContext): string {
   // tool whose whole point is writing JavaScript is what produced scripts
   // that read a file by shelling out to `cat`: shell, quoted inside a JS
   // string, inside JSON, to do what one line of JS does.
-  if (options.guestModules) {
-    lines.push(
-      "- Files: require('fs').readFileSync(path, 'utf8') and writeFileSync(path, text), on the real workspace. Also path, os, util.",
-      "",
-      "`fs` is a snapshot from when the script started, so a file an action writes part-way through is not visible to it until the next script. Module calls do not pass through run(), so they are neither recorded nor truncated.",
-    );
-  }
+  lines.push(
+    "- Files: require('fs').readFileSync(path, 'utf8') and writeFileSync(path, text). Also require('path'), 'os', 'util'.",
+    "",
+    "`fs` calls go over the same bridge as `run`, so they are recorded and count against the call limit. There is no network and no other module.",
+  );
 
   return lines.join("\n");
 }

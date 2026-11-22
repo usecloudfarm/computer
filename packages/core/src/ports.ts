@@ -205,20 +205,6 @@ export interface CodeEngineCapabilities {
    * computer never forbids what its engine would accept, or the reverse.
    */
   readonly guestAwait: boolean;
-  /**
-   * Whether the guest has a Node-shaped module system — `require`, and the
-   * `fs`, `path` and `process` shims behind it.
-   *
-   * An engine that runs the guest inside the sandbox has these already; the
-   * isolate has none of them and never will. The prelude, the validator and
-   * the `code` tool's description all read this, so the three agree on what
-   * a script may write instead of each deciding separately.
-   *
-   * An engine declaring it is handed `CodeJob.fs` and is expected to make
-   * those modules see the workspace. Without that the guest gets a scratch
-   * filesystem that silently discards writes, which is worse than none.
-   */
-  readonly guestModules: boolean;
   /** Can stop a non-yielding loop without killing the host thread. */
   readonly interruptible: boolean;
   readonly memoryCap: boolean;
@@ -236,12 +222,6 @@ export interface CodeJob {
   readonly prelude: string;
   readonly limits: CodeLimits;
   readonly runId: string;
-  /**
-   * The workspace filesystem, present only for an engine that declares
-   * `guestModules`. It is the one authority beyond the bridge, and only
-   * because the guest's `fs` has to be the real one to be worth having.
-   */
-  readonly fs?: FileSystem;
 }
 
 export interface CodeEngine extends Described {

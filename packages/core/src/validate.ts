@@ -22,18 +22,10 @@ export interface ValidationInput {
   readonly builtins: ReadonlySet<string>;
   /** From the engine's capabilities. Defaults to false, the isolate's rule. */
   readonly allowAwait?: boolean;
-  /** Likewise: whether the guest has a real `require` to call. */
-  readonly allowModules?: boolean;
 }
 
 /** Matches `run("ref"` / `run('ref'` with a literal first argument. */
 const RUN_CALL = /\brun\s*\(\s*(["'])([^"']+)\1/g;
-
-const REQUIRE = {
-  pattern: /\brequire\s*\(/,
-  message: "`require` is not available in code mode.",
-  hint: "Every action is already in scope through `run`.",
-};
 
 const AWAIT = {
   pattern: /\bawait\b/,
@@ -63,11 +55,7 @@ export function validateSource(input: ValidationInput): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const lines = input.source.split("\n");
 
-  const rules = [
-    ...(input.allowAwait ? [] : [AWAIT]),
-    ...(input.allowModules ? [] : [REQUIRE]),
-    ...FORBIDDEN,
-  ];
+  const rules = input.allowAwait ? FORBIDDEN : [AWAIT, ...FORBIDDEN];
   for (const { pattern, message, hint } of rules) {
     const index = lines.findIndex((line) => pattern.test(stripStrings(line)));
     if (index >= 0) {

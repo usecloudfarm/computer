@@ -35,11 +35,24 @@ describe("buildPrelude", () => {
     expect(prelude).toContain("const run = (ref, input) => __host(ref, input);");
   });
 
-  it("replaces fetch and require with explanatory throws", () => {
+  it("replaces fetch with an explanatory throw, but gives require real modules", () => {
     const prelude = buildPrelude();
 
     expect(prelude).toContain("there is no network in code mode");
-    expect(prelude).toContain("require is unavailable in code mode");
+    // `require` used to be a throwing stub, because there was nothing to
+    // return: the isolate has no Node standard library. The modules are
+    // built here instead — path/os/util in plain JS, fs over the same bridge
+    // `run` uses — so a script stops reading files by shelling out to `cat`.
+    expect(prelude).toContain("const require = (name) =>");
+    for (const name of ["fs", "path", "os", "util"]) {
+      expect(prelude).toContain(`${name}:`);
+    }
+  });
+
+  it("produces a prelude that parses", () => {
+    // It is evaluated inside the guest, where a syntax error surfaces as an
+    // unrelated-looking failure in whatever script happened to run first.
+    expect(() => new Function(`${buildPrelude()}\nreturn 1;`)).not.toThrow();
   });
 
   it("is deterministic", () => {

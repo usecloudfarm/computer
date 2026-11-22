@@ -44,8 +44,6 @@ export class QuickJSEngine implements CodeEngine {
     // sees an ordinary return — and `await` is a syntax error in the eval
     // mode this uses.
     guestAwait: false,
-    // No modules of any kind: the isolate is the point.
-    guestModules: false,
     interruptible: true,
     memoryCap: true,
   };
