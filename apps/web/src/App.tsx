@@ -100,8 +100,8 @@ export function App() {
           }
         />
 
-        <main className="flex min-w-0 flex-1 flex-col">
-          <ScrollArea className="flex-1">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <ScrollArea className="min-h-0 flex-1">
             <div className="mx-auto w-full max-w-3xl space-y-6 px-6 pt-10 pb-6">
               {messages.length === 0 && (
                 <div className="pt-[12vh]">

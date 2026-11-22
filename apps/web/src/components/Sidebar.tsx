@@ -120,7 +120,7 @@ export function Sidebar({
       </nav>
 
       {open && (
-        <aside className="bg-sidebar flex w-[272px] flex-col border-r">
+        <aside className="bg-sidebar flex min-h-0 w-[272px] flex-col border-r">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
@@ -140,7 +140,7 @@ export function Sidebar({
             </button>
           </header>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
             <div className="px-1 pb-4">
               {active === "files" && (
                 <FileTree files={files} onOpenFile={onOpenFile} openPath={openPath} />
