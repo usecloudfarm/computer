@@ -179,7 +179,7 @@ function describeCode(options: ToolContext): string {
 
   lines.push(
     options.guestAwait
-      ? "- Actions: run(ref, input). `await` is available, and optional — a call without it returns the same value."
+      ? "- Actions: run(ref, input). `await` is available, and optional — a call without it returns the same value. Calls are serialised, so Promise.all is no faster than awaiting one at a time."
       : "- Actions: run(ref, input). Everything is SYNCHRONOUS: no `await`, no promises.",
   );
 

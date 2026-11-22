@@ -232,14 +232,36 @@ describe("QuickJSEngine", () => {
     expect(result.value).toContain("[redacted:slack-token]");
   });
 
-  it("explains the calling convention when the model writes await", async () => {
+  it("accepts await, which models write by habit", async () => {
     const ws = await workspace();
 
-    const result = await ws.code(`const x = await run("slack.listChannels", {}); return x;`);
+    const result = await ws.code(`const x = await run("slack.listChannels", {}); return x.status;`);
 
-    expect(result.outcome).toBe("invalid");
-    expect(result.diagnostics[0]).toMatchObject({ code: "forbidden_construct" });
-    expect(result.diagnostics[0]?.message).toContain("synchronous");
+    expect(result).toMatchObject({ outcome: "ok", value: "ok" });
+  });
+
+  it("returns the same value with or without await", async () => {
+    const ws = await workspace();
+
+    const awaited = await ws.code(`return (await run("slack.listChannels", {})).status;`);
+    const direct = await ws.code(`return run("slack.listChannels", {}).status;`);
+
+    expect(awaited.value).toBe(direct.value);
+  });
+
+  it("serialises host calls even inside Promise.all", async () => {
+    const ws = await workspace();
+
+    // Asyncify unwinds the whole wasm stack per host call and cannot be
+    // re-entered while unwound, so concurrency is not available to a script
+    // however it is written. Four calls are four calls.
+    const result = await ws.code(`
+      const all = await Promise.all([1, 2, 3].map(() => run("slack.listChannels", {})));
+      return all.length;
+    `);
+
+    expect(result).toMatchObject({ outcome: "ok", value: 3 });
+    expect(result.calls).toHaveLength(3);
   });
 
   it("reads and writes the workspace filesystem from inside a run", async () => {

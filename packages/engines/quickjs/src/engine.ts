@@ -43,7 +43,7 @@ export class QuickJSEngine implements CodeEngine {
     // Asyncify suspends the whole wasm stack across a host call, so the guest
     // sees an ordinary return — and `await` is a syntax error in the eval
     // mode this uses.
-    guestAwait: false,
+    guestAwait: true,
     interruptible: true,
     memoryCap: true,
   };
@@ -74,7 +74,7 @@ export class QuickJSEngine implements CodeEngine {
     const runtime = module.newRuntime();
     const context = runtime.newContext();
     try {
-      const compiled = context.evalCode(`(() => {\n${source}\n})`, "validate.js", {
+      const compiled = context.evalCode(`(async () => {\n${source}\n})`, "validate.js", {
         compileOnly: true,
       });
       if (!compiled.error) {
@@ -89,7 +89,7 @@ export class QuickJSEngine implements CodeEngine {
           message: error.message,
           ...(lineOf(error) !== undefined ? { line: lineOf(error)! } : {}),
           ...(/\bawait\b/.test(source)
-            ? { hint: "Code mode is synchronous: drop `await` and call run() directly." }
+            ? { hint: "`await` is allowed here; check for a missing bracket or semicolon." }
             : {}),
         },
       ];
@@ -141,13 +141,25 @@ export class QuickJSEngine implements CodeEngine {
       installHostBridge(context, bridge, controller.signal);
       installLogging(context, bridge);
 
-      // The guest runs in one synchronous frame. Asyncify makes each host call
-      // look synchronous to QuickJS while the host does real async work
-      // underneath, so generated code never touches a promise — and the job
-      // queue, which cannot be pumped safely while the wasm stack is unwound,
-      // never comes into it.
-      const source = `${job.prelude}\n(() => {\n${job.source}\n})()`;
-      const evaluated = await context.evalCodeAsync(source, `${job.runId}.js`);
+      // An async wrapper, so a script may use `await` — models write it by
+      // habit and a hard rejection cost a whole turn for nothing.
+      //
+      // It buys correctness, not speed. Asyncify unwinds the entire wasm
+      // stack for each host call and cannot be re-entered while unwound, so
+      // calls are serialised whatever the script does: measured, Promise.all
+      // of four 200ms actions takes 800ms, exactly as if awaited one by one.
+      // The `code` tool's description says so, because a model reaching for
+      // Promise.all is expecting the opposite.
+      const source = `${job.prelude}\n(async () => {\n${job.source}\n})()`;
+      const started0 = await context.evalCodeAsync(source, `${job.runId}.js`);
+      const evaluated = started0.error
+        ? started0
+        : await (async () => {
+            const settled = context.resolvePromise(started0.value);
+            started0.value.dispose();
+            runtime.executePendingJobs();
+            return settled;
+          })();
 
       if (evaluated.error) {
         const error = readError(context, evaluated.error);
