@@ -463,6 +463,20 @@ describe("Workspace.tools", () => {
     );
   });
 
+  it("points code mode at the fs refs, not at shell redirection", () => {
+    // `run` sends files to the shell and `code` sends them to fs.*, which
+    // reads like one of them is stale unless the reason is given: inside a
+    // script a heredoc is quoted in a JS string inside JSON, three levels
+    // deep, while fs.write takes the content as an argument.
+    const code = codeModeSpecs({ hasCode: true, builtins: ["bash", "fs.read"] }).find(
+      (spec) => spec.name === "code",
+    );
+    const schema = code?.inputSchema as
+      { properties?: { source?: { description?: string } } } | undefined;
+
+    expect(schema?.properties?.source?.description).toContain("rather than shell redirection");
+  });
+
   it("tells the model how to read a file without flooding its context", () => {
     const description = runDescriptionFor(["bash", "fs.read"]);
 

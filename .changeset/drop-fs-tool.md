@@ -21,3 +21,9 @@ whether a file survives the turn changes whether writing it was worth doing.
 `fs.read` / `fs.write` / `fs.list` are unchanged as refs: they take `{ path }`
 and `{ path, content }` as arguments, which beats quoting when the content is
 awkward, and code mode has nothing else to call.
+
+Code mode is unaffected — `run('fs.write', { path, content })` works as
+before — but its description now says why it points at the fs refs where
+`run` points at the shell: inside a script a heredoc ends up quoted in a JS
+string inside JSON, three levels deep, while `fs.write` takes the content as
+an argument.

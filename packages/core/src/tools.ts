@@ -42,7 +42,9 @@ export const CodeInput = z.object({
       "JavaScript to run. Call actions with run(ref, input) — the same refs and the " +
         "same result shape as the `run` tool: run('slack.sendMessage', { channel: '#general', " +
         "text: 'hi' }), run('fs.read', { path }), run('fs.write', { path, content }), " +
-        "run('bash', { cmd }). Every call returns { status: 'ok', value } or " +
+        "run('bash', { cmd }). Use the fs refs for files here rather than shell " +
+        "redirection: they take the content as an argument, where a heredoc would be " +
+        "quoted inside a JS string inside JSON. Every call returns { status: 'ok', value } or " +
         "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
         "Everything is SYNCHRONOUS: no `await`, no promises. Use `return` to report a value " +
         "back; console.log is captured. The source is validated before it runs, so unknown " +
