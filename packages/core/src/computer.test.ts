@@ -428,6 +428,7 @@ describe("Workspace.tools", () => {
     // of the generated one saying it is available, so the description
     // contradicted itself on an engine that accepts it.
     expect(describeCode(true)).toContain("`await` is available");
+    expect(describeCode(true)).not.toContain("Promise.all");
     expect(describeCode(true)).not.toContain("SYNCHRONOUS");
   });
 
