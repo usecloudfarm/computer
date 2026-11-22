@@ -39,8 +39,14 @@ depend on core and a dependency back would be a cycle.
 ```ts
 new Computer(); // bash + QuickJS
 new Computer({ provider: new E2B({ apiKey }) }); // swap the shell
-new Computer({ codeEngine: null }); // no code mode
+new Computer({ provider: null }); // no shell at all
+new Computer({ codeEngine: null }); // still code mode — null falls back
 ```
+
+There is no way to turn code mode off. `null` and `undefined` both resolve the
+default: chaining several actions in one pass is why the tool surface stays
+small, so a Computer without it is a different product rather than a
+configuration of this one. A shell, by contrast, is genuinely optional.
 
 On Cloudflare Workers, configure the engine explicitly:
 `codeEngine: quickjsForWorkers(wasmModule)`. The wasm has to be a static

@@ -355,9 +355,8 @@ describe("Workspace.tools", () => {
     };
 
     expect(result.value.apps.map((app) => app.id)).toEqual(["computer"]);
-    // No sandbox and no engine here, so neither is offered as available.
+    // No sandbox configured, so bash is not offered.
     expect(result.value.apps[0]?.actions).not.toContain("bash");
-    expect(result.value.apps[0]?.actions).not.toContain("code");
   });
 
   it("scopes a search to one app when asked", async () => {
@@ -465,21 +464,38 @@ describe("Workspace.tools", () => {
       apps: [slackish(), fakeApp({ id: "a" }), fakeApp({ id: "b" }), fakeApp({ id: "c" })],
     }).createWorkspace("u");
 
-    expect(few.toolSpecs().map((spec) => spec.name)).toEqual(many.toolSpecs().map((s) => s.name));
-    expect(few.toolSpecs().map((spec) => spec.name)).toEqual(["search", "run", "list_apps", "fs"]);
+    const names = few.toolSpecs().map((spec) => spec.name);
+
+    expect(names).toEqual(many.toolSpecs().map((spec) => spec.name));
+    // The fixed set, whether or not an engine resolved on this runtime.
+    expect(names).toEqual(expect.arrayContaining(["search", "run", "list_apps", "fs"]));
+    expect(names.length).toBeLessThanOrEqual(6);
   });
 
-  it("omits bash and code when both are turned off", async () => {
+  it("treats a null codeEngine exactly like an unset one", async () => {
+    const unset = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
+    const nulled = await new Computer({
+      storage: new MemoryStorage(),
+      codeEngine: null,
+    }).createWorkspace("u");
+
+    // `null` used to mean "off". It now resolves the default, so the two are
+    // indistinguishable — which is the point: there is no way to opt out.
+    // Whether the default resolves at all is a platform question, asserted in
+    // @cloudfarm/quickjs where an engine actually exists.
+    expect(nulled.toolSpecs().map((spec) => spec.name)).toEqual(
+      unset.toolSpecs().map((spec) => spec.name),
+    );
+    expect((await nulled.code("return 1;")).outcome).toBe((await unset.code("return 1;")).outcome);
+  });
+
+  it("omits bash when no sandbox is configured", async () => {
     const workspace = await new Computer({
       provider: null,
-      codeEngine: null,
       apps: [slackish()],
     }).createWorkspace("u");
 
-    const names = workspace.toolSpecs().map((spec) => spec.name);
-
-    expect(names).not.toContain("bash");
-    expect(names).not.toContain("code");
+    expect(workspace.toolSpecs().map((spec) => spec.name)).not.toContain("bash");
   });
 
   it("materialises specs through the configured toolset", async () => {

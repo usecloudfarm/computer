@@ -52,10 +52,15 @@ export interface ComputerOptions<T = unknown> {
   /** Where workspace files live. Defaults to memory. */
   storage?: StorageProvider;
   /**
-   * Runs code mode. Defaults to `@cloudfarm/quickjs` when it is installed;
-   * pass `null` to turn code mode off. On Workers, pass
-   * `quickjsForWorkers(wasmModule)` explicitly — the wasm has to be a static
-   * import, which only your bundler can do.
+   * Runs code mode.
+   *
+   * There is no way to turn code mode off: `null` and `undefined` both fall
+   * back to `@cloudfarm/quickjs`. Chaining several actions in one pass is the
+   * reason the tool surface stays small, so a Computer without it is a
+   * different, worse product rather than a configuration of this one.
+   *
+   * On Workers, pass `quickjsForWorkers(wasmModule)` explicitly — the wasm
+   * has to be a static import, which only your bundler can do.
    */
   codeEngine?: CodeEngine | null;
   memory?: MemoryStore;
@@ -182,10 +187,9 @@ export class Computer<T = unknown> {
       const options = this.#options as ComputerOptions<unknown>;
       const provider =
         options.provider === undefined ? await defaultProvider() : (options.provider ?? undefined);
-      const codeEngine =
-        options.codeEngine === undefined
-          ? await defaultCodeEngine()
-          : (options.codeEngine ?? undefined);
+      // `null` is not a way to opt out — it resolves the default, same as
+      // leaving the field unset.
+      const codeEngine = options.codeEngine ?? (await defaultCodeEngine());
 
       const { provider: _ignoredProvider, codeEngine: _ignoredEngine, ...rest } = options;
       return {
@@ -245,7 +249,7 @@ export class Workspace<T = unknown> {
 
   toolSpecs(): readonly ToolSpec[] {
     return codeModeSpecs({
-      hasCode: this.#options.codeEngine !== undefined && this.#registry.size > 0,
+      hasCode: this.#options.codeEngine !== undefined,
     });
   }
 
@@ -408,7 +412,10 @@ export class Workspace<T = unknown> {
         outcome: "error",
         error: {
           name: "NoCodeEngineError",
-          message: "No code engine configured; pass `codeEngine` (see @cloudfarm/quickjs).",
+          message:
+            "Code mode could not start: @cloudfarm/quickjs is not installed. " +
+            "Install it, or pass `codeEngine` directly — on Workers that means " +
+            "quickjsForWorkers(wasmModule), since the wasm must be a static import.",
         },
         bridge,
         durationMs: 0,

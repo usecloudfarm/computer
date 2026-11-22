@@ -52,7 +52,7 @@ describe("AISDKToolset", () => {
   it("produces an object keyed by tool name, as the AI SDK expects", async () => {
     const result = await tools();
 
-    expect(Object.keys(result)).toEqual(["search", "run", "list_apps", "fs"]);
+    expect(Object.keys(result)).toEqual(["search", "code", "run", "list_apps", "fs"]);
   });
 
   it("wraps each input schema the way the AI SDK reads JSON Schema", async () => {

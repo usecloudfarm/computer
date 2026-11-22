@@ -8,6 +8,16 @@ import { JustBash } from "@cloudfarm/bash";
  * core — core cannot depend on the packages that depend on it.
  */
 describe("Computer defaults", () => {
+  it("cannot be talked out of code mode", async () => {
+    // `codeEngine: null` used to turn it off. It now resolves the default,
+    // because chaining actions in one pass is why the tool surface stays
+    // small — a Computer without it is a different product.
+    const workspace = await new Computer({ codeEngine: null }).createWorkspace("u");
+
+    expect(workspace.toolSpecs().map((spec) => spec.name)).toContain("code");
+    expect(await workspace.code("return 6 * 7;")).toMatchObject({ outcome: "ok", value: 42 });
+  });
+
   it("has a shell and code mode with no options at all", async () => {
     const workspace = await new Computer().createWorkspace("u");
 
@@ -29,24 +39,17 @@ describe("Computer defaults", () => {
     expect(result).toMatchObject({ outcome: "ok", value: "from the default engine" });
   });
 
-  it("offers the code tool only once there is something to call", async () => {
+  it("offers the code tool with no apps installed at all", async () => {
+    // It used to wait for an app to exist. Code mode is useful with the
+    // computer's own actions alone — run("fs.read"), run("bash") — so gating
+    // it on the registry withheld the tool exactly when a bare Computer most
+    // needed it.
     const bare = await new Computer().createWorkspace("u");
-    expect(bare.toolSpecs().map((spec) => spec.name)).not.toContain("code");
 
-    const withApp = await new Computer({
-      apps: [
-        {
-          id: "demo",
-          name: "Demo",
-          description: "A demo app.",
-          allowedHosts: [],
-          authorize: (request) => request,
-          actions: () => [],
-        },
-      ],
-    }).createWorkspace("u");
-    // An app with no actions still leaves the registry empty.
-    expect(withApp.toolSpecs().map((spec) => spec.name)).not.toContain("code");
+    expect(bare.toolSpecs().map((spec) => spec.name)).toContain("code");
+    expect(
+      await bare.code('return run("fs.write", { path: "/a.txt", content: "x" }).status;'),
+    ).toMatchObject({ outcome: "ok", value: "ok" });
   });
 
   it("lets an explicit provider win over the default", async () => {
@@ -68,12 +71,9 @@ describe("Computer defaults", () => {
     });
   });
 
-  it("turns code mode off when passed null", async () => {
+  it("ignores a null codeEngine rather than turning code mode off", async () => {
     const workspace = await new Computer({ codeEngine: null }).createWorkspace("u");
 
-    expect(await workspace.code("return 1;")).toMatchObject({
-      outcome: "error",
-      error: { name: "NoCodeEngineError" },
-    });
+    expect(await workspace.code("return 1;")).toMatchObject({ outcome: "ok", value: 1 });
   });
 });
