@@ -39,12 +39,12 @@ depend on core and a dependency back would be a cycle.
 ```ts
 new Computer(); // bash + QuickJS
 new Computer({ provider: new E2B({ apiKey }) }); // swap the shell
-new Computer({ provider: null }); // no shell at all
+new Computer({ provider: null }); // still a shell — null falls back
 new Computer({ codeEngine: null }); // still code mode — null falls back
 ```
 
-There is no way to turn code mode off. `null` and `undefined` both resolve the
-default: chaining several actions in one pass is why the tool surface stays
+There is no way to turn the shell or code mode off. `null` and `undefined`
+both resolve the default: chaining several actions in one pass is why the tool surface stays
 small, so a Computer without it is a different product rather than a
 configuration of this one. A shell, by contrast, is genuinely optional.
 

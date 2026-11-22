@@ -61,13 +61,12 @@ describe("Computer defaults", () => {
     expect((await workspace.fs.readText("/where.txt")).trim()).toBe("/work");
   });
 
-  it("turns the shell off when passed null", async () => {
+  it("ignores a null provider rather than turning the shell off", async () => {
     const workspace = await new Computer({ provider: null }).createWorkspace("u");
 
-    expect(workspace.toolSpecs().map((spec) => spec.name)).not.toContain("bash");
-    expect(await workspace.run("bash", { cmd: "ls" })).toMatchObject({
-      status: "error",
-      error: { code: "unknown_ref" },
+    expect(await workspace.run("bash", { cmd: "echo hi" })).toMatchObject({
+      status: "ok",
+      value: { stdout: "hi\n" },
     });
   });
 

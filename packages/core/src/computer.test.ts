@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { Computer } from "./computer.js";
 import { MemoryStorage } from "./vfs.js";
+import { codeModeSpecs } from "./tools.js";
+
+/** `run`'s description for a given set of available built-in refs. */
+const runDescriptionFor = (builtins: string[]) =>
+  codeModeSpecs({ hasCode: true, builtins }).find((spec) => spec.name === "run")?.description ?? "";
 import { fakeApp, fakeSandbox } from "./testing.js";
 import type { App, ActionDefinition } from "./ports.js";
 
@@ -137,14 +142,6 @@ describe("Workspace.run", () => {
       value: { stdout: "hi\n", exitCode: 0, status: "completed" },
     });
     expect(provider.commands).toEqual(["echo hi"]);
-  });
-
-  it("explains how to get a shell when the shell is turned off", async () => {
-    const workspace = await new Computer({ provider: null }).createWorkspace("u1");
-    expect(await workspace.run("bash", { cmd: "ls" })).toMatchObject({
-      status: "error",
-      error: { code: "unknown_ref", message: expect.stringContaining("install @cloudfarm/bash") },
-    });
   });
 });
 
@@ -333,22 +330,13 @@ describe("Workspace.tools", () => {
   });
 
   it("still lists the computer when no apps are installed", async () => {
-    // provider/codeEngine pinned off: the defaults resolve whenever
-    // @cloudfarm/bash and @cloudfarm/quickjs are installed, which they are
-    // here, so "not configured" has to be said explicitly.
-    const workspace = await new Computer({
-      storage: new MemoryStorage(),
-      provider: null,
-      codeEngine: null,
-    }).createWorkspace("u");
+    const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
 
     const result = (await workspace.run("apps.list", {})) as {
       value: { apps: { id: string; actions: string[] }[] };
     };
 
     expect(result.value.apps.map((app) => app.id)).toEqual(["computer"]);
-    // No sandbox configured, so bash is not offered.
-    expect(result.value.apps[0]?.actions).not.toContain("bash");
   });
 
   it("scopes a search to one app when asked", async () => {
@@ -418,20 +406,6 @@ describe("Workspace.tools", () => {
     expect(found.actions[0]?.app.id).toBe("computer");
   });
 
-  it("hides a built-in whose package is not installed", async () => {
-    const workspace = await new Computer({
-      storage: new MemoryStorage(),
-      provider: null,
-      codeEngine: null,
-    }).createWorkspace("u");
-
-    const found = await workspace.search("run a shell command");
-
-    // Offering `bash` with no sandbox would send the model at a ref that
-    // cannot work; the registry indexes it, availability filters it.
-    expect(found.actions.map((action) => action.ref)).not.toContain("bash");
-  });
-
   it("suggests the right ref for a near miss under the apps namespace", async () => {
     const workspace = await new Computer({ storage: new MemoryStorage() }).createWorkspace("u");
 
@@ -441,23 +415,14 @@ describe("Workspace.tools", () => {
     });
   });
 
-  it("names only the built-ins this computer actually has", async () => {
-    const bare = await new Computer({
-      storage: new MemoryStorage(),
-      provider: null,
-    }).createWorkspace("u");
-    const full = await new Computer({
-      storage: new MemoryStorage(),
-      provider: fakeSandbox(),
-    }).createWorkspace("u");
-
-    const runDescription = (workspace: typeof bare) =>
-      workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "";
-
+  it("names only the built-ins this computer actually has", () => {
     // A fixed string either advertises a shell that is not installed or stays
-    // silent about one that is, and a model only finds out by failing.
-    expect(runDescription(bare)).not.toContain("'bash'");
-    expect(runDescription(full)).toContain("'bash'");
+    // silent about one that is, and a model only finds out by failing. Driven
+    // through codeModeSpecs because a Computer cannot be built without a
+    // shell any more — `null` resolves the default — and the branch under
+    // test is a pure function of the available refs.
+    expect(runDescriptionFor(["fs.read"])).not.toContain("'bash'");
+    expect(runDescriptionFor(["bash", "fs.read"])).toContain("'bash'");
   });
 
   it("shows built-in refs in call position, not as bare names", async () => {
@@ -538,13 +503,19 @@ describe("Workspace.tools", () => {
     expect((await nulled.code("return 1;")).outcome).toBe((await unset.code("return 1;")).outcome);
   });
 
-  it("omits bash when no sandbox is configured", async () => {
-    const workspace = await new Computer({
-      provider: null,
-      apps: [slackish()],
-    }).createWorkspace("u");
+  it("ignores a null provider rather than turning the shell off", async () => {
+    // Same rule as codeEngine: a shell is part of what makes this a computer,
+    // so `null` resolves the default instead of opting out.
+    const nulled = await new Computer({ provider: null }).createWorkspace("u");
+    const unset = await new Computer({}).createWorkspace("u");
 
-    expect(workspace.toolSpecs().map((spec) => spec.name)).not.toContain("bash");
+    const refs = (workspace: typeof nulled) =>
+      (workspace.toolSpecs().find((spec) => spec.name === "run")?.description ?? "").includes(
+        "'bash'",
+      );
+
+    expect(refs(nulled)).toBe(refs(unset));
+    expect(await nulled.run("bash", { cmd: "echo hi" })).toMatchObject({ status: "ok" });
   });
 
   it("materialises specs through the configured toolset", async () => {

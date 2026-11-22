@@ -44,8 +44,13 @@ export interface ComputerOptions<T = unknown> {
   /** Adapts tool specs to an agent framework. Defaults to handing back raw specs. */
   toolset?: Toolset<T>;
   /**
-   * Where bash runs. Defaults to `@cloudfarm/bash` when it is installed; pass
-   * `null` for a Computer with no shell at all.
+   * Where bash runs.
+   *
+   * There is no way to turn the shell off: `null` and `undefined` both fall
+   * back to `@cloudfarm/bash`. A shell is part of what makes this a computer
+   * rather than a tool router, and the one thing an agent reaches for when no
+   * action fits — a Computer without it is a different, worse product rather
+   * than a configuration of this one.
    */
   provider?: SandboxProvider | null;
   /** Where workspace files live. Defaults to memory. */
@@ -184,10 +189,11 @@ export class Computer<T = unknown> {
   #resolved(): Promise<ResolvedOptions> {
     this.#resolvedOptions ??= (async () => {
       const options = this.#options as ComputerOptions<unknown>;
-      const provider =
-        options.provider === undefined ? await defaultProvider() : (options.provider ?? undefined);
-      // `null` is not a way to opt out — it resolves the default, same as
-      // leaving the field unset.
+      // For both of these, `null` is not a way to opt out — it resolves the
+      // default, same as leaving the field unset. They can still come back
+      // undefined, but only because the package is not installed, which is a
+      // fact about the deployment rather than a choice about the product.
+      const provider = options.provider ?? (await defaultProvider());
       const codeEngine = options.codeEngine ?? (await defaultCodeEngine());
 
       const { provider: _ignoredProvider, codeEngine: _ignoredEngine, ...rest } = options;
