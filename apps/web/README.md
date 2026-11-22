@@ -9,11 +9,15 @@ default, because a single call carrying a whole script is the one you most
 need to read.
 
 ```sh
-echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" > apps/web/.env
+cp .env.example .env            # at the repo root, then fill in the key
 pnpm --filter @cloudfarm/web dev
 # web  http://localhost:5173
 # api  http://localhost:8787
 ```
+
+The root `.env` is read first and `apps/web/.env` second, so a value in the
+app's own file overrides the shared one. Both are optional to the loader —
+only `ANTHROPIC_API_KEY` is required to boot.
 
 ## How it is put together
 
