@@ -19,6 +19,7 @@
     "@ai-sdk/react": "^4.0.183",
     "@cloudfarm/ai": "workspace:^",
     "@cloudfarm/bash": "workspace:^",
+    "@cloudfarm/bash-code": "workspace:^",
     "@cloudfarm/cloudflare-browser": "workspace:^",
     "@cloudfarm/core": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",

@@ -46,9 +46,8 @@ export const CodeInput = z.object({
         "redirection: they take the content as an argument, where a heredoc would be " +
         "quoted inside a JS string inside JSON. Every call returns { status: 'ok', value } or " +
         "{ status: 'error', error: { code, message, hint } } — check status, it does not throw. " +
-        "Everything is SYNCHRONOUS: no `await`, no promises. Use `return` to report a value " +
-        "back; console.log is captured. The source is validated before it runs, so unknown " +
-        "refs and syntax errors come back without executing anything.",
+        "Use `return` to report a value back; console.log is captured. The source is validated " +
+        "before it runs, so unknown refs and syntax errors come back without executing anything.",
     ),
 });
 
@@ -58,7 +57,10 @@ const DESCRIPTIONS = {
   search:
     "Find actions by what you want to do. Returns signatures and examples you can call with `run`, or write against with `code`. Pass `app` to search within one app only.",
   run: "Run one action by reference. Find others with `search`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.",
-  code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other. Actions are synchronous here: no `await`.",
+  // The concurrency rule is not here: it depends on the engine, and a fixed
+  // sentence saying "no `await`" was still being emitted in front of the
+  // generated one saying it is available.
+  code: "Run JavaScript that calls several actions at once. Prefer this over many `run` calls when steps depend on each other.",
   list_apps:
     "List the apps installed in this workspace and the actions each one contributes. Use it to see what is available at all; use `search` when you know what you want to do.",
 } as const;
@@ -67,6 +69,8 @@ export interface ToolContext {
   readonly hasCode: boolean;
   /** Built-in refs that are actually available right now. */
   readonly builtins: readonly string[];
+  /** Whether the engine accepts `await` in the guest's source. */
+  readonly guestAwait?: boolean | undefined;
   /** The sandbox's own words about what it can and cannot run. */
   readonly sandbox?: string | undefined;
   /** The storage provider's own words about where files live. */
@@ -161,10 +165,20 @@ function describeFiles(has: (ref: string) => boolean): string {
   return how + budget;
 }
 
-/** And for `code`: only name a shell the script can actually reach. */
+/**
+ * And for `code`: only name a shell the script can actually reach, and only
+ * claim the concurrency the engine actually has.
+ *
+ * The synchronous rule used to sit in `CodeInput`'s schema, which is a fixed
+ * string — so a computer running an engine that accepts `await` was telling
+ * the model the opposite of what its validator would allow.
+ */
 function describeCode(options: ToolContext): string {
   const bash = options.builtins.includes("bash") ? ' `run("bash", { cmd })` works here too.' : "";
-  return `${DESCRIPTIONS.code}${bash}`;
+  const concurrency = options.guestAwait
+    ? " `await` is available, and optional: a call without it returns the same value."
+    : " Everything is SYNCHRONOUS: no `await`, no promises.";
+  return `${DESCRIPTIONS.code}${concurrency}${bash}`;
 }
 
 function spec(

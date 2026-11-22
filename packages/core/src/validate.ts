@@ -20,21 +20,24 @@ export interface ValidationInput {
   readonly registry: ActionRegistry;
   /** Built-in refs that are not in the registry: `bash`, `fs.read`, … */
   readonly builtins: ReadonlySet<string>;
+  /** From the engine's capabilities. Defaults to false, the isolate's rule. */
+  readonly allowAwait?: boolean;
 }
 
 /** Matches `run("ref"` / `run('ref'` with a literal first argument. */
 const RUN_CALL = /\brun\s*\(\s*(["'])([^"']+)\1/g;
+
+const AWAIT = {
+  pattern: /\bawait\b/,
+  message: "`await` is not available: everything in code mode is synchronous.",
+  hint: 'Call directly: `const result = run("slack.sendMessage", { ... })`.',
+};
 
 const FORBIDDEN: ReadonlyArray<{
   pattern: RegExp;
   message: string;
   hint: string;
 }> = [
-  {
-    pattern: /\bawait\b/,
-    message: "`await` is not available: everything in code mode is synchronous.",
-    hint: 'Call directly: `const result = run("slack.sendMessage", { ... })`.',
-  },
   {
     pattern: /\b(?:import|export)\s/,
     message: "Modules are not available in code mode.",
@@ -57,7 +60,8 @@ export function validateSource(input: ValidationInput): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const lines = input.source.split("\n");
 
-  for (const { pattern, message, hint } of FORBIDDEN) {
+  const rules = input.allowAwait ? FORBIDDEN : [AWAIT, ...FORBIDDEN];
+  for (const { pattern, message, hint } of rules) {
     const index = lines.findIndex((line) => pattern.test(stripStrings(line)));
     if (index >= 0) {
       diagnostics.push({ code: "forbidden_construct", message, hint, line: index + 1 });

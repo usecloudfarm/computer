@@ -194,6 +194,17 @@ export interface App extends Described {
 export interface CodeEngineCapabilities {
   /** Can suspend guest execution across a host promise. */
   readonly asyncHostCalls: boolean;
+  /**
+   * Whether `await` is legal in the guest's own source.
+   *
+   * Distinct from `asyncHostCalls`, which both engines have: the isolate
+   * suspends its whole wasm stack across a host call, so a call *returns*
+   * rather than resolving, and `await` is a syntax error in the eval mode it
+   * uses. An engine that runs the guest on its own thread can simply allow
+   * it. Validation and the `code` tool's description both read this, so a
+   * computer never forbids what its engine would accept, or the reverse.
+   */
+  readonly guestAwait: boolean;
   /** Can stop a non-yielding loop without killing the host thread. */
   readonly interruptible: boolean;
   readonly memoryCap: boolean;

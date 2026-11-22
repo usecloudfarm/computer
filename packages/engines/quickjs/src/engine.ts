@@ -40,6 +40,10 @@ export class QuickJSEngine implements CodeEngine {
     "Actions are in scope as objects; everything else is unavailable.";
   readonly capabilities = {
     asyncHostCalls: true,
+    // Asyncify suspends the whole wasm stack across a host call, so the guest
+    // sees an ordinary return — and `await` is a syntax error in the eval
+    // mode this uses.
+    guestAwait: false,
     interruptible: true,
     memoryCap: true,
   };

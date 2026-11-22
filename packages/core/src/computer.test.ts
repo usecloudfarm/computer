@@ -4,6 +4,12 @@ import { Computer } from "./computer.js";
 import { MemoryStorage } from "./vfs.js";
 import { codeModeSpecs } from "./tools.js";
 
+/** The `code` tool's description, for an engine that does or does not take `await`. */
+const describeCode = (guestAwait: boolean) =>
+  codeModeSpecs({ hasCode: true, builtins: ["bash"], guestAwait }).find(
+    (spec) => spec.name === "code",
+  )?.description ?? "";
+
 /** `run`'s description for a given set of available built-in refs. */
 const runDescriptionFor = (builtins: string[]) =>
   codeModeSpecs({ hasCode: true, builtins }).find((spec) => spec.name === "run")?.description ?? "";
@@ -475,6 +481,16 @@ describe("Workspace.tools", () => {
       { properties?: { source?: { description?: string } } } | undefined;
 
     expect(schema?.properties?.source?.description).toContain("rather than shell redirection");
+  });
+
+  it("claims the concurrency the engine actually has, and only that", () => {
+    expect(describeCode(false)).toContain("SYNCHRONOUS");
+    expect(describeCode(false)).not.toContain("`await` is available");
+    // The bug this pins: a fixed "no `await`" sentence was emitted in front
+    // of the generated one saying it is available, so the description
+    // contradicted itself on an engine that accepts it.
+    expect(describeCode(true)).toContain("`await` is available");
+    expect(describeCode(true)).not.toContain("SYNCHRONOUS");
   });
 
   it("tells the model how to read a file without flooding its context", () => {

@@ -260,6 +260,7 @@ export class Workspace<T = unknown> {
     const provider = this.#options.provider;
     return codeModeSpecs({
       hasCode: this.#options.codeEngine !== undefined,
+      guestAwait: this.#options.codeEngine?.capabilities.guestAwait ?? false,
       // One source of truth: the same list `search` and `list_apps` use, so
       // the description cannot name a ref that dispatch would reject.
       builtins: this.#registry.builtins((needs) => this.#has(needs)).map((entry) => entry.ref),
@@ -458,6 +459,7 @@ export class Workspace<T = unknown> {
       source,
       registry: this.#registry,
       builtins: this.#builtinRefs(),
+      allowAwait: engine.capabilities.guestAwait,
     });
     if (engine.validate) diagnostics.push(...(await engine.validate(source)));
 
