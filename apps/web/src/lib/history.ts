@@ -1,8 +1,9 @@
 import { getToolName, isToolUIPart } from "ai";
 import type { UIMessage } from "ai";
+import { asRecord, hasFailed, truncate } from "./calls.ts";
 
 export interface HistoryRow {
-  /** Matches the DOM id `ToolCall` renders, so a row can scroll to its call. */
+  /** Matches the DOM id `ToolCall` renders, so a row can reveal its call. */
   key: string;
   name: string;
   state: string;
@@ -31,9 +32,7 @@ export function toHistory(messages: UIMessage[]): HistoryRow[] {
         key: `${message.id}-${index}`,
         name,
         state: part.state,
-        // A failed `run` is a successful tool call carrying an error
-        // envelope, so the dot has to read the body, not just the transport.
-        failed: part.state === "output-error" || isErrorEnvelope(part.output),
+        failed: hasFailed(part),
         detail: describe(name, part.input),
         turn,
       });
@@ -54,22 +53,6 @@ export function describe(name: string, input: unknown): string {
     if (typeof value === "string") return truncate(value, 56);
   }
   return truncate(JSON.stringify(record), 56);
-}
-
-/** A failed `run` is a successful tool call carrying an error envelope. */
-export function isErrorEnvelope(output: unknown): boolean {
-  return asRecord(output)?.["status"] === "error";
-}
-
-export function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-export function truncate(text: string, length: number): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > length ? `${flat.slice(0, length)}…` : flat;
 }
 
 export function formatSize(bytes: number): string {

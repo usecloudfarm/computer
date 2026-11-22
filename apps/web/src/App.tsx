@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { TooltipProvider } from "@/components/ui/tooltip.tsx";
 import { toHistory } from "@/lib/history.ts";
+import type { Reveal } from "./components/ToolGroup.tsx";
 import type { Info, WorkspaceState } from "./types.ts";
 
 const EMPTY: WorkspaceState = { files: [], apps: [], tools: [] };
@@ -25,6 +26,9 @@ export function App() {
   const [state, setState] = useState<WorkspaceState>(EMPTY);
   const [info, setInfo] = useState<Info | null>(null);
   const [openFile, setOpenFile] = useState<{ path: string; content: string | null } | null>(null);
+  // Which call a history row asked for. An object rather than a string so
+  // clicking the same row twice reveals it twice.
+  const [reveal, setReveal] = useState<Reveal | null>(null);
 
   const { messages, sendMessage, status, stop, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
@@ -92,12 +96,10 @@ export function App() {
           onOpenFile={openPath}
           openPath={openFile?.path ?? null}
           // History rows jump to the call in the transcript rather than
-          // duplicating it.
-          onSelectCall={(key) =>
-            document
-              .getElementById(`call-${key}`)
-              ?.scrollIntoView({ behavior: "smooth", block: "center" })
-          }
+          // duplicating it. The group it lives in may be collapsed, so this
+          // asks the group to reveal it rather than scrolling from here —
+          // there is nothing to scroll to until it opens.
+          onSelectCall={(key) => setReveal({ key })}
         />
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -132,6 +134,7 @@ export function App() {
                   key={message.id}
                   message={message}
                   streaming={busy && index === messages.length - 1}
+                  reveal={reveal}
                 />
               ))}
 

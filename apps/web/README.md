@@ -34,7 +34,8 @@ the client a Computer to drive.
 | `server/reports.ts`             | a real app plugin, so there is a write-shaped action       |
 | `src/App.tsx`                   | `useChat`, composer, suggested prompts                     |
 | `src/components/Message.tsx`    | parts in order: markdown and tool calls interleaved        |
-| `src/components/ToolCall.tsx`   | the accordion                                              |
+| `src/components/ToolGroup.tsx`  | a run of calls behind one summary row                      |
+| `src/components/ToolCall.tsx`   | one call, opened from inside a group                       |
 | `src/components/Sidebar.tsx`    | the icon rail and the panel beside it                      |
 | `src/components/sections/*`     | one file per section: files, apps, tools, history          |
 | `src/components/ui/*`           | shadcn/ui primitives, generated and then owned here        |
@@ -78,11 +79,18 @@ name.
   half the demo.
 - `/data/sales.csv` is seeded at boot, so the suggested prompts have something
   to work on.
-- **Consecutive calls share one card**, divided by hairlines. A run of calls
-  is one unit of work; gaps between separate boxes read as pauses that did not
-  happen. Prose breaks a run, so order is still exactly what occurred. The
-  card is the only rounded thing — nested radii inside it just fight its
-  corners.
+- **A run of calls collapses to one row** — "Worked for 12 seconds · 4 tool
+  calls · 2 failed". Four calls as four rows made a turn taller than the
+  answer it produced. The group opens itself while the model is working, so
+  you can watch, and closes when it settles, so you can read; clicking it
+  either way pins your choice. Prose breaks a run, so order is still exactly
+  what occurred.
+- **Duration is measured in the browser.** Message parts carry no timestamps,
+  so a group that was already finished on its first render reports no
+  duration rather than a made-up one.
+- **A history row opens the group it points at.** Scrolling to a call inside
+  a collapsed group would find nothing, so the row sets a target and the
+  group reveals it — open first, scroll after.
 - A failed `run` is a _successful_ tool call carrying `{ status: "error" }`.
   The accordion marks those failed too — otherwise the row reads green while
   the model is looking at an error.

@@ -1,7 +1,8 @@
 import { Markdown } from "@pierre/words/react";
-import { getToolName, isToolUIPart } from "ai";
+import { isToolUIPart } from "ai";
 import type { UIMessage } from "ai";
-import { ToolCall } from "./ToolCall.tsx";
+import { ToolGroup } from "./ToolGroup.tsx";
+import type { GroupedCall, Reveal } from "./ToolGroup.tsx";
 
 /**
  * One message, rendered part by part in the order the model produced them.
@@ -10,7 +11,15 @@ import { ToolCall } from "./ToolCall.tsx";
  * between them, so the transcript reads as what actually occurred rather than
  * prose followed by a pile of calls.
  */
-export function Message({ message, streaming }: { message: UIMessage; streaming: boolean }) {
+export function Message({
+  message,
+  streaming,
+  reveal,
+}: {
+  message: UIMessage;
+  streaming: boolean;
+  reveal: Reveal | null;
+}) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -41,33 +50,23 @@ export function Message({ message, streaming }: { message: UIMessage; streaming:
           );
         }
 
-        // A run of calls is one card with dividers rather than a stack of
-        // boxes: consecutive calls are one unit of work, and the gaps between
-        // them read as pauses that did not happen.
+        // A run of calls is one unit of work, so it collapses to one row.
+        // Consecutive calls behind a single summary keeps the transcript
+        // readable; the gaps between separate boxes read as pauses that did
+        // not happen anyway.
         return (
-          <div
-            key={blockIndex}
-            className="bg-muted/40 divide-border divide-y overflow-hidden rounded-xl border"
-          >
-            {block.calls.map(({ part, index }) => (
-              <ToolCall
-                key={index}
-                id={`call-${message.id}-${index}`}
-                part={part}
-                name={getToolName(part)}
-              />
-            ))}
-          </div>
+          <ToolGroup key={blockIndex} messageId={message.id} calls={block.calls} reveal={reveal} />
         );
       })}
     </div>
   );
 }
 
-type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
-
-type Block =
-  { kind: "text"; text: string } | { kind: "tools"; calls: { part: ToolPart; index: number }[] };
+// `GroupedCall` carries whichever kind `isToolUIPart` narrowed to: a
+// server-declared `tool-<name>` or a runtime `dynamic-tool`. Narrowing to
+// only the first, as this did, meant casting the second back to a shape it
+// does not have.
+type Block = { kind: "text"; text: string } | { kind: "tools"; calls: GroupedCall[] };
 
 /**
  * Collapse the part list into alternating prose and runs of tool calls.
@@ -87,9 +86,9 @@ function group(parts: UIMessage["parts"]): Block[] {
 
     const last = blocks.at(-1);
     if (last?.kind === "tools") {
-      last.calls.push({ part: part as ToolPart, index });
+      last.calls.push({ part, index });
     } else {
-      blocks.push({ kind: "tools", calls: [{ part: part as ToolPart, index }] });
+      blocks.push({ kind: "tools", calls: [{ part, index }] });
     }
   }
   return blocks;

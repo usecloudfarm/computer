@@ -1,36 +1,8 @@
 import { useState } from "react";
 import { ChevronRight, Loader2 } from "lucide-react";
-import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import { cn } from "@/lib/utils.ts";
-import { asRecord, isErrorEnvelope, truncate } from "@/lib/history.ts";
-
-/**
- * `isToolUIPart` narrows to either kind: a tool declared server-side arrives
- * as `tool-<name>`, one resolved at runtime as `dynamic-tool`. They carry the
- * same state machine, so the row renders both.
- */
-type AnyToolPart = ToolUIPart | DynamicToolUIPart;
-
-const LABEL: Record<AnyToolPart["state"], string> = {
-  "input-streaming": "calling",
-  "input-available": "running",
-  // Approval states exist for tools gated behind a human yes. Nothing here
-  // uses them yet, but leaving them out would make the row render blank the
-  // day something does.
-  "approval-requested": "needs approval",
-  "approval-responded": "approved",
-  "output-available": "done",
-  "output-error": "failed",
-  "output-denied": "denied",
-};
-
-/** States where the call has been made but no result exists yet. */
-const PENDING = new Set<AnyToolPart["state"]>([
-  "input-streaming",
-  "input-available",
-  "approval-requested",
-  "approval-responded",
-]);
+import { asRecord, hasFailed, isPending, LABEL, truncate } from "@/lib/calls.ts";
+import type { AnyToolPart } from "@/lib/calls.ts";
 
 /**
  * One tool call, as a collapsible row.
@@ -44,8 +16,8 @@ export function ToolCall({ id, part, name }: { id: string; part: AnyToolPart; na
   // `code` is the interesting one, so it opens itself; the rest stay out of
   // the way until asked for.
   const [open, setOpen] = useState(name === "code");
-  const failed = part.state === "output-error" || isErrorEnvelope(part.output);
-  const pending = PENDING.has(part.state);
+  const failed = hasFailed(part);
+  const pending = isPending(part);
   const source = name === "code" ? codeOf(part.input) : undefined;
 
   return (
