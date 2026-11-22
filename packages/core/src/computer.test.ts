@@ -431,6 +431,23 @@ describe("Workspace.tools", () => {
     expect(describeCode(true)).not.toContain("SYNCHRONOUS");
   });
 
+  it("puts files before the shell when the guest has modules", () => {
+    const withModules =
+      codeModeSpecs({
+        hasCode: true,
+        builtins: ["bash"],
+        guestAwait: true,
+        guestModules: true,
+      }).find((spec) => spec.name === "code")?.description ?? "";
+
+    // Order is the advice. A model told about the shell first reads a file by
+    // writing shell inside a JS string inside JSON, to do what one line of JS
+    // does — so files come first and the shell line says what it is not for.
+    expect(withModules.indexOf("- Files:")).toBeLessThan(withModules.indexOf("- Shell:"));
+    expect(withModules).toContain("readFileSync");
+    expect(withModules).toContain("Not to read or write a file");
+  });
+
   it("tells the model how to read a file without flooding its context", () => {
     const description = runDescriptionFor(["bash", "fs.read"]);
 

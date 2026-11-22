@@ -172,26 +172,39 @@ function describeFiles(has: (ref: string) => boolean): string {
  * the model the opposite of what its validator would allow.
  */
 function describeCode(options: ToolContext): string {
-  const bash = options.builtins.includes("bash") ? ' `run("bash", { cmd })` works here too.' : "";
-  // Files first, and emphatically: a script reaching for
-  // run('bash', { cmd: 'cat x' }) is writing shell inside a JS string inside
-  // JSON to do what one line of JS does. That is what the model reaches for
-  // unless told otherwise, so it is told otherwise.
-  const modules = options.guestModules
-    ? " For files, use `fs` directly — `const text = require('fs').readFileSync(path, 'utf8')` " +
-      "and `writeFileSync(path, text)`. It reads and writes the real workspace, so what you " +
-      "write is there afterwards. Do NOT shell out to read or write a file: " +
-      "run('bash', { cmd: 'cat ' + path }) is shell quoted inside a JS string to do what one " +
-      "line of JS already does. `require` also gives you path, os and util. Keep " +
-      "run('bash') for actually running something — a pipeline, a tool, a build. One caveat: " +
-      "`fs` is a snapshot taken when the script started, so a file written by run('bash') " +
-      "part-way through is not visible to it until the next script. Calls through these " +
-      "modules do not pass through run(), so they are neither recorded nor truncated."
-    : "";
-  const concurrency = options.guestAwait
-    ? " `await` is available, and optional: a call without it returns the same value."
-    : " Everything is SYNCHRONOUS: no `await`, no promises.";
-  return `${DESCRIPTIONS.code}${concurrency}${bash}${modules}`;
+  const lines = [DESCRIPTIONS.code, ""];
+
+  lines.push(
+    options.guestAwait
+      ? "- Actions: run(ref, input). `await` is available, and optional — a call without it returns the same value."
+      : "- Actions: run(ref, input). Everything is SYNCHRONOUS: no `await`, no promises.",
+  );
+
+  // Files before the shell, because the order is the advice. A script that
+  // reads a file by writing shell inside a JS string inside JSON — to do what
+  // one line of JS does — is what a model produces when the shell is the
+  // first thing it reads about.
+  if (options.guestModules) {
+    lines.push(
+      "- Files: require('fs').readFileSync(path, 'utf8') and writeFileSync(path, text), on the real workspace. Also path, os, util.",
+    );
+  }
+  if (options.builtins.includes("bash")) {
+    lines.push(
+      options.guestModules
+        ? "- Shell: run('bash', { cmd }) to *run* something — a pipeline, a tool, a build. Not to read or write a file; `fs` does that in one line without a host call."
+        : "- Shell: run('bash', { cmd }).",
+    );
+  }
+
+  if (options.guestModules) {
+    lines.push(
+      "",
+      "`fs` is a snapshot from when the script started: a file written by run('bash') part-way through is not visible to it until the next script. Module calls do not pass through run(), so they are neither recorded nor truncated.",
+    );
+  }
+
+  return lines.join("\n");
 }
 
 function spec(
