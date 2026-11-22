@@ -16,6 +16,7 @@ import { AISDKToolset } from "@cloudfarm/ai";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
 import { firecrawl } from "@cloudfarm/firecrawl";
+import { sqliteMemory } from "@cloudfarm/sqlite-memory";
 import { reports } from "./reports.ts";
 
 const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
@@ -51,8 +52,21 @@ const search = process.env["FIRECRAWL_API_KEY"]
   ? [firecrawl({ apiKey: process.env["FIRECRAWL_API_KEY"] })]
   : [];
 
+/**
+ * Memory, on disk so it outlives a restart.
+ *
+ * One store per user in a real deployment — `MemoryStore` has no scope
+ * argument, so the namespace is the only tenant boundary. The playground is
+ * single-user, so one store is correct here and wrong anywhere else.
+ */
+const memory = sqliteMemory({
+  path: process.env["CLOUDFARM_MEMORY_PATH"] ?? ".memory.db",
+  namespace: "playground",
+});
+
 const computer = new Computer({
   toolset: new AISDKToolset(),
+  memory,
   apps: [reports, hackernews({}), ...browser, ...search],
 });
 
@@ -86,6 +100,10 @@ const SYSTEM = [
   "in the isolate. Use `search` first when you do not know an action's ref.",
   "Say what you did in a sentence or two; the tool calls are already visible",
   "to the user, so do not narrate them step by step.",
+  "",
+  "You have memory across sessions. Search it when a task depends on what the",
+  "user prefers or on something you were told before, and write down what you",
+  "learn about them — not things already in a file.",
 ].join("\n");
 
 const app = new Hono();
@@ -112,17 +130,22 @@ app.post("/api/chat", async (context) => {
  * each turn rather than trying to mirror writes it only partly observes.
  */
 app.get("/api/workspace", async (context) => {
-  const [files, apps] = await Promise.all([
+  const [files, apps, memories] = await Promise.all([
     workspace.run("fs.list", { prefix: "/" }),
     workspace.run("apps.list", {}),
+    memory.list(50),
   ]);
 
   return context.json({
     files: files.status === "ok" ? files.value : [],
     apps: apps.status === "ok" ? (apps.value as { apps: unknown[] }).apps : [],
     tools: workspace.toolSpecs(),
+    memories,
   });
 });
+
+/** Everything remembered, newest first — for the panel, not for the model. */
+app.get("/api/memory", async (context) => context.json({ memories: await memory.list(50) }));
 
 /** One file's contents, for the explorer's preview. */
 app.get("/api/file", async (context) => {

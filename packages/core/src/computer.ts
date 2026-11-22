@@ -491,10 +491,10 @@ export class Workspace<T = unknown> {
    * does not reject `run("bash", …)` as an unknown action.
    */
   /** Whether the optional package a built-in needs actually resolved. */
-  #has(needs: "sandbox" | "code"): boolean {
-    return needs === "sandbox"
-      ? this.#options.provider !== undefined
-      : this.#options.codeEngine !== undefined;
+  #has(needs: "sandbox" | "code" | "memory"): boolean {
+    if (needs === "sandbox") return this.#options.provider !== undefined;
+    if (needs === "memory") return this.#options.memory !== undefined;
+    return this.#options.codeEngine !== undefined;
   }
 
   #builtinRefs(): Set<string> {

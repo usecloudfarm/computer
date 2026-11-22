@@ -1,2 +1,5 @@
 dist
 .env
+
+# Memory lives here; delete it to make the agent forget.
+.memory.db*

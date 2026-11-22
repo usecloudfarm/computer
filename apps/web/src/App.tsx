@@ -7,7 +7,7 @@ import { RightPanel } from "./components/RightPanel.tsx";
 import { FileViewer } from "./components/FileViewer.tsx";
 import type { WorkspaceState } from "./types.ts";
 
-const EMPTY: WorkspaceState = { files: [], apps: [], tools: [] };
+const EMPTY: WorkspaceState = { files: [], apps: [], tools: [], memories: [] };
 
 /** History rows jump to the call in the transcript, rather than duplicating it. */
 const revealCall = (key: string) => {
@@ -78,6 +78,7 @@ export function App() {
         <LeftPanel
           files={state.files}
           apps={state.apps}
+          memories={state.memories}
           onOpenFile={openPath}
           openPath={openFile?.path ?? null}
         />

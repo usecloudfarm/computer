@@ -25,8 +25,16 @@ export interface ToolSpecInfo {
   };
 }
 
+export interface MemoryRecordInfo {
+  id: string;
+  text: string;
+  createdAt: number;
+  metadata?: Record<string, unknown>;
+}
+
 export interface WorkspaceState {
   files: FileEntry[];
   apps: AppInfo[];
   tools: ToolSpecInfo[];
+  memories: MemoryRecordInfo[];
 }
