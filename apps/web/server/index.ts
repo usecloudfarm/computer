@@ -12,7 +12,6 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
-import { bashCode } from "@cloudfarm/bash-code";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
@@ -54,10 +53,6 @@ const search = process.env["FIRECRAWL_API_KEY"]
 
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  // The playground is a Node process, so it can take the engine that runs
-  // code inside the sandbox — which is also the only way to see `await`
-  // working in code mode.
-  codeEngine: bashCode(),
   apps: [reports, hackernews({}), ...browser, ...search],
 });
 

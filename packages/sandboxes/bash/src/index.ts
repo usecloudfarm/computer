@@ -103,15 +103,8 @@ class JustBashSandbox implements Sandbox {
   async close(): Promise<void> {}
 }
 
-/**
- * Reads the workspace into the shape just-bash wants for its initial files.
- *
- * Exported because `@cloudfarm/bash-code` runs a second `Bash` for code mode
- * and has to agree with this one about what "the workspace inside a shell"
- * means — the ignored directories especially. Two copies would drift, and the
- * symptom would be a file that exists in one shell and not the other.
- */
-export async function snapshot(fs: FileSystem): Promise<Record<string, string>> {
+/** Reads the workspace into the shape just-bash wants for its initial files. */
+async function snapshot(fs: FileSystem): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
   for await (const entry of fs.list("/")) {
     if (entry.type !== "file") continue;
@@ -126,8 +119,8 @@ export async function snapshot(fs: FileSystem): Promise<Record<string, string>> 
   return files;
 }
 
-/** Writes back anything the command created or changed. Exported for the same reason. */
-export async function writeBack(
+/** Writes back anything the command created or changed. */
+async function writeBack(
   fs: FileSystem,
   shell: InstanceType<typeof Bash>,
   before: Record<string, string>,
