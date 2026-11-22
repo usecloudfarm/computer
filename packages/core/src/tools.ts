@@ -115,7 +115,8 @@ function describeRun(options: ToolContext): string {
   const has = (ref: string) => options.builtins.includes(ref);
   const calls: string[] = [];
 
-  if (has("bash")) calls.push("{ ref: 'bash', args: { cmd: 'ls -la /data' } } for the shell");
+  if (has("bash"))
+    calls.push("{ ref: 'bash', args: { cmd: 'grep -c ERROR /logs/app.log' } } for the shell");
 
   const own =
     calls.length > 0
@@ -126,13 +127,13 @@ function describeRun(options: ToolContext): string {
   const only = has("bash")
     ? " The shell is reached through this tool — there is no separate `bash` tool."
     : "";
-  const files = describeFiles(has);
+  const files = describeFiles(has, options.hasCode);
   // The sandbox gets its own sentence. Inline it reads as a run-on, and what
   // the shell cannot do — npm, python — is the part worth landing clearly.
   const shell = options.sandbox ? ` The shell: ${options.sandbox}` : "";
   // Durability is the model's business: whether a file it writes survives the
   // turn changes whether writing it was worth doing.
-  const storage = options.storage ? ` Files: ${options.storage}` : "";
+  const storage = options.storage ? ` Storage: ${options.storage}` : "";
   return `Run one action by reference, as { ref, args } — an app's, or one of the computer's own.${own}${only}${files}${shell}${storage} Find others with \`search\`. Answers { status: 'ok', value } or { status: 'error', error: { code, message, hint } }.`;
 }
 
@@ -145,20 +146,23 @@ function describeRun(options: ToolContext): string {
  * the whole file and still gets a truncated one. Naming the cheaper commands
  * is more useful than telling it to be careful.
  */
-function describeFiles(has: (ref: string) => boolean): string {
-  // No shell means no files at all now that `fs.*` is gone — which only
-  // happens when @cloudfarm/bash is not installed. Saying nothing is right:
-  // the alternative is describing a filesystem the model cannot reach.
+function describeFiles(has: (ref: string) => boolean, hasCode: boolean): string {
   if (!has("bash")) return "";
 
+  // This used to teach `cat`, `ls -la`, `grep -n` and heredocs. It was the
+  // only filesystem `run` had, so it had to — and the result was a model
+  // writing `run("bash", { cmd: "find / -name sales.csv" })` from inside
+  // `code`, where one line of `fs` does it. Two descriptions in one request
+  // teaching different filesystems is a coin toss, so this one stops
+  // teaching and points at the other.
+  const files = hasCode
+    ? " For files use the `code` tool — fs.readFileSync, writeFileSync, readdirSync, existsSync — not the shell: `cat` and `ls` through here cost a call each and come back as text to parse."
+    : "";
+
   return (
-    " Files go through the shell: read with `cat`, `head -n 50` or `sed -n '1,80p'`, search" +
-    " with `grep -n`, list with `ls -la`, write with `>` or a heredoc —" +
-    " { ref: 'bash', args: { cmd: \"cat > /out/notes.md <<'EOF'\\n…\\nEOF\" } } — and delete" +
-    " with `rm`. Keep results small: `wc -l` or `ls -la` before reading something you have" +
-    " not sized, `grep` instead of reading a file to search it, and `head`/`tail` instead of" +
-    " whole files. Long output is truncated, so reading a large file costs context and still" +
-    " arrives incomplete."
+    files +
+    " Shell output is truncated when long, so prefer a command that returns what you need" +
+    " over one that returns everything."
   );
 }
 

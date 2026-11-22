@@ -454,15 +454,22 @@ describe("Workspace.tools", () => {
     expect(code?.description).toContain("already in scope, no import");
   });
 
-  it("tells the model how to read a file without flooding its context", () => {
+  it("points file work at code mode rather than teaching shell file commands", () => {
     const description = runDescriptionFor(["bash", "fs.read"]);
 
     // `cat` on an unsized file is the cheapest way a model has to fill its
     // own context with something it cannot use — and the result is clamped
     // anyway, so it pays for the whole file and gets a truncated one.
-    expect(description).toContain("head -n 50");
+    // `run` used to teach cat/ls/grep/heredocs, because it was the only
+    // filesystem it had. The result was a model writing
+    // run("bash", { cmd: "find / -name sales.csv" }) from inside `code`,
+    // where one line of fs does it — two descriptions in one request
+    // teaching different filesystems is a coin toss. This one points at the
+    // other rather than competing with it.
+    expect(description).toContain("For files use the `code` tool");
     expect(description).toContain("truncated");
-    expect(description).toContain("<<'EOF'");
+    expect(description).not.toContain("<<'EOF'");
+    expect(description).not.toContain("ls -la");
   });
 
   it("stays a fixed, small set however many apps are installed", async () => {
