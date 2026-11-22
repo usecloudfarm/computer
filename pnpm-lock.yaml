@@ -123,6 +123,9 @@ importers:
       '@cloudfarm/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@cloudfarm/firecrawl':
+        specifier: workspace:^
+        version: link:../../packages/integrations/firecrawl
       '@cloudfarm/quickjs':
         specifier: workspace:^
         version: link:../../packages/engines/quickjs

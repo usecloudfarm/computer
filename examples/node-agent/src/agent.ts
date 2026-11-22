@@ -13,8 +13,9 @@
  */
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs } from "ai";
-import { createAction, Computer, createApp } from "@cloudfarm/core";
+import { createAction, Computer, createApp, noAuth } from "@cloudfarm/core";
 import { AISDKToolset } from "@cloudfarm/ai";
+import { firecrawl } from "@cloudfarm/firecrawl";
 import { z } from "zod";
 
 if (!process.env["ANTHROPIC_API_KEY"]) {
@@ -36,6 +37,7 @@ const reports = createApp({
   id: "reports",
   name: "Reports",
   description: "Publishes finished reports to the team.",
+  auth: noAuth(),
   actions: {
     publish: createAction({
       summary: "Publish a report so the team can read it.",
@@ -60,9 +62,17 @@ const published: string[] = [];
 
 // Nothing is passed for `provider` or `codeEngine`: bash and QuickJS are the
 // defaults when their packages are installed.
+// Firecrawl needs a key, and `firecrawl({ apiKey: "" })` throws at
+// construction rather than failing later — so it is installed only when one
+// is set. An app that cannot work is worse than an absent one: the model
+// would find it with `search` and fail on every call.
+const search = process.env["FIRECRAWL_API_KEY"]
+  ? [firecrawl({ apiKey: process.env["FIRECRAWL_API_KEY"] })]
+  : [];
+
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  apps: [reports],
+  apps: [reports({}), ...search],
 });
 
 const workspace = await computer.createWorkspace("demo-user");
