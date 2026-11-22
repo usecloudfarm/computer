@@ -39,11 +39,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "url": "git+https://github.com/usecloudfarm/computer.git",
     "directory": "packages/sandboxes/boat"
   },
-  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/sandboxes/boat#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/sandboxes/boat#readme",
   "bugs": {
-    "url": "https://github.com/haxzie/unsandbox/issues"
+    "url": "https://github.com/usecloudfarm/computer/issues"
   }
 }

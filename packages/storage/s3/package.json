@@ -40,11 +40,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "url": "git+https://github.com/usecloudfarm/computer.git",
     "directory": "packages/storage/s3"
   },
-  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/storage/s3#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/storage/s3#readme",
   "bugs": {
-    "url": "https://github.com/haxzie/unsandbox/issues"
+    "url": "https://github.com/usecloudfarm/computer/issues"
   }
 }

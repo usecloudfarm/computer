@@ -40,11 +40,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haxzie/unsandbox.git",
+    "url": "git+https://github.com/usecloudfarm/computer.git",
     "directory": "packages/integrations/cloudflare-browser"
   },
-  "homepage": "https://github.com/haxzie/unsandbox/tree/main/packages/integrations/cloudflare-browser#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/integrations/cloudflare-browser#readme",
   "bugs": {
-    "url": "https://github.com/haxzie/unsandbox/issues"
+    "url": "https://github.com/usecloudfarm/computer/issues"
   }
 }
