@@ -425,6 +425,7 @@ describe("Workspace.tools", () => {
     // through codeModeSpecs because a Computer cannot be built without a
     // shell any more — `null` resolves the default — and the branch under
     // test is a pure function of the available refs.
+    expect(runDescriptionFor(["bash", "fs.read"])).not.toContain("ref: 'code'");
     expect(runDescriptionFor(["fs.read"])).not.toContain("'bash'");
     expect(runDescriptionFor(["bash", "fs.read"])).toContain("'bash'");
   });
@@ -481,6 +482,31 @@ describe("Workspace.tools", () => {
       { properties?: { source?: { description?: string } } } | undefined;
 
     expect(schema?.properties?.source?.description).toContain("rather than shell redirection");
+  });
+
+  it("keeps code mode as a tool, not a second ref to find", async () => {
+    const workspace = await new Computer({
+      storage: new MemoryStorage(),
+      provider: fakeSandbox(),
+    }).createWorkspace("u");
+
+    // A tool is in context on every request, so it never needed `search`.
+    // Indexing it put a second way to reach code mode in front of the model,
+    // and the two do not answer alike: the ref wraps the CodeResult in an
+    // envelope, so the real value sits at `value.value`.
+    const found = await workspace.search("chain several actions together");
+    expect(found.actions.map((action) => action.ref)).not.toContain("code");
+
+    const listed = (await workspace.run("apps.list", {})) as {
+      value: { apps: { actions: string[] }[] };
+    };
+    expect(listed.value.apps[0]?.actions).not.toContain("code");
+
+    // Asserted against the spec builder rather than this workspace, because
+    // the tool depends on an engine resolving and workerd has none.
+    expect(codeModeSpecs({ hasCode: true, builtins: [] }).map((spec) => spec.name)).toContain(
+      "code",
+    );
   });
 
   it("claims the concurrency the engine actually has, and only that", () => {

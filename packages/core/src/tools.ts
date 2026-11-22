@@ -116,7 +116,6 @@ function describeRun(options: ToolContext): string {
   const calls: string[] = [];
 
   if (has("bash")) calls.push("{ ref: 'bash', args: { cmd: 'ls -la /data' } } for the shell");
-  if (has("code")) calls.push("{ ref: 'code', args: { source } } to script several calls at once");
 
   const own =
     calls.length > 0

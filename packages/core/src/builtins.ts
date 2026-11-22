@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { BashInput, CodeInput } from "./tools.js";
-import { CodeResult, ExecResult, FileStat } from "./schemas.js";
+import { BashInput } from "./tools.js";
+import { ExecResult, FileStat } from "./schemas.js";
 import type { ActionDefinition, App } from "./ports.js";
 
 /**
@@ -12,6 +12,13 @@ import type { ActionDefinition, App } from "./ports.js";
  * reachable by ref but invisible to search: asking "how do I run a shell
  * command?" returned nothing, and the only way to learn the ref was to
  * already know it.
+ *
+ * `code` is deliberately absent. It is a tool, and a tool is in context on
+ * every request — it never needed `search` to be found, and indexing it put a
+ * second way to reach code mode in front of the model: `run("code", { source
+ * })` answers `{ status: "ok", value: { outcome, value, … } }`, two nested
+ * result shapes with the real value at `value.value`. The tool answers with
+ * the `CodeResult` directly.
  *
  * These definitions carry metadata only. Dispatch intercepts every ref here
  * before it reaches an app handler, so the handlers below are unreachable and
@@ -31,7 +38,7 @@ export interface BuiltinAction {
   readonly ref: string;
   readonly definition: ActionDefinition;
   /** Which optional package has to be installed for this to work. */
-  readonly needs?: "sandbox" | "code";
+  readonly needs?: "sandbox";
 }
 
 export function builtinActions(): BuiltinAction[] {
@@ -54,26 +61,6 @@ export function builtinActions(): BuiltinAction[] {
         input: BashInput,
         output: ExecResult,
         example: 'run("bash", { cmd: "ls -la /data" })',
-        sideEffects: "write",
-      }),
-    },
-    {
-      ref: "code",
-      needs: "code",
-      definition: define({
-        name: "code",
-        summary: "Run JavaScript that calls several actions in one pass.",
-        useCases: [
-          "chain several actions together",
-          "do several steps in one call",
-          "transform a result before using it",
-          "loop over results",
-        ],
-        keywords: ["javascript", "script", "batch"],
-        input: CodeInput,
-        output: CodeResult,
-        example:
-          'run("code", { source: "return run(\\"fs.read\\", { path: \\"/a.txt\\" }).value;" })',
         sideEffects: "write",
       }),
     },

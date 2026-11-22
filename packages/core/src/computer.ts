@@ -320,6 +320,11 @@ export class Workspace<T = unknown> {
         const record = (args ?? {}) as Record<string, Json>;
         return this.run(stringField(args, "ref"), record["args"] ?? null);
       }
+      // The `code` tool's own dispatch ref, not a discoverable action: it is
+      // absent from the registry, so `search` never offers it and a script
+      // that calls run("code", …) is rejected by validation rather than
+      // recursing. Reaching code mode twice over, by two shapes, was the
+      // confusion worth removing.
       if (ref === "code") {
         return toEnvelope(await this.code(stringField(args, "source")));
       }
@@ -352,8 +357,6 @@ export class Workspace<T = unknown> {
         return (await this.search(stringField(args, "useCase"), options)) as unknown as Json;
       }
 
-      case "code":
-        return (await this.code(stringField(args, "source"))) as unknown as Json;
       case "apps":
         if (member !== "list") {
           throw new UnknownRefError(`apps.${member ?? ""}`, ["apps.list"]);
@@ -507,7 +510,7 @@ export class Workspace<T = unknown> {
    * does not reject `run("bash", …)` as an unknown action.
    */
   /** Whether the optional package a built-in needs actually resolved. */
-  #has(needs: "sandbox" | "code"): boolean {
+  #has(needs: "sandbox"): boolean {
     return needs === "sandbox"
       ? this.#options.provider !== undefined
       : this.#options.codeEngine !== undefined;

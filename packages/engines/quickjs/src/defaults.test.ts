@@ -70,6 +70,17 @@ describe("Computer defaults", () => {
     });
   });
 
+  it("refuses a script that tries to re-enter code mode", async () => {
+    const workspace = await new Computer().createWorkspace("u");
+
+    // Falls out of `code` no longer being a ref: validation checks the
+    // registry, so recursion is refused before anything executes rather than
+    // nesting one run's result inside another's.
+    const result = await workspace.code(`run("code", { source: "return 1;" });`);
+
+    expect(result.outcome).toBe("invalid");
+  });
+
   it("ignores a null codeEngine rather than turning code mode off", async () => {
     const workspace = await new Computer({ codeEngine: null }).createWorkspace("u");
 
