@@ -24,16 +24,19 @@
     "test:watch": "vitest",
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "test:workers": "vitest run --config vitest.workers.config.ts"
   },
   "dependencies": {
     "@cloudfarm/core": "workspace:^"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.9.0",
+    "e2b": "^2.64.0",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.1",
-    "e2b": "^2.64.0"
+    "wrangler": "^4.166.0"
   },
   "peerDependencies": {
     "e2b": "^2.64.0"
