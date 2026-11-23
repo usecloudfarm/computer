@@ -59,6 +59,7 @@ export type {
   HostBridge,
   Invoke,
   Sandbox,
+  SandboxFiles,
   SandboxCapability,
   SandboxProvider,
   StorageProvider,

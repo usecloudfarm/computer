@@ -44,6 +44,9 @@ export class QuickJSEngine implements CodeEngine {
     // sees an ordinary return — and `await` is a syntax error in the eval
     // mode this uses.
     guestAwait: true,
+    // The guest is a wasm isolate in this process, which is the point: it
+    // runs with no sandbox at all.
+    sandboxed: false,
     interruptible: true,
     memoryCap: true,
   };

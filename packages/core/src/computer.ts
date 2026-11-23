@@ -502,9 +502,14 @@ export class Workspace<T = unknown> {
     return engine.evaluate(
       {
         source,
-        prelude: buildPrelude(),
+        prelude: buildPrelude({ nativeModules: engine.capabilities.sandboxed }),
         limits,
         runId: `code-${++this.#runCounter}`,
+        // Connected only for an engine that runs the guest inside it; the
+        // isolate must not be handed one.
+        ...(engine.capabilities.sandboxed && this.#options.provider
+          ? { sandbox: await this.#connectSandbox(this.#options.provider) }
+          : {}),
       },
       bridge,
     );

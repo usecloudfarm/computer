@@ -240,6 +240,15 @@ export interface CodeEngineCapabilities {
   /** Can stop a non-yielding loop without killing the host thread. */
   readonly interruptible: boolean;
   readonly memoryCap: boolean;
+  /**
+   * Whether the guest runs inside the sandbox rather than in this process.
+   *
+   * An engine that does gets `CodeJob.sandbox`, and with it a real runtime: a
+   * genuine `fs` with no size or encoding limit, real CPU, and whatever the
+   * image has installed. What it gives up is running without a sandbox at
+   * all, so it can never be the only engine.
+   */
+  readonly sandboxed: boolean;
 }
 
 /** The host side of the bridge. Must never throw: it returns error frames. */
@@ -254,6 +263,14 @@ export interface CodeJob {
   readonly prelude: string;
   readonly limits: CodeLimits;
   readonly runId: string;
+  /**
+   * The connected sandbox, for an engine that runs the guest inside it.
+   *
+   * Present only when one is connected and the engine declares `sandboxed`,
+   * because handing a sandbox to an engine that does not want one is how an
+   * isolate quietly stops being an isolate.
+   */
+  readonly sandbox?: Sandbox;
 }
 
 export interface CodeEngine extends Described {
