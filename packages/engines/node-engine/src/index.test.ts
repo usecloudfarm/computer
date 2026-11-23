@@ -130,4 +130,29 @@ describe("nodeEngine", () => {
       error: { message: "boom" },
     });
   });
+
+  // The honest difference between the two engines, and the reason to prefer
+  // this one: `fs` here is node's, where the isolate installs a shim over the
+  // host. `constants` exists on one and not the other.
+  const whichFs = `return typeof require("node:fs").constants;`;
+
+  it("is chosen for a provider that declares `code`, without being named", async () => {
+    const { provider } = fakeSandbox();
+    const ws = await new Computer({
+      storage: new MemoryStorage(),
+      provider: { ...provider, capabilities: new Set(["bash" as const, "code" as const]) },
+    }).createWorkspace("u");
+
+    expect(await ws.code(whichFs)).toMatchObject({ outcome: "ok", value: "object" });
+  });
+
+  it("leaves the isolate in place for a provider that does not", async () => {
+    const { provider } = fakeSandbox();
+    const ws = await new Computer({
+      storage: new MemoryStorage(),
+      provider, // declares `bash` only — a virtual shell has no node
+    }).createWorkspace("u");
+
+    expect(await ws.code(whichFs)).toMatchObject({ outcome: "ok", value: "undefined" });
+  });
 });

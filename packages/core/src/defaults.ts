@@ -18,6 +18,7 @@ import type { CodeEngine, SandboxProvider } from "./ports.js";
 
 const BASH = "@cloudfarm/bash-sandbox";
 const QUICKJS = "@cloudfarm/qjs-engine";
+const NODE_ENGINE = "@cloudfarm/node-engine";
 
 let provider: Promise<SandboxProvider | undefined> | undefined;
 let engine: Promise<CodeEngine | undefined> | undefined;
@@ -34,6 +35,30 @@ export function defaultProvider(): Promise<SandboxProvider | undefined> {
     }
   })();
   return provider;
+}
+
+let sandboxEngine: Promise<CodeEngine | undefined> | undefined;
+
+/**
+ * The engine for a sandbox that can host one.
+ *
+ * Preferred over the isolate when the provider declares `code`, because the
+ * sandbox already has a real runtime: node's own filesystem, real CPU, and
+ * whatever the image installed. Absent the package, the isolate still works,
+ * so this is an upgrade rather than a requirement.
+ */
+export function defaultSandboxEngine(): Promise<CodeEngine | undefined> {
+  sandboxEngine ??= (async () => {
+    try {
+      const module = (await import(/* @vite-ignore */ NODE_ENGINE)) as {
+        nodeEngine: () => CodeEngine;
+      };
+      return module.nodeEngine();
+    } catch {
+      return undefined;
+    }
+  })();
+  return sandboxEngine;
 }
 
 export function defaultCodeEngine(): Promise<CodeEngine | undefined> {
@@ -54,4 +79,5 @@ export function defaultCodeEngine(): Promise<CodeEngine | undefined> {
 export function resetDefaults(): void {
   provider = undefined;
   engine = undefined;
+  sandboxEngine = undefined;
 }

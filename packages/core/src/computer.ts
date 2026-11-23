@@ -16,7 +16,7 @@ import { Redactor } from "./redact.js";
 import { codeModeSpecs, RawToolset } from "./tools.js";
 import { renderDeclarations } from "./typegen.js";
 import { failed, ok } from "./schemas.js";
-import { defaultCodeEngine, defaultProvider } from "./defaults.js";
+import { defaultCodeEngine, defaultProvider, defaultSandboxEngine } from "./defaults.js";
 import { MemoryStorage } from "./vfs.js";
 import type {
   App,
@@ -195,7 +195,14 @@ export class Computer<T = unknown> {
       // undefined, but only because the package is not installed, which is a
       // fact about the deployment rather than a choice about the product.
       const provider = options.provider ?? (await defaultProvider());
-      const codeEngine = options.codeEngine ?? (await defaultCodeEngine());
+      // A sandbox that can host code mode gets it: the engine inside has a
+      // real runtime, where the isolate has 64 MiB and a filesystem shim.
+      // Declared by the provider rather than discovered on connect, so the
+      // choice is made once and before anything boots.
+      const codeEngine =
+        options.codeEngine ??
+        (provider?.capabilities.has("code") ? await defaultSandboxEngine() : undefined) ??
+        (await defaultCodeEngine());
 
       const { provider: _ignoredProvider, codeEngine: _ignoredEngine, ...rest } = options;
       return {

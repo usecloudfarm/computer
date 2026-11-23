@@ -32,7 +32,7 @@ export class E2B implements SandboxProvider {
   readonly description =
     "A Firecracker microVM per workspace: any binary, npm, pip, apt, and real isolation for " +
     "untrusted code. Each command is a network round trip.";
-  readonly capabilities = new Set(["bash" as const, "ports" as const]);
+  readonly capabilities = new Set(["bash" as const, "ports" as const, "code" as const]);
 
   readonly #options: E2BOptions;
 

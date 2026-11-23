@@ -12,7 +12,6 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
-import { quickjs } from "@cloudfarm/qjs-engine";
 import { e2b } from "@cloudfarm/e2b-sandbox";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
@@ -72,10 +71,6 @@ const provider = process.env["E2B_API_KEY"]
 const computer = new Computer({
   toolset: new AISDKToolset(),
   ...(provider ? { provider } : {}),
-  // Named rather than left to `defaultCodeEngine`, which would resolve the
-  // same package: a playground is read as a reference, and "where does code
-  // mode come from" should not need the resolution rules to answer.
-  codeEngine: quickjs(),
   apps: [reports, hackernews({}), ...browser, ...search],
 });
 

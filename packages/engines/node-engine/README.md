@@ -24,14 +24,14 @@ into a host call.
 Here the script runs on the runtime already in the image. Measured against a
 live E2B microVM:
 
-| | |
-| --- | --- |
-| `require("node:fs").constants` | `"REAL node fs"` |
-| 50 MB file written locally | 2.2s |
+|                                           |                         |
+| ----------------------------------------- | ----------------------- |
+| `require("node:fs").constants`            | `"REAL node fs"`        |
+| 50 MB file written locally                | 2.2s                    |
 | `Buffer.from([0,159,146,150])` round trip | 4 bytes — binary intact |
-| `execSync("python3 -c 'print(6*7)'")` | `"42"` |
-| 30M loop iterations | 1.6s |
-| one `run()` host call | ~3.2s |
+| `execSync("python3 -c 'print(6*7)'")`     | `"42"`                  |
+| 30M loop iterations                       | 1.6s                    |
+| one `run()` host call                     | ~3.2s                   |
 
 The ceiling stops being the engine and becomes the machine.
 

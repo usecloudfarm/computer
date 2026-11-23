@@ -62,6 +62,9 @@ importers:
       '@cloudfarm/hackernews':
         specifier: workspace:^
         version: link:../../packages/integrations/hackernews
+      '@cloudfarm/node-engine':
+        specifier: workspace:^
+        version: link:../../packages/engines/node-engine
       '@cloudfarm/qjs-engine':
         specifier: workspace:^
         version: link:../../packages/engines/qjs-engine
@@ -181,6 +184,9 @@ importers:
       '@cloudfarm/bash-sandbox':
         specifier: workspace:^
         version: link:../sandboxes/bash-sandbox
+      '@cloudfarm/node-engine':
+        specifier: workspace:^
+        version: link:../engines/node-engine
       '@cloudfarm/qjs-engine':
         specifier: workspace:^
         version: link:../engines/qjs-engine

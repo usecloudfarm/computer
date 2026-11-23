@@ -140,7 +140,14 @@ export interface Sandbox {
  * "action". An app's actions are the units an agent calls; these answer
  * "does this provider support bash?" and are never exposed to a model.
  */
-export type SandboxCapability = "bash" | "ports" | "mount";
+/**
+ * `code` means the sandbox can host code mode itself: a JavaScript runtime in
+ * the image, and a `files` API to put a script there. It is what lets a
+ * Computer pick the engine that runs inside the sandbox without connecting
+ * first — the in-process shell declares `bash` and not this, because it has
+ * no `node` and nowhere to put a file.
+ */
+export type SandboxCapability = "bash" | "ports" | "mount" | "code";
 
 export interface SandboxProvider extends Described {
   readonly capabilities: ReadonlySet<SandboxCapability>;

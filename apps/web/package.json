@@ -24,6 +24,7 @@
     "@cloudfarm/e2b-sandbox": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",
     "@cloudfarm/hackernews": "workspace:^",
+    "@cloudfarm/node-engine": "workspace:^",
     "@cloudfarm/qjs-engine": "workspace:^",
     "@cloudfarm/slack": "workspace:^",
     "@hono/node-server": "^1.15.0",
