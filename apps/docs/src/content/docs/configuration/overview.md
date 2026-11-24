@@ -26,10 +26,17 @@ it satisfies. The name says it too: `<what>-<role>`.
 | `@cloudfarm/sqlite-storage`     | storage                                 | local file, Durable Object, or D1 |
 | `@cloudfarm/s3-storage`         | storage                                 | any S3-compatible bucket          |
 | `@cloudfarm/ai-sdk-toolset`     | toolset                                 | Vercel AI SDK                     |
-| `@cloudfarm/slack`              | app                                     |                                   |
-| `@cloudfarm/hackernews`         | app                                     |                                   |
-| `@cloudfarm/firecrawl`          | app                                     |                                   |
-| `@cloudfarm/cloudflare-browser` | app                                     |                                   |
+| `@cloudfarm/slack`              | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/hackernews`         | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/firecrawl`          | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/cloudflare-browser` | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/discord`            | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/github`             | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/jira`               | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/linear`             | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/notion`             | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/sentry`             | app                                     | see [Apps](/apps/)                |
+| `@cloudfarm/stripe`             | app                                     | see [Apps](/apps/)                |
 
 Apps keep a bare service name — `@cloudfarm/slack`, not `slack-app`. The
 absence of a role suffix is itself the signal.
