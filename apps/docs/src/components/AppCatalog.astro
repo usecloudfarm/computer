@@ -12,11 +12,14 @@ const CREDENTIAL = {
   none: "No credential",
   "api-key": "API key",
   "api-token": "API token",
+  basic: "Email + token",
 } as const;
 
 const apps = (await getCollection("docs", (entry) => entry.data.app !== undefined))
   .map((entry) => ({ ...entry, app: entry.data.app! }))
-  .sort((a, b) => a.app.order - b.app.order);
+  // Name breaks the tie, so generated apps — which all take the default
+  // order — come out in a stable sequence instead of filesystem order.
+  .sort((a, b) => a.app.order - b.app.order || a.data.title.localeCompare(b.data.title));
 ---
 
 <div class="app-grid not-content">

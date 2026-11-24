@@ -23,6 +23,7 @@ import prettier from "prettier";
 import { listSpecIds, loadSpec } from "./lib/spec.mjs";
 import { emitSource } from "./lib/emit-src.mjs";
 import { emitTest } from "./lib/emit-test.mjs";
+import { emitDocsPage } from "./lib/emit-docs.mjs";
 import {
   emitChangeset,
   emitPackageJson,
@@ -57,6 +58,10 @@ async function main(argv) {
       [path.join(dir, "README.md")]: emitReadme(spec),
       [path.join(dir, "src", "index.ts")]: emitSource(spec),
       [path.join(dir, "src", "index.test.ts")]: emitTest(spec),
+      // The catalogue builds its cards from these pages, so an app without
+      // one ships to npm and appears nowhere a reader would look.
+      [path.join("apps", "docs", "src", "content", "docs", "apps", `${spec.id}.md`)]:
+        emitDocsPage(spec),
     };
 
     for (const [relative, raw] of Object.entries(files)) {

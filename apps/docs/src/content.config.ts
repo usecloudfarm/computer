@@ -24,7 +24,7 @@ export const collections = {
             /** The npm package, shown on the card. */
             package: z.string(),
             /** What a developer passes to construct it. */
-            credential: z.enum(["none", "api-key", "api-token"]),
+            credential: z.enum(["none", "api-key", "api-token", "basic"]),
             /**
              * The app's icon, matching the `icon` on its `createApp` call.
              * Absolute https: so the catalogue can render it from any origin.
