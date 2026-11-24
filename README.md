@@ -6,13 +6,22 @@ A Computer gives an agent a workspace: a filesystem for its state, a shell,
 apps as plugins, and _code mode_ — where the agent searches for an action,
 gets typed signatures back, and writes code that runs in an isolate.
 
+```sh
+pnpm add cloudfarm
+```
+
+`cloudfarm` is the Computer, the shell and the engine in one install. Take
+`@cloudfarm/computer` directly to choose a shell yourself or to keep a Workers
+bundle to what it uses.
+
+📖 **[Documentation](https://cloudfarm.dev)** · 🧩 **[Apps](https://cloudfarm.dev/apps/)**
+
 ```ts
-import { Computer } from "@cloudfarm/computer";
+import { Computer } from "cloudfarm";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 
-// The shell and code mode are not options: install
-// @cloudfarm/bash-sandbox and @cloudfarm/qjs-engine and they are there.
+// The shell and code mode are not options. `cloudfarm` installs both.
 const computer = new Computer({
   toolset: new AISDKToolset(),
   apps: [slack({ apiKey: process.env.SLACK_TOKEN })],
@@ -30,8 +39,11 @@ const result = await generateText({
 
 ## The shell and code mode are not configurable
 
-The shell is `just-bash` and code mode is QuickJS. There is no option to pass
-either one, and nothing else to pass instead.
+The shell is bash and code mode is QuickJS. There is no option to pass either
+one, and nothing else to pass instead. Which bash runs is decided by what is
+installed: `@cloudfarm/rbash-sandbox` — bash compiled to WebAssembly — when it
+is there, and `@cloudfarm/bash-sandbox`, the pure-TypeScript `just-bash`,
+otherwise.
 
 ```ts
 new Computer(); // bash + QuickJS, nothing to decide
@@ -131,22 +143,29 @@ calls made  0
 
 ## Packages
 
-| package                     | what it is                                                                   | runs on              |
-| --------------------------- | ---------------------------------------------------------------------------- | -------------------- |
-| `@cloudfarm/computer`       | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
-| `@cloudfarm/bash-sandbox`   | the default sandbox: bash in TypeScript, no infrastructure                   | Node and Workers     |
-| `@cloudfarm/qjs-engine`     | code mode in a WebAssembly isolate                                           | Node and Workers     |
-| `@cloudfarm/ai-sdk-toolset` | tools for the Vercel AI SDK                                                  | Node and Workers     |
-| `@cloudfarm/slack`          | Slack as an app plugin                                                       | Node and Workers     |
-| `@cloudfarm/linear`         | Linear: issues, teams, comments                                              | Node and Workers     |
-| `@cloudfarm/github`         | GitHub: issues, pull requests, commits, search                               | Node and Workers     |
-| `@cloudfarm/notion`         | Notion: search, read, create and append to pages                             | Node and Workers     |
-| `@cloudfarm/jira`           | Jira Cloud: JQL search, issues, comments                                     | Node and Workers     |
-| `@cloudfarm/stripe`         | Stripe: customers, charges, balance, refunds                                 | Node and Workers     |
-| `@cloudfarm/sentry`         | Sentry: read, triage and resolve issues                                      | Node and Workers     |
-| `@cloudfarm/discord`        | Discord: post and read channel messages                                      | Node and Workers     |
+| package                         | what it is                                                                   | runs on              |
+| ------------------------------- | ---------------------------------------------------------------------------- | -------------------- |
+| `cloudfarm`                     | the Computer, the shell and the engine in one install                        | Node **and** Workers |
+| `@cloudfarm/computer`           | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
+| `@cloudfarm/rbash-sandbox`      | the shell: bash compiled to WebAssembly                                      | Node and Workers     |
+| `@cloudfarm/bash-sandbox`       | the fallback shell: bash in TypeScript, no infrastructure                    | Node and Workers     |
+| `@cloudfarm/sqlite-storage`     | a workspace in SQLite — a local file, a Durable Object, or D1                | Node and Workers     |
+| `@cloudfarm/s3-storage`         | a workspace in any S3-compatible bucket                                      | Node and Workers     |
+| `@cloudfarm/qjs-engine`         | code mode in a WebAssembly isolate                                           | Node and Workers     |
+| `@cloudfarm/ai-sdk-toolset`     | tools for the Vercel AI SDK                                                  | Node and Workers     |
+| `@cloudfarm/slack`              | Slack as an app plugin                                                       | Node and Workers     |
+| `@cloudfarm/linear`             | Linear: issues, teams, comments                                              | Node and Workers     |
+| `@cloudfarm/github`             | GitHub: issues, pull requests, commits, search                               | Node and Workers     |
+| `@cloudfarm/notion`             | Notion: search, read, create and append to pages                             | Node and Workers     |
+| `@cloudfarm/jira`               | Jira Cloud: JQL search, issues, comments                                     | Node and Workers     |
+| `@cloudfarm/stripe`             | Stripe: customers, charges, balance, refunds                                 | Node and Workers     |
+| `@cloudfarm/sentry`             | Sentry: read, triage and resolve issues                                      | Node and Workers     |
+| `@cloudfarm/discord`            | Discord: post and read channel messages                                      | Node and Workers     |
+| `@cloudfarm/hackernews`         | Hacker News: front page, comments, search — no credential                    | Node and Workers     |
+| `@cloudfarm/firecrawl`          | Firecrawl: web search, scrape a page to markdown, map a site                 | Node and Workers     |
+| `@cloudfarm/cloudflare-browser` | the open web via Cloudflare Browser Run                                      | Node and Workers     |
 
-The seven integrations after `slack` are generated from one declarative spec
+The seven integrations from `linear` to `discord` are generated from one declarative spec
 each. `pnpm gen:integrations` rebuilds them, `pnpm check` fails if a committed
 package has drifted from its spec, and
 [`tools/integration-codegen`](tools/integration-codegen#readme) is the three-step
@@ -176,7 +195,7 @@ pnpm --filter @cloudfarm/example-node-agent agent
 pnpm --filter @cloudfarm/example-node-agent agent "your own task"
 ```
 
-Claude gets the five tools and a task it cannot finish in one step — read a CSV
+Claude gets the three tools and a task it cannot finish in one step — read a CSV
 from the workspace, total it by region, write a summary, publish it. Every tool
 call is printed as it happens, so you can see which it reaches for.
 
