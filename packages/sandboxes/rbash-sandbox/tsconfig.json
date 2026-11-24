@@ -6,7 +6,7 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
     "allowJs": true,
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
+    "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": ["src/**/*.ts", "vendor/*.d.ts"],
   "exclude": ["src/**/*.test.ts"]

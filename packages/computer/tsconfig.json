@@ -10,7 +10,7 @@
     // No "node" here, and no @types/node dependency: `node:*` and `process`
     // cannot typecheck inside core. That is the isomorphism contract.
     "types": [],
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
+    "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]
