@@ -1,6 +1,6 @@
 {
   "name": "cloudfarm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Hand an agent a computer: a filesystem, a shell, apps and code mode, in one install",
   "license": "MIT",
   "type": "module",
