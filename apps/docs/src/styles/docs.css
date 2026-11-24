@@ -1,0 +1,305 @@
+@import "tailwindcss";
+@import "@astrojs/starlight-tailwind";
+
+/**
+ * A Mintlify-shaped theme over Starlight.
+ *
+ * What makes those docs read well is not a colour: it is restraint. Narrow
+ * measure, one accent used sparingly, borders that separate without drawing
+ * attention, and code blocks that look like part of the page rather than
+ * something pasted into it. Starlight's defaults are heavier on all four.
+ */
+
+@theme {
+  --font-sans:
+    "Inter var", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:root {
+  /* One accent, a blue that stays legible on both themes. */
+  --sl-color-accent-low: #0b2447;
+  --sl-color-accent: #3b82f6;
+  --sl-color-accent-high: #bfdbfe;
+
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #e9eaee;
+  --sl-color-gray-2: #b9bcc6;
+  --sl-color-gray-3: #7c8091;
+  --sl-color-gray-4: #4b5061;
+  --sl-color-gray-5: #2c3040;
+  --sl-color-gray-6: #1c1f2b;
+  --sl-color-black: #14161f;
+
+  /* Mintlify's measure is narrower than Starlight's and reads better for
+     prose with code in it. */
+  --sl-content-width: 50rem;
+  --sl-sidebar-width: 17.5rem;
+  --sl-text-code: 0.875rem;
+  --sl-nav-height: 3.75rem;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #dbeafe;
+  --sl-color-accent: #2563eb;
+  --sl-color-accent-high: #1e3a8a;
+  --sl-color-white: #14161f;
+  --sl-color-gray-1: #2c3040;
+  --sl-color-gray-2: #4b5061;
+  --sl-color-gray-3: #6b7085;
+  --sl-color-gray-4: #c3c6d0;
+  --sl-color-gray-5: #e7e9ef;
+  --sl-color-gray-6: #f4f5f8;
+  --sl-color-gray-7: #fafbfc;
+  --sl-color-black: #ffffff;
+}
+
+/* ---------------------------------------------------------------- header */
+
+/* `header.header`, not `.header`: Starlight gives its inner grid the same
+   class as the element around it, and Expressive Code names a code block's
+   title bar `.header` too. A bare class selector painted a border and a blur
+   on all three — a stray line floating mid-header, and another on every code
+   block. */
+header.header {
+  border-bottom: 1px solid var(--sl-color-gray-5);
+  backdrop-filter: blur(8px);
+  background-color: color-mix(in srgb, var(--sl-color-black) 85%, transparent);
+  /* The links carry the active-tab underline, so they need the header's full
+     height to put it on its bottom edge rather than under their own text. */
+  padding-block: 0;
+}
+
+/* The row is content-sized by default, so nothing inside can be full-height.
+   Sizing it to the header lets the tabs reach the bottom edge while search
+   and the theme toggle stay centred in it. */
+header.header > .header {
+  height: 100%;
+  grid-auto-rows: 100%;
+}
+
+/* Starlight insets this by -4px so a focus ring can escape `overflow: clip`.
+   Full-height tabs need it flush with the header instead. */
+header.header .title-wrapper {
+  align-self: stretch;
+  align-items: stretch;
+  margin-block: 0;
+  padding-block: 0;
+}
+
+/* --------------------------------------------------------------- sidebar */
+
+/* Group labels as quiet uppercase rather than headings: they are signposts,
+   and at heading weight they compete with the page you are reading. */
+.sidebar-content summary,
+.sidebar-content .group-label,
+.sidebar-content .group-label > span,
+.sidebar-content > ul > li > span,
+starlight-toc h2 {
+  font-size: 0.6875rem !important;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+
+/* Every entry is a link at one size, nested or not. Starlight gives a
+   top-level item larger type than a nested one, which reads as two
+   hierarchies where there is one. */
+.sidebar-content a,
+.sidebar-content > ul > li > a {
+  border-radius: 0.375rem;
+  padding-block: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  border-inline-start: none;
+}
+
+.sidebar-content ul ul {
+  border-inline-start: 1px solid var(--sl-color-gray-6);
+  padding-inline-start: 0.5rem;
+  margin-inline-start: 0.35rem;
+}
+
+.sidebar-content a[aria-current="page"] {
+  background-color: color-mix(in srgb, var(--sl-color-accent) 14%, transparent);
+  color: var(--sl-color-accent-high);
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------- content */
+
+.sl-markdown-content {
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+/* The page title and the body are separate panels, each with its own block
+   padding, so the two paddings stack and the title sits ~48px above its
+   first line. Mintlify keeps that gap at about a line. */
+.content-panel {
+  padding-block: 1.25rem;
+}
+
+.content-panel + .content-panel {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* Starlight wraps every heading with its anchor link in a
+   `.sl-heading-wrapper`, so the element in the flow is the wrapper, not the
+   heading: rules written against `h2` landed inside a box whose spacing was
+   still Starlight's. The wrapper is also what put the anchor icon on its own
+   line below the heading once the heading was made full-width — a ~54px band
+   of nothing between a title and its first paragraph. Laying the wrapper out
+   as a row puts the icon back beside the words. */
+.sl-markdown-content .sl-heading-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* A heading should sit close to what it introduces: the space belongs above
+   it, separating sections, not below it. */
+.sl-markdown-content :is(h2, h3, h4, h5, h6) + *,
+.sl-markdown-content .sl-heading-wrapper + * {
+  margin-top: 0.75rem !important;
+}
+
+/* A rule above each section, which is what gives a long reference page its
+   rhythm. It sits on the wrapper, which spans the measure; on the heading it
+   would inherit the heading's intrinsic width and render as a stub. */
+.sl-markdown-content .sl-heading-wrapper.level-h2 {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--sl-color-gray-6);
+}
+
+/* The first heading on a page has the title above it already. */
+.sl-markdown-content > .sl-heading-wrapper:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.5rem;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+/* Inside a wrapper the spacing is the wrapper's, so the heading contributes
+   none of its own. */
+.sl-markdown-content .sl-heading-wrapper > :is(h2, h3, h4, h5, h6) {
+  margin-top: 0;
+}
+
+/* The anchor link inherits the wrapper's font size, which is the heading's —
+   at 35px its icon is a 29x42 block, wider than the gap it sits in. Pin it to
+   its own size and let it appear on hover, as Starlight intends. */
+.sl-markdown-content .sl-anchor-link {
+  margin-top: 0 !important;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sl-markdown-content .sl-heading-wrapper:hover .sl-anchor-link,
+.sl-markdown-content .sl-anchor-link:focus-visible {
+  opacity: 1;
+}
+
+.sl-markdown-content .sl-anchor-icon {
+  display: flex;
+}
+
+.sl-markdown-content h3 {
+  margin-top: 1.75rem;
+  font-size: 1.0625rem;
+}
+
+/* Inline code as a chip, not a shout. */
+.sl-markdown-content :not(pre, astro-island, .not-content *) > code:not(:where(.not-content *)) {
+  background-color: color-mix(in srgb, var(--sl-color-gray-5) 55%, transparent);
+  border: 1px solid var(--sl-color-gray-6);
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+  font-weight: 450;
+}
+
+.expressive-code .frame {
+  border-radius: 0.6rem;
+  border: 1px solid var(--sl-color-gray-6);
+  box-shadow: none;
+}
+
+/* Tailwind's preflight sets `list-style: none` on every ul and ol, which
+   silently turns every bullet list in the docs into unmarked lines. The
+   starlight-tailwind plugin does not restore them inside content. */
+.sl-markdown-content :is(ul, ol):not(:where(.not-content *)) {
+  list-style: revert;
+  padding-inline-start: 1.5rem;
+}
+.sl-markdown-content ul:not(:where(.not-content *)) {
+  list-style-type: disc;
+}
+.sl-markdown-content ol:not(:where(.not-content *)) {
+  list-style-type: decimal;
+}
+.sl-markdown-content li:not(:where(.not-content *))::marker {
+  color: var(--sl-color-gray-3);
+}
+/* The card grid on the splash page is a list, and must not grow bullets. */
+.sl-markdown-content .card-grid:not(:where(.not-content *)) {
+  list-style: none;
+  padding-inline-start: 0;
+}
+
+/* Tables: horizontal rules only, which is what makes a reference table
+   scannable rather than a grid you have to parse. */
+.sl-markdown-content table {
+  display: table;
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+}
+.sl-markdown-content th {
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+  border-bottom: 1px solid var(--sl-color-gray-5);
+}
+.sl-markdown-content td {
+  border-bottom: 1px solid var(--sl-color-gray-6);
+}
+.sl-markdown-content :is(th, td) {
+  padding: 0.6rem 0.9rem 0.6rem 0;
+}
+
+/* Asides as a left rule rather than a filled box, so a caution informs
+   without taking over the page. */
+.starlight-aside {
+  border-radius: 0 0.5rem 0.5rem 0;
+  border-inline-start-width: 2px;
+  background-color: color-mix(in srgb, var(--sl-color-gray-6) 55%, transparent);
+  padding: 0.9rem 1.1rem;
+}
+.starlight-aside__title {
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+}
+
+/* ------------------------------------------------------------ splash */
+
+.hero > img,
+.hero > .hero-html {
+  display: none;
+}
+.hero h1 {
+  letter-spacing: -0.03em;
+}

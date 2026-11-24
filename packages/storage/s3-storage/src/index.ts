@@ -1,5 +1,5 @@
 import { AwsClient } from "aws4fetch";
-import type { Attachment, FileStat, FileSystem, StorageProvider } from "@cloudfarm/core";
+import type { FileStat, FileSystem, StorageProvider } from "@cloudfarm/computer";
 
 export interface S3StorageOptions {
   readonly bucket: string;
@@ -12,18 +12,15 @@ export interface S3StorageOptions {
   /** MinIO and some gateways need `bucket/key` in the path rather than in the host. */
   readonly pathStyle?: boolean;
   /**
-   * Where each workspace's subtree starts. Defaults to `cloudfarm/`.
+   * Where the users' folders start inside the bucket. Defaults to `cloudfarm/`;
+   * pass `""` when the bucket is already dedicated to this.
    *
-   * One prefix per `{userId, workspaceId}` keeps tenants apart inside a shared
-   * bucket, and is the boundary any scoped credential should be pinned to.
+   * The layout under it is `<userId>/workspaces/<workspaceId>/`. The user owns
+   * the root folder, so anything of theirs that outlives a single workspace
+   * has somewhere to sit beside `workspaces/`, and a credential scoped to one
+   * user cannot reach another's.
    */
   readonly prefix?: string;
-  /**
-   * Credentials to hand a sandbox that mounts this bucket, when they differ
-   * from the ones used here — which they should. These reach model-written
-   * code, so they belong scoped to the workspace prefix and short-lived.
-   */
-  readonly attachCredentials?: Attachment["credentials"];
 }
 
 /**
@@ -62,24 +59,6 @@ export class S3Storage implements StorageProvider {
 
   async open(scope: { userId: string; workspaceId: string }): Promise<FileSystem> {
     return new S3FileSystem(this.#client, this.#options, prefixFor(this.#options, scope));
-  }
-
-  async attachment(scope: { userId: string; workspaceId: string }): Promise<Attachment | null> {
-    const credentials = this.#options.attachCredentials;
-    // No separate credentials means no attachment offered. Handing a sandbox
-    // the same keys this process signs with would give model-written code the
-    // run of the whole bucket, which is exactly what the prefix is for.
-    if (!credentials) return null;
-
-    return {
-      kind: "s3",
-      endpoint: this.#options.endpoint ?? "https://s3.amazonaws.com",
-      bucket: this.#options.bucket,
-      prefix: prefixFor(this.#options, scope),
-      ...(this.#options.region !== undefined ? { region: this.#options.region } : {}),
-      ...(this.#options.pathStyle !== undefined ? { pathStyle: this.#options.pathStyle } : {}),
-      credentials,
-    };
   }
 }
 
@@ -197,12 +176,23 @@ class S3FileSystem implements FileSystem {
   }
 }
 
+/**
+ * The subtree one workspace reads and writes:
+ * `<prefix>/<userId>/workspaces/<workspaceId>/`.
+ *
+ * `workspaces/` is a literal segment rather than the workspace id sitting
+ * directly under the user, so the user's folder stays open for everything
+ * that is theirs rather than one session's — and a key can be told apart by
+ * reading it.
+ */
 function prefixFor(
   options: S3StorageOptions,
   scope: { userId: string; workspaceId: string },
 ): string {
   const root = (options.prefix ?? "cloudfarm").replace(/^\/+|\/+$/g, "");
-  return `${root}/${encodeURIComponent(scope.userId)}/${encodeURIComponent(scope.workspaceId)}/`;
+  const user = encodeURIComponent(scope.userId);
+  const workspace = encodeURIComponent(scope.workspaceId);
+  return `${root ? `${root}/` : ""}${user}/workspaces/${workspace}/`;
 }
 
 function normalize(path: string): string {

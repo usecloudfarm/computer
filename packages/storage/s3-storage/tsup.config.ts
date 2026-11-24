@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: "es2023",
-  external: ["@cloudfarm/core", "just-bash", "zod"],
+  external: ["@cloudfarm/computer", "just-bash", "zod"],
 });

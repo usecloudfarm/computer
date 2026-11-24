@@ -11,7 +11,7 @@
   installed — `search`, `run`, `code`, `list_apps`, `fs` — so a tenth app costs
   nothing in the system prompt.
 
-  - **`@cloudfarm/core`** — `Computer` and `Workspace`, the plugin interfaces,
+  - **`@cloudfarm/computer`** — `Computer` and `Workspace`, the plugin interfaces,
     ref dispatch, BM25 action search, code-mode orchestration with
     validation-before-execution, one result envelope for every call, redaction
     and output clamping. Isomorphic: its whole suite runs under workerd as well
@@ -23,4 +23,4 @@
   - **Toolsets** — `ai`, for the Vercel AI SDK.
 
 - Updated dependencies
-  - @cloudfarm/core@0.0.1
+  - @cloudfarm/computer@0.0.1

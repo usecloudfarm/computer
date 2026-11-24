@@ -3,6 +3,7 @@ import { ChevronRight, Loader2 } from "lucide-react";
 import { getToolName } from "ai";
 import { ToolCall } from "./ToolCall.tsx";
 import { cn } from "@/lib/utils.ts";
+import { useCallDurations, useElapsed } from "@/lib/elapsed.ts";
 import { hasFailed, isPending } from "@/lib/calls.ts";
 import type { AnyToolPart } from "@/lib/calls.ts";
 
@@ -30,25 +31,40 @@ export function ToolGroup({
   messageId,
   calls,
   reveal,
+  superseded,
 }: {
   messageId: string;
   calls: GroupedCall[];
   reveal: Reveal | null;
+  /** The model has produced prose after this run, so it is no longer the
+   * live thing. */
+  superseded: boolean;
 }) {
   const pending = calls.some(({ part }) => isPending(part));
   const failed = calls.filter(({ part }) => hasFailed(part)).length;
+  // Timed here rather than in the row: a collapsed row does not mount until
+  // it is opened, long after the call it would be timing has finished.
+  const durations = useCallDurations(calls.map(({ part }) => isPending(part)));
 
-  const [open, setOpen] = useState(pending);
+  const [open, setOpen] = useState(() => pending || !superseded);
   // Once you have taken a position on this group, it keeps it. Otherwise the
-  // auto-collapse below would shut a group you had deliberately opened.
+  // rule below would shut a group you had deliberately opened.
   const touched = useRef(false);
   const elapsed = useElapsed(pending);
 
-  // Open while the model is working, closed once it is done — the live view
-  // is worth seeing and the finished one is worth getting out of the way.
+  // Open when the run starts, and stay open until the model starts talking
+  // again.
+  //
+  // This used to track `pending` directly, which closed a group the instant
+  // its last call settled. A turn that uses the shell four times is four
+  // groups, so the panel opened and shut four times in a row while the model
+  // was still mid-thought and nothing had been read. Prose arriving is the
+  // real signal that the run is over and finished with.
   useEffect(() => {
-    if (!touched.current) setOpen(pending);
-  }, [pending]);
+    if (touched.current) return;
+    if (pending) setOpen(true);
+    else if (superseded) setOpen(false);
+  }, [pending, superseded]);
 
   // A history row points at one call, which is inside this group and may be
   // hidden. Opening first and scrolling after is the only order that works:
@@ -104,12 +120,13 @@ export function ToolGroup({
 
       {open && (
         <div className="border-border mt-1 ml-[7px] space-y-1 border-l pl-3">
-          {calls.map(({ part, index }) => (
+          {calls.map(({ part, index }, at) => (
             <ToolCall
               key={index}
               id={`call-${messageId}-${index}`}
               part={part}
               name={getToolName(part)}
+              elapsed={durations[at] ?? null}
             />
           ))}
         </div>
@@ -137,36 +154,4 @@ function seconds(ms: number): string {
   const total = Math.round(ms / 1000);
   if (total < 60) return `${total} second${total === 1 ? "" : "s"}`;
   return `${Math.floor(total / 60)}m ${total % 60}s`;
-}
-
-/**
- * How long this group has been running, ticking while it is.
- *
- * Measured here rather than taken from the parts, which carry no timestamps.
- * A group that was already settled on its first render was never observed
- * running, so it reports null instead of a duration it cannot know.
- */
-function useElapsed(pending: boolean): number | null {
-  const startedAt = useRef<number | null>(pending ? Date.now() : null);
-  const endedAt = useRef<number | null>(null);
-  const [, tick] = useState(0);
-
-  useEffect(() => {
-    if (pending) {
-      startedAt.current ??= Date.now();
-      endedAt.current = null;
-    } else if (startedAt.current !== null) {
-      endedAt.current ??= Date.now();
-    }
-  }, [pending]);
-
-  // Only while running: a settled group's label never changes again.
-  useEffect(() => {
-    if (!pending) return;
-    const timer = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(timer);
-  }, [pending]);
-
-  if (startedAt.current === null) return null;
-  return (endedAt.current ?? Date.now()) - startedAt.current;
 }

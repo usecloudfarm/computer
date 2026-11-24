@@ -42,7 +42,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/computer": "workspace:^",
     "@jitl/quickjs-wasmfile-release-asyncify": "^0.32.0",
     "quickjs-emscripten-core": "^0.32.0"
   },

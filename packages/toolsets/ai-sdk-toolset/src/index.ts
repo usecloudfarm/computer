@@ -1,7 +1,7 @@
 import { jsonSchema, tool, NoSuchToolError } from "ai";
 import type { Tool, ToolCallRepairFunction, ToolSet } from "ai";
-import type { Invoke, Toolset } from "@cloudfarm/core";
-import type { ToolSpec } from "@cloudfarm/core";
+import type { Invoke, Toolset } from "@cloudfarm/computer";
+import type { ToolSpec } from "@cloudfarm/computer";
 
 /**
  * The AI SDK adapter.

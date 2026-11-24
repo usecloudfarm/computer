@@ -33,7 +33,7 @@ export function emitPackageJson(spec) {
           clean: "rm -rf dist .turbo *.tsbuildinfo",
         },
         dependencies: {
-          "@cloudfarm/core": "workspace:^",
+          "@cloudfarm/computer": "workspace:^",
           zod: "^4.6.7",
         },
         devDependencies: {
@@ -84,7 +84,7 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: "es2023",
-  external: ["@cloudfarm/core", "zod"],
+  external: ["@cloudfarm/computer", "zod"],
 });
 `;
 }
@@ -120,7 +120,7 @@ ${credentialNote(spec)}
 ## Usage
 
 \`\`\`ts
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { ${spec.constName} } from "${spec.packageName}";
 
 const computer = new Computer({

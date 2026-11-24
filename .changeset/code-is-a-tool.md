@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 `code` is a tool, and no longer also a ref.

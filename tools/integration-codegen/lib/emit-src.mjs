@@ -34,7 +34,7 @@ export function emitSource(spec) {
   const parts = [
     banner(spec),
     `import { z } from "zod";`,
-    `import { ${imports.join(", ")} } from "@cloudfarm/core";`,
+    `import { ${imports.join(", ")} } from "@cloudfarm/computer";`,
     "",
   ];
   if (!spec.templated) parts.push(`const BASE = ${lit(spec.baseUrl)};`, "");

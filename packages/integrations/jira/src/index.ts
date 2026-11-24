@@ -2,7 +2,7 @@
 // Run `pnpm gen:integrations` after editing the spec; edits here are overwritten.
 
 import { z } from "zod";
-import { basic, createAction, createApp } from "@cloudfarm/core";
+import { basic, createAction, createApp } from "@cloudfarm/computer";
 
 /**
  * Jira as an app plugin.

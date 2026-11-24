@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 Code mode can no longer be turned off. `codeEngine: null` now resolves the

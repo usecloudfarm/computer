@@ -17,7 +17,7 @@ arrived in a model's arguments.
 ## Usage
 
 ```ts
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { sentry } from "@cloudfarm/sentry";
 
 const computer = new Computer({

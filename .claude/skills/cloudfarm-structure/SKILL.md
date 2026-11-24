@@ -7,31 +7,38 @@ description: The layout of the cloudfarm monorepo and the conventions every pack
 
 ## The organising idea
 
-`@cloudfarm/core` defines a handful of plugin interfaces. **Every other package
+`@cloudfarm/computer` defines a handful of plugin interfaces. **Every other package
 implements exactly one of them, and lives in the folder named after it.** The
 path tells you the contract:
 
 ```
 packages/
-├── core/                    @cloudfarm/core — the Computer, and every interface below
-├── sandboxes/               SandboxProvider — where bash runs
-│   ├── bash/                @cloudfarm/bash-sandbox   (default: just-bash, no infrastructure)
-│   └── e2b/                 @cloudfarm/e2b-sandbox    (planned)
+├── core/                    @cloudfarm/computer — the Computer, and every interface below
+├── sandboxes/               where bash runs — closed, exactly one
+│   └── bash-sandbox/        @cloudfarm/bash-sandbox   (just-bash, in-process)
+├── engines/                 where code mode executes — closed, exactly one
+│   └── qjs-engine/          @cloudfarm/qjs-engine     (QuickJS, in WebAssembly)
 ├── integrations/            App — third-party actions
 │   └── slack/               @cloudfarm/slack
-├── engines/                 CodeEngine — where code mode executes
-│   └── quickjs/             @cloudfarm/qjs-engine
 ├── toolsets/                Toolset — adapters for agent frameworks
-│   └── ai/                  @cloudfarm/ai-sdk-toolset     (Vercel AI SDK)
-├── storage/                 StorageProvider — where workspace files live  (empty)
+│   └── ai-sdk-toolset/      @cloudfarm/ai-sdk-toolset     (Vercel AI SDK)
+├── storage/                 StorageProvider — where workspace files live
+│   └── s3-storage/          @cloudfarm/s3-storage     (any S3-compatible bucket)
 └── memory/                  MemoryStore — searchable agent memory         (empty)
 
 examples/
 └── node-agent/              the brief's snippet, typechecked in CI, plus a runnable demo
 ```
 
-`storage/` and `memory/` have no packages yet; create the directory when you
-add the first one rather than leaving an empty placeholder.
+**`sandboxes/` and `engines/` are closed.** `new Computer()` takes no provider
+and no engine; the shell is `just-bash` and code mode is QuickJS, both found
+at runtime. The folders stay plural because the interfaces still name the
+seam, not because a second one is coming — E2B, Vercel and two other remote
+sandboxes lived there and were removed. Adding a third package to either is a
+decision to reopen that, not a routine addition.
+
+`memory/` has no packages yet; create the directory when you add the first one
+rather than leaving an empty placeholder.
 
 This mapping is worth preserving because it answers "where does this go?"
 without anyone having to ask. If you are about to add a package that does not
@@ -40,16 +47,17 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 
 ## Adding a package
 
-1. **Pick the folder from the interface you implement.** A thing that runs
-   shell commands is a `SandboxProvider`, so it goes in `packages/sandboxes/`.
-   A thing that exposes third-party actions is an `App` → `integrations/`.
-2. **Copy the nearest sibling.** `packages/sandboxes/bash-sandbox` is the best template
-   for a provider; `packages/integrations/slack` for an app. Both are small and
-   already have the right config.
+1. **Pick the folder from the interface you implement.** A thing that exposes
+   third-party actions is an `App` → `integrations/`. A place for workspace
+   files is a `StorageProvider` → `storage/`. If you reach for `sandboxes/` or
+   `engines/`, stop and read the note above.
+2. **Copy the nearest sibling.** `packages/integrations/slack` is the best
+   template for an app; `packages/storage/s3-storage` for storage. Both are
+   small and already have the right config.
 3. **Fix the relative paths** — grouped packages sit one level deeper than
    `core`:
 
-   | file                       | in `packages/core`         | in `packages/<kind>/<name>`   |
+   | file                       | in `packages/computer`     | in `packages/<kind>/<name>`   |
    | -------------------------- | -------------------------- | ----------------------------- |
    | `tsconfig.json` extends    | `../../tsconfig.base.json` | `../../../tsconfig.base.json` |
    | `vitest.config.ts` imports | `../../vitest.config.js`   | `../../../vitest.config.js`   |
@@ -81,7 +89,7 @@ when you do.
 Use `createApp` from core, with one `createAction()` per member:
 
 ```ts
-import { createAction, createApp } from "@cloudfarm/core";
+import { createAction, createApp } from "@cloudfarm/computer";
 
 export function linear(options: { apiKey: string }) {
   return createApp({
@@ -208,7 +216,7 @@ new apps should use the factory.
 `@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` are the defaults for `provider` and
 `codeEngine`. Core cannot import them — they depend on core — so it declares
 them as **optional peer dependencies** and resolves them at runtime through a
-dynamic import in `packages/core/src/defaults.ts`. Installed means default;
+dynamic import in `packages/computer/src/defaults.ts`. Installed means default;
 absent means the matching tool is simply missing.
 
 pnpm reports a cyclic workspace dependency because of those peers. It is
@@ -232,11 +240,11 @@ but nothing publishes.
 
 **Zod for data, interfaces for behaviour.** Anything that crosses a boundary —
 action inputs and outputs, run results, wire frames — is a Zod schema in
-`packages/core/src/schemas.ts` with its TypeScript type inferred from it. One
+`packages/computer/src/schemas.ts` with its TypeScript type inferred from it. One
 definition validates the model's arguments, generates the JSON Schema that tool
 definitions need, and renders the TypeScript the model writes against in code
 mode. Things with methods (filesystems, providers, engines) stay plain
-interfaces in `packages/core/src/ports.ts`; Zod has nothing useful to say about
+interfaces in `packages/computer/src/ports.ts`; Zod has nothing useful to say about
 a method.
 
 **Descriptions are prompt text.** Every `description` field on a provider, app
@@ -246,12 +254,12 @@ expect tests to assert on it.
 
 ## The isomorphism rule
 
-`@cloudfarm/core` runs on Node **and** Cloudflare Workers, and that is enforced
+`@cloudfarm/computer` runs on Node **and** Cloudflare Workers, and that is enforced
 mechanically rather than by discipline:
 
 - it has no `@types/node` dependency and `"types": []` in its tsconfig, so
   `node:*` imports and `process` do not typecheck;
-- oxlint bans `node:` imports and browser-only globals inside `packages/core/src`;
+- oxlint bans `node:` imports and browser-only globals inside `packages/computer/src`;
 - `pnpm test:workers` runs core's **entire** suite inside workerd, and CI runs
   it alongside the Node suite.
 

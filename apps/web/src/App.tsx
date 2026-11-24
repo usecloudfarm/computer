@@ -89,6 +89,7 @@ export function App() {
       <div className="flex h-full overflow-hidden">
         <Sidebar
           files={state.files}
+          storage={state.storage}
           apps={state.apps}
           tools={state.tools}
           history={history}

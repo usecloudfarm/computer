@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": patch
+"@cloudfarm/computer": patch
 "@cloudfarm/ai-sdk-toolset": minor
 ---
 

@@ -2,7 +2,7 @@
 // Run `pnpm gen:integrations` after editing the spec; edits here are overwritten.
 
 import { z } from "zod";
-import { apiKey, createAction, createApp } from "@cloudfarm/core";
+import { apiKey, createAction, createApp } from "@cloudfarm/computer";
 
 const BASE = "https://api.stripe.com/v1";
 

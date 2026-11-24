@@ -9,11 +9,15 @@ default, because a single call carrying a whole script is the one you most
 need to read.
 
 ```sh
-echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" > apps/web/.env
+cp .env.example .env            # at the repo root, then fill in the key
 pnpm --filter @cloudfarm/web dev
 # web  http://localhost:5173
 # api  http://localhost:8787
 ```
+
+The root `.env` is read first and `apps/web/.env` second, so a value in the
+app's own file overrides the shared one. Both are optional to the loader —
+only `ANTHROPIC_API_KEY` is required to boot.
 
 ## How it is put together
 
@@ -67,6 +71,21 @@ the workspace holds and the transcript says what happened, so a strip
 repeating the product name was only taking vertical space — the workspace
 square at the top of the rail carries the identity, and its tooltip the model
 name.
+
+## The shell
+
+`just-bash`, in this process, over the workspace filesystem. There is nothing
+to configure and no remote sandbox to point it at.
+
+The workspace appears at `/data`, so `/data/sales.csv` to the agent is
+`sales.csv` in the bucket. Watch the file explorer: a file the agent writes
+with `>` appears there, and a file seeded here is readable with `cat` — one
+filesystem, not two kept in step.
+
+Files live in a local SQLite database at `.cloudfarm/playground.db`, so they
+survive a restart with nothing to configure. `CLOUDFARM_DB` points it
+elsewhere. `@cloudfarm/s3-storage` is the answer for a bucket and
+`@cloudfarm/sqlite-storage/d1` for D1; neither is wired up here.
 
 ## Notes
 

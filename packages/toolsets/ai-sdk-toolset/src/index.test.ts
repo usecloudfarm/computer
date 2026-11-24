@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { Computer } from "@cloudfarm/core";
-import type { App } from "@cloudfarm/core";
-import { fakeSandbox } from "@cloudfarm/core/testing";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
+import type { App } from "@cloudfarm/computer";
+import { fakeSandbox } from "@cloudfarm/computer/testing";
 import { AISDKToolset, repairToRun } from "./index.js";
 import { NoSuchToolError } from "ai";
 
@@ -26,13 +26,14 @@ const app: App = {
   ],
 };
 
+afterEach(resetDefaults);
+
 async function tools(options?: ConstructorParameters<typeof AISDKToolset>[0]) {
+  // A scripted shell and no engine, so the expected tool list does not depend
+  // on which optional packages happen to be installed alongside.
+  setTestDefaults({ provider: fakeSandbox({ responses: { "echo hi": { stdout: "hi\n" } } }) });
   const computer = new Computer({
     toolset: new AISDKToolset(options),
-    provider: fakeSandbox({ responses: { "echo hi": { stdout: "hi\n" } } }),
-    // Pinned off so the expected tool list does not depend on which optional
-    // packages are installed alongside.
-    codeEngine: null,
     apps: [app],
   });
   const workspace = await computer.createWorkspace("u1");

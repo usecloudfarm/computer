@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 The shell can no longer be turned off. `provider: null` resolves the default

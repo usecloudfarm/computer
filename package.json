@@ -1,5 +1,5 @@
 {
-  "name": "cloudfarm",
+  "name": "cloudfarm-monorepo",
   "version": "0.0.0",
   "private": true,
   "description": "Computer \u2014 a fast computer with the right tools for every agent",

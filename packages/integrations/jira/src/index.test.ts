@@ -2,7 +2,7 @@
 // Run `pnpm gen:integrations` after editing the spec; edits here are overwritten.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { jira } from "./index.js";
 
 /** Replaces global fetch, so no test here ever reaches the network. */

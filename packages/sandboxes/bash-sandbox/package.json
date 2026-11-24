@@ -27,7 +27,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/computer": "workspace:^",
     "just-bash": "^3.6.1"
   },
   "devDependencies": {

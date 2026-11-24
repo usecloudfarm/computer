@@ -8,7 +8,7 @@ export default defineConfig({
   clean: true,
   target: "es2023",
   external: [
-    "@cloudfarm/core",
+    "@cloudfarm/computer",
     "quickjs-emscripten-core",
     "@jitl/quickjs-wasmfile-release-asyncify",
     "zod",

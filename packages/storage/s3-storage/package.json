@@ -27,7 +27,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/computer": "workspace:^",
     "aws4fetch": "^1.0.20"
   },
   "devDependencies": {

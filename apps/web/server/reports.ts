@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createAction, createApp } from "@cloudfarm/core";
+import { createAction, createApp } from "@cloudfarm/computer";
 
 /**
  * A stand-in app, so the playground has something to *do* besides read files

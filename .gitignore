@@ -10,3 +10,10 @@ coverage/
 .env
 .env.*
 !.env.example
+.cloudfarm/
+
+# tsup writes its config out next to the real one while building.
+tsup.config.bundled_*.mjs
+
+# Astro's generated types, in apps/docs.
+.astro/

@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": major
+"@cloudfarm/computer": major
 ---
 
 Remove the `fs.*` actions. The shell is the filesystem.

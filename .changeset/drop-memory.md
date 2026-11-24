@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 Remove memory as a concept: the `MemoryStore` port, the `MemoryRecord` schema,

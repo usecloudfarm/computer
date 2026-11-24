@@ -1,0 +1,80 @@
+{
+  "name": "@cloudfarm/sqlite-storage",
+  "version": "0.0.1",
+  "description": "StorageProvider over SQLite: a local file on Node, a Durable Object's own storage on Workers",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/node.js",
+  "types": "./dist/node.d.ts",
+  "exports": {
+    ".": {
+      "workerd": {
+        "@cloudfarm/source": "./src/workers.ts",
+        "types": "./dist/workers.d.ts",
+        "import": "./dist/workers.js"
+      },
+      "@cloudfarm/source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./workers": {
+      "@cloudfarm/source": "./src/workers.ts",
+      "types": "./dist/workers.d.ts",
+      "import": "./dist/workers.js"
+    },
+    "./node": {
+      "@cloudfarm/source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./d1": {
+      "@cloudfarm/source": "./src/d1.ts",
+      "types": "./dist/d1.d.ts",
+      "import": "./dist/d1.js"
+    },
+    "./d1-http": {
+      "@cloudfarm/source": "./src/d1-http.ts",
+      "types": "./dist/d1-http.d.ts",
+      "import": "./dist/d1-http.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf dist .turbo .wrangler *.tsbuildinfo",
+    "test:workers": "vitest run --config vitest.workers.config.ts"
+  },
+  "dependencies": {
+    "@cloudfarm/computer": "workspace:^"
+  },
+  "devDependencies": {
+    "@cloudfarm/bash-sandbox": "workspace:^",
+    "@cloudfarm/qjs-engine": "workspace:^",
+    "@cloudflare/vitest-plugin": "^1.9.0",
+    "@types/node": "^26.6.6",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.166.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usecloudfarm/computer.git",
+    "directory": "packages/storage/sqlite-storage"
+  },
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/storage/sqlite-storage#readme",
+  "bugs": {
+    "url": "https://github.com/usecloudfarm/computer/issues"
+  }
+}

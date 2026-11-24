@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 `fs`, `path`, `os` and `util` work in code mode, as globals and through

@@ -60,7 +60,7 @@ export function emitTest(spec) {
   return `${banner(spec)}
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { ${spec.constName} } from "./index.js";
 
 /** Replaces global fetch, so no test here ever reaches the network. */

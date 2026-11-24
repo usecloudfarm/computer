@@ -1,0 +1,35 @@
+---
+title: cloudfarm
+description: Hand an AI agent a computer — a filesystem, a shell, and apps it discovers rather than being handed.
+template: splash
+hero:
+  tagline: A workspace an agent can actually use. A filesystem for its state, a shell, apps as plugins, and code mode for the glue.
+  actions:
+    - text: Quickstart
+      link: /start/quickstart/
+      icon: right-arrow
+    - text: What this is
+      link: /start/introduction/
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid stagger>
+  <Card title="Three tools, not thirty" icon="puzzle">
+    An agent gets `search`, `run` and `code`. Everything else is an *action* it finds by searching,
+    so adding an app does not grow the prompt.
+  </Card>
+  <Card title="One filesystem" icon="document">
+    The workspace is the agent's memory. It appears at `/data` in the shell and at `/` to your
+    program, and it is the same bytes either way.
+  </Card>
+  <Card title="Runs where you do" icon="rocket">
+    Node and Cloudflare Workers. `@cloudfarm/computer` has no Node built-ins and its whole suite
+    runs under workerd on every commit.
+  </Card>
+  <Card title="Bring your own agent" icon="setting">
+    No model, no loop, no opinions about your framework. A `Toolset` adapts the tool specs; the AI
+    SDK one ships.
+  </Card>
+</CardGrid>

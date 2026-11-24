@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { apiKey, createAction, createApp, UpstreamRejectedError } from "@cloudfarm/core";
-import type { ActionContext } from "@cloudfarm/core";
+import { apiKey, createAction, createApp, UpstreamRejectedError } from "@cloudfarm/computer";
+import type { ActionContext } from "@cloudfarm/computer";
 
 const API = "https://api.cloudflare.com/client/v4";
 

@@ -1,0 +1,24 @@
+{
+  "name": "@cloudfarm/docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "lint": "astro check --minimumSeverity error",
+    "typecheck": "astro check --minimumSeverity error",
+    "clean": "rm -rf dist .turbo .astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.43.1",
+    "@astrojs/starlight-tailwind": "^5.0.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "astro": "7.4.1",
+    "sharp": "^0.34.2",
+    "tailwindcss": "^4.3.5"
+  },
+  "engines": {
+    "node": ">=22.22.0"
+  }
+}

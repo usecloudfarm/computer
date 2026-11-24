@@ -16,7 +16,7 @@
     "@ai-sdk/anthropic": "^4.0.107",
     "@cloudfarm/ai-sdk-toolset": "workspace:^",
     "@cloudfarm/bash-sandbox": "workspace:^",
-    "@cloudfarm/core": "workspace:^",
+    "@cloudfarm/computer": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",
     "@cloudfarm/qjs-engine": "workspace:^",
     "@cloudfarm/slack": "workspace:^",

@@ -7,16 +7,14 @@ apps as plugins, and _code mode_ — where the agent searches for an action,
 gets typed signatures back, and writes code that runs in an isolate.
 
 ```ts
-import { Computer } from "@cloudfarm/core";
-import { JustBash } from "@cloudfarm/bash-sandbox";
-import { quickjs } from "@cloudfarm/qjs-engine";
+import { Computer } from "@cloudfarm/computer";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 
+// The shell and code mode are not options: install
+// @cloudfarm/bash-sandbox and @cloudfarm/qjs-engine and they are there.
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  provider: new JustBash(), // the default shell
-  codeEngine: quickjs(), // code mode, in WebAssembly
   apps: [slack({ apiKey: process.env.SLACK_TOKEN })],
 });
 
@@ -25,28 +23,51 @@ const workspace = await computer.createWorkspace("user_id");
 const result = await generateText({
   model,
   tools: await workspace.tools(),
-  prompt: "Summarise #eng and save it to /notes/eng.md",
+  // `/data` is the workspace inside the shell; `/notes/eng.md` to the host.
+  prompt: "Summarise #eng and save it to /data/notes/eng.md",
 });
 ```
 
-## Defaults
+## The shell and code mode are not configurable
 
-`provider` and `codeEngine` are optional. With `@cloudfarm/bash-sandbox` and
-`@cloudfarm/qjs-engine` installed, `new Computer()` already has a shell and code
-mode — they are found at runtime rather than imported, because both packages
-depend on core and a dependency back would be a cycle.
+The shell is `just-bash` and code mode is QuickJS. There is no option to pass
+either one, and nothing else to pass instead.
 
 ```ts
-new Computer(); // bash + QuickJS
-new Computer({ provider: new E2B({ apiKey }) }); // swap the shell
-new Computer({ provider: null }); // still a shell — null falls back
-new Computer({ codeEngine: null }); // still code mode — null falls back
+new Computer(); // bash + QuickJS, nothing to decide
 ```
 
-There is no way to turn the shell or code mode off. `null` and `undefined`
-both resolve the default: chaining several actions in one pass is why the tool surface stays
-small, so a Computer without it is a different product rather than a
-configuration of this one. A shell, by contrast, is genuinely optional.
+Both are found at runtime rather than imported, because both packages depend on
+core and a dependency back would be a cycle. Install
+`@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` and the `run` and `code`
+tools exist; leave one out and that tool is absent rather than broken.
+
+Remote sandboxes — E2B, Vercel, and two others — used to be pluggable here.
+They are gone. What they cost was not the code to talk to them but everything
+underneath: two filesystems to reconcile, a copy sync around every command, an
+engine that ran inside the sandbox, bucket credentials handed to a machine
+running model-written code, and a second code-mode dialect to keep in step
+with the first. What they bought was `npm` and `python`. `just-bash` in this
+process starts in a millisecond and shares one filesystem with the workspace;
+the microVM took a second to boot and 1.6s per `code()` call, with a tail into
+the tens of seconds.
+
+The shell is `@cloudfarm/rbash-sandbox` when it is installed — bash compiled
+to WebAssembly, covering every command `just-bash` has and faster on all of
+them — and `@cloudfarm/bash-sandbox` otherwise. Which one runs is decided by
+what is installed, not by what you pass.
+
+On Workers, hand in the wasm — not a choice, but the one thing only your
+bundler can do:
+
+```ts
+import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
+import shell from "@cloudfarm/rbash-sandbox/wasm";
+new Computer({ wasm: { engine, shell } });
+```
+
+Omit `shell` there and the shell falls back to `@cloudfarm/bash-sandbox`,
+which is TypeScript and needs no module.
 
 On Cloudflare Workers, configure the engine explicitly:
 `codeEngine: quickjsForWorkers(wasmModule)`. The wasm has to be a static
@@ -112,7 +133,7 @@ calls made  0
 
 | package                     | what it is                                                                   | runs on              |
 | --------------------------- | ---------------------------------------------------------------------------- | -------------------- |
-| `@cloudfarm/core`           | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
+| `@cloudfarm/computer`       | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
 | `@cloudfarm/bash-sandbox`   | the default sandbox: bash in TypeScript, no infrastructure                   | Node and Workers     |
 | `@cloudfarm/qjs-engine`     | code mode in a WebAssembly isolate                                           | Node and Workers     |
 | `@cloudfarm/ai-sdk-toolset` | tools for the Vercel AI SDK                                                  | Node and Workers     |
@@ -131,7 +152,7 @@ package has drifted from its spec, and
 [`tools/integration-codegen`](tools/integration-codegen#readme) is the three-step
 recipe for adding another.
 
-`@cloudfarm/core` is isomorphic by construction, not by discipline: it has no
+`@cloudfarm/computer` is isomorphic by construction, not by discipline: it has no
 `@types/node`, oxlint refuses `node:*` imports inside it, and **its entire test
 suite runs under workerd in CI** as well as Node. That last one is the actual
 guarantee.

@@ -5,9 +5,9 @@ import {
   type QuickJSAsyncWASMModule,
   type QuickJSHandle,
 } from "quickjs-emscripten-core";
-import { finishResult, Redactor } from "@cloudfarm/core";
-import type { CodeEngine, CodeJob, HostBridge, ActionBridge } from "@cloudfarm/core";
-import type { CodeResult, Diagnostic, Json } from "@cloudfarm/core";
+import { finishResult, Redactor } from "@cloudfarm/computer";
+import type { CodeEngine, CodeJob, HostBridge, ActionBridge } from "@cloudfarm/computer";
+import type { CodeResult, Diagnostic, Json } from "@cloudfarm/computer";
 
 /** Anything that resolves to a QuickJS async module: a variant, or a loader. */
 export type VariantLoader = () => Promise<QuickJSAsyncWASMModule>;
@@ -44,6 +44,8 @@ export class QuickJSEngine implements CodeEngine {
     // sees an ordinary return — and `await` is a syntax error in the eval
     // mode this uses.
     guestAwait: true,
+    // The guest is a wasm isolate in this process, which is the point: it
+    // runs with no sandbox at all.
     interruptible: true,
     memoryCap: true,
   };

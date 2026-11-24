@@ -11,8 +11,8 @@ import { Hono } from "hono";
 import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
-import { Computer } from "@cloudfarm/core";
-import { quickjs } from "@cloudfarm/qjs-engine";
+import { Computer } from "@cloudfarm/computer";
+import { sqliteStorage } from "@cloudfarm/sqlite-storage";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
@@ -52,12 +52,25 @@ const search = process.env["FIRECRAWL_API_KEY"]
   ? [firecrawl({ apiKey: process.env["FIRECRAWL_API_KEY"] })]
   : [];
 
+/**
+ * A local SQLite file, and nothing to configure.
+ *
+ * Durable, so a file the agent writes is still there after a restart — which
+ * is the difference between a playground and a demo. No bucket, no endpoint
+ * and no credentials, so there is also nothing here that could reach
+ * model-written code.
+ *
+ * `@cloudfarm/s3-storage` is still the answer for a bucket, and
+ * `@cloudfarm/sqlite-storage/d1` for D1; the playground does not need either
+ * and used to pick between them on the presence of keys, which meant the thing
+ * being exercised depended on what happened to be in `.env`.
+ */
+const databasePath = process.env["CLOUDFARM_DB"] ?? ".cloudfarm/playground.db";
+const storage = sqliteStorage({ path: databasePath });
+
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  // Named rather than left to `defaultCodeEngine`, which would resolve the
-  // same package: a playground is read as a reference, and "where does code
-  // mode come from" should not need the resolution rules to answer.
-  codeEngine: quickjs(),
+  storage,
   apps: [reports, hackernews({}), ...browser, ...search],
 });
 
@@ -70,17 +83,22 @@ const computer = new Computer({
  */
 const workspace = await computer.createWorkspace("playground");
 
-await workspace.fs.write(
-  "/data/sales.csv",
-  [
-    "region,rep,amount",
-    "emea,ada,1200",
-    "emea,grace,800",
-    "amer,alan,4300",
-    "amer,katherine,2200",
-    "apac,joan,150",
-  ].join("\n") + "\n",
-);
+// Seeded only when absent. With R2 behind the workspace the file survives a
+// restart, and overwriting it every boot would throw away whatever the agent
+// did to it last time.
+if (!(await workspace.fs.stat("/sales.csv"))) {
+  await workspace.fs.write(
+    "/sales.csv",
+    [
+      "region,rep,amount",
+      "emea,ada,1200",
+      "emea,grace,800",
+      "amer,alan,4300",
+      "amer,katherine,2200",
+      "apac,joan,150",
+    ].join("\n") + "\n",
+  );
+}
 
 const SYSTEM = [
   "You drive a computer: a workspace with a filesystem, a shell, and actions",
@@ -135,6 +153,17 @@ app.get("/api/workspace", async (context) => {
     files,
     apps: apps.status === "ok" ? (apps.value as { apps: unknown[] }).apps : [],
     tools: workspace.toolSpecs(),
+    // Which storage these came out of. The panel is the clearest evidence a
+    // tool call did what it claimed, and that argument only holds if you can
+    // see where it is reading from — a file listed from memory and one
+    // listed from a database look identical until something says so.
+    storage: {
+      id: storage.id,
+      description: storage.description,
+      // The server's own detail, not the package's: a local path is useful
+      // in a playground and has no business in a published description.
+      location: databasePath,
+    },
   });
 });
 
