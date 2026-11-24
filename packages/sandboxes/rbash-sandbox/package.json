@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/rbash-sandbox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SandboxProvider over rust-bash: bash compiled to WebAssembly",
   "license": "MIT",
   "type": "module",
