@@ -9,6 +9,7 @@
     "lint": "astro check --minimumSeverity error",
     "typecheck": "astro check --minimumSeverity error",
     "clean": "rm -rf dist .turbo .astro",
+    "gen:og": "node scripts/og.mjs",
     "deploy": "astro build && cf deploy ./dist"
   },
   "dependencies": {

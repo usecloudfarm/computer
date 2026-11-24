@@ -30,6 +30,31 @@ export default defineConfig({
         baseUrl: "https://github.com/usecloudfarm/computer/edit/main/apps/docs/",
       },
       customCss: ["./src/styles/docs.css"],
+      // The unfurl card. Starlight writes og:title, og:description and
+      // twitter:card itself but has no opinion about an image, so this is the
+      // one thing left to add — as an absolute URL, because a crawler
+      // resolves it from nowhere. `pnpm gen:og` redraws `public/og.png` from
+      // the mark and this same title.
+      head: [
+        {
+          tag: "meta",
+          attrs: { property: "og:image", content: "https://cloudfarm.dev/og.png" },
+        },
+        { tag: "meta", attrs: { property: "og:image:type", content: "image/png" } },
+        { tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
+        { tag: "meta", attrs: { property: "og:image:height", content: "630" } },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:alt",
+            content: "cloudfarm — a fast computer with the right tools for every agent",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "twitter:image", content: "https://cloudfarm.dev/og.png" },
+        },
+      ],
       // Starlight's header is title, search, socials, theme — no nav. The
       // top-level links go in the title slot, which leaves everything else
       // exactly as it ships.
