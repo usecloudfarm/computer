@@ -61,5 +61,16 @@
       "rules": { "import/no-unassigned-import": "off" }
     }
   ],
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/coverage/**", "**/.wrangler/**"]
+  // `vendor/` is third-party code that arrives generated: `rust_bash.js` is
+  // wasm-bindgen's output, 700 lines of `__wbindgen_*` globals that no rule
+  // here has an opinion worth acting on. It moved with the interpreter into
+  // its own package, which is how it started failing CI — the per-package
+  // `oxlint src` never saw it, and the root run lints everything.
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/coverage/**",
+    "**/.wrangler/**",
+    "**/vendor/**"
+  ]
 }

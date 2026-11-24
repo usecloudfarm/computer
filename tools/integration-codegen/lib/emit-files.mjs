@@ -2,13 +2,21 @@
 
 const REPO = "https://github.com/usecloudfarm/computer";
 
-export function emitPackageJson(spec) {
+/**
+ * `version` comes from the committed manifest, not from here.
+ *
+ * It is changesets' field: a release bumps it in the package, and a generator
+ * that insisted on its own value would drag every integration back to 0.0.1
+ * on the next run — or, worse, fail `gen:integrations:check` immediately
+ * after `changeset version` and block the release that just bumped it.
+ */
+export function emitPackageJson(spec, version = "0.0.1") {
   const dir = `packages/integrations/${spec.dirName}`;
   return (
     JSON.stringify(
       {
         name: spec.packageName,
-        version: "0.0.1",
+        version,
         description: spec.npmDescription,
         license: "MIT",
         type: "module",

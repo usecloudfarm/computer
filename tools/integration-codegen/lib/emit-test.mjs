@@ -231,14 +231,14 @@ function failureTest(spec, action) {
 
 /** The path the request should land on, computed the way core resolves it. */
 function expectedPath(spec, action) {
-  const args = effective(action);
+  const inputs = effective(action);
   const base = spec.baseUrl.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (_match, name) =>
     optionSample(spec, name),
   );
   const path = action.request.graphql
     ? (spec.graphqlPath ?? "graphql")
     : action.request.path.replace(/\{([a-zA-Z][a-zA-Z0-9]*)(\*?)\}/g, (_match, name, raw) => {
-        const value = String(args[name]);
+        const value = String(inputs[name]);
         return raw ? value : encodeURIComponent(value);
       });
   return new URL(`${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`).pathname;

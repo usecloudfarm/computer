@@ -22,7 +22,13 @@ jq = ["dep:jaq-core", "dep:jaq-json", "dep:jaq-std"]
 crate-type = ["cdylib", "rlib"]
 
 [profile.release]
-opt-level = "z"
+# Speed, not size. The interpreter loop is the product: at `opt-level = "z"`
+# jq evaluation ran 1.8x slower and glob matching (`${v##*/}`, `case`) 9x
+# slower than the same source at `3`, which is slower than the TypeScript
+# shell it replaces. The 560 KB that buys is paid once per deploy; the
+# milliseconds are paid per command. `wasm-opt -Oz` in build.sh takes most of
+# the size back (3.37 MB -> 3.12 MB) without giving the speed up.
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
@@ -34,7 +40,7 @@ wasm-bindgen-futures = "=0.4.50"
 
 # wasm-pack's bundled wasm-opt rejects the module unless it is passed the
 # feature flags in build.sh (bulk-memory and friends), and the standalone
-# wasm-bindgen CLI is not assumed to be installed. `opt-level = "z"` and LTO
-# above already do most of the work; skipping wasm-opt costs some size.
+# wasm-bindgen CLI is not assumed to be installed, so build.sh runs wasm-opt
+# itself after wasm-bindgen. Leave this off, or wasm-pack runs it twice.
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
