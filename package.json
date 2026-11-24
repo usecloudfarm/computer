@@ -20,8 +20,10 @@
     "format:check": "prettier --check .",
     "clean": "turbo run clean && rm -rf node_modules",
     "changeset": "changeset",
+    "gen:integrations": "node tools/integration-codegen/generate.mjs",
+    "gen:integrations:check": "node tools/integration-codegen/generate.mjs --check",
     "lint:fix": "oxlint --fix",
-    "check": "pnpm format:check && turbo run lint typecheck build test test:workers",
+    "check": "pnpm format:check && pnpm gen:integrations:check && turbo run lint typecheck build test test:workers",
     "version": "changeset version && pnpm install --lockfile-only",
     "release": "pnpm check && pnpm build && changeset publish"
   },

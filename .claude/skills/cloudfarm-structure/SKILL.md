@@ -74,6 +74,18 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 
 ## Writing an app
 
+Most new integrations should not be hand-written at all:
+`tools/integration-codegen` generates a whole package — source, tests, README,
+changeset — from one declarative spec in `tools/integration-codegen/specs/`.
+Copy the nearest spec, run `pnpm gen:integrations <id>`, and `pnpm check`
+verifies the committed package still matches it. Read
+`tools/integration-codegen/README.md` first; hand-write an app only when the
+spec format genuinely cannot express it, and even then prefer a spec with a raw
+`handler` for the one awkward action.
+
+The rest of this section is what the generator emits, and what to write by hand
+when you do.
+
 Use `createApp` from core, with one `createAction()` per member:
 
 ```ts
