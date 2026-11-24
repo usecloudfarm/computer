@@ -50,6 +50,9 @@ describe("awk", () => {
     expect(result.stdout.trim()).toBe("1 1");
   });
 
+  // 30s like the other runaway cases: the bound is a step count, not a clock,
+  // so the test runs the interpreter flat out until it trips — about a second
+  // on a fast laptop and several on a two-core CI runner.
   it("bounds a runaway program rather than hanging", async () => {
     const ws = await workspace();
 
@@ -57,7 +60,7 @@ describe("awk", () => {
 
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toMatch(/limit/i);
-  });
+  }, 30_000);
 });
 
 describe("the rest of the coreutils", () => {
