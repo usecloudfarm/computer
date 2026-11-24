@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/firecrawl",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Firecrawl as a Computer app: web search, scrape a page to markdown, map a site's links",
   "license": "MIT",
   "type": "module",

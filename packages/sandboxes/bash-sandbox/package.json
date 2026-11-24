@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/bash-sandbox",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "The default Computer sandbox: a bash implementation that runs anywhere, with no infrastructure",
   "license": "MIT",
   "type": "module",

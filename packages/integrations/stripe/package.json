@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/stripe",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Stripe as a Computer app: customers, charges, balance and refunds",
   "license": "MIT",
   "type": "module",

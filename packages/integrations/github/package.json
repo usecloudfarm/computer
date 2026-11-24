@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/github",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "GitHub as a Computer app: issues, pull requests, commits and search",
   "license": "MIT",
   "type": "module",
