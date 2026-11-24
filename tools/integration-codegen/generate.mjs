@@ -50,8 +50,9 @@ async function main(argv) {
   for (const id of ids) {
     const spec = await loadSpec(id);
     const dir = path.join("packages", "integrations", spec.dirName);
+    const manifest = path.join(dir, "package.json");
     const files = {
-      [path.join(dir, "package.json")]: emitPackageJson(spec),
+      [manifest]: emitPackageJson(spec, await committedVersion(path.join(ROOT, manifest))),
       [path.join(dir, "tsconfig.json")]: emitTsconfig(spec),
       [path.join(dir, "tsup.config.ts")]: emitTsup(spec),
       [path.join(dir, "vitest.config.ts")]: emitVitest(spec),
@@ -116,6 +117,24 @@ async function main(argv) {
     );
   }
   return 0;
+}
+
+/**
+ * The version already in the package, or the first one if it is new.
+ *
+ * Everything else in the manifest is the spec's to decide; the version is
+ * changesets'. Reading it back is what lets `changeset version` and this
+ * generator coexist — without it the release gate fails on seven packages the
+ * moment a release bumps them.
+ */
+async function committedVersion(absolute) {
+  const raw = await readFile(absolute, "utf8").catch(() => null);
+  if (raw === null) return "0.0.1";
+  try {
+    return JSON.parse(raw).version ?? "0.0.1";
+  } catch {
+    return "0.0.1";
+  }
 }
 
 /** Repo prettier settings, resolved per file so each gets its own parser. */
