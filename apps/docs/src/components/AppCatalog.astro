@@ -15,27 +15,29 @@ const CREDENTIAL = {
   basic: "Email + token",
 } as const;
 
-const apps = (await getCollection("docs", (entry) => entry.data.app !== undefined))
-  .map((entry) => ({ ...entry, app: entry.data.app! }))
+const apps = (await getCollection("docs", (entry) => entry.data.app !== undefined)).toSorted(
   // Name breaks the tie, so generated apps — which all take the default
   // order — come out in a stable sequence instead of filesystem order.
-  .sort((a, b) => a.app.order - b.app.order || a.data.title.localeCompare(b.data.title));
+  (a, b) => a.data.app!.order - b.data.app!.order || a.data.title.localeCompare(b.data.title),
+);
 ---
 
 <div class="app-grid not-content">
   {
-    apps.map((entry) => (
+    apps.map((entry) => {
+      const app = entry.data.app!;
+      return (
       <a class="app-card" href={`/${entry.id}/`}>
         {
-          entry.app.icon ? (
+          app.icon ? (
             // A brand logo in its own colours, on a light tile so it reads on
             // either theme. Lazy, because a catalogue is a wall of them.
             <span class="app-mark has-icon" aria-hidden="true">
-              <img src={entry.app.icon} alt="" width="18" height="18" loading="lazy" />
+              <img src={app.icon} alt="" width="18" height="18" loading="lazy" />
             </span>
           ) : (
             <span class="app-mark" aria-hidden="true">
-              {entry.app.mark}
+              {app.mark}
             </span>
           )
         }
@@ -45,13 +47,14 @@ const apps = (await getCollection("docs", (entry) => entry.data.app !== undefine
           {/* Every package shares the scope, so printing it on each card
               spends the row's width on the part that never differs — and then
               truncates the part that does. */}
-          <code>{entry.app.package.replace("@cloudfarm/", "")}</code>
-          <span class:list={["app-badge", entry.app.credential === "none" && "is-open"]}>
-            {CREDENTIAL[entry.app.credential]}
+          <code>{app.package.replace("@cloudfarm/", "")}</code>
+          <span class:list={["app-badge", app.credential === "none" && "is-open"]}>
+            {CREDENTIAL[app.credential]}
           </span>
         </span>
       </a>
-    ))
+      );
+    })
   }
 </div>
 

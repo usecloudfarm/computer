@@ -18,7 +18,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import process from "node:process";
-import prettier from "prettier";
+import { format as formatWith, resolveConfig } from "prettier";
 
 import { listSpecIds, loadSpec } from "./lib/spec.mjs";
 import { emitSource } from "./lib/emit-src.mjs";
@@ -140,8 +140,8 @@ async function committedVersion(absolute) {
 /** Repo prettier settings, resolved per file so each gets its own parser. */
 async function format(contents, relative) {
   const filepath = path.join(ROOT, relative);
-  const config = await prettier.resolveConfig(filepath);
-  return prettier.format(contents, { ...config, filepath });
+  const config = await resolveConfig(filepath);
+  return formatWith(contents, { ...config, filepath });
 }
 
 process.exitCode = await main(process.argv.slice(2)).catch((error) => {

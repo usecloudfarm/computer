@@ -24,7 +24,7 @@ export async function listSpecIds() {
   return entries
     .filter((entry) => entry.endsWith(".mjs"))
     .map((entry) => entry.slice(0, -".mjs".length))
-    .sort();
+    .toSorted();
 }
 
 export async function loadSpec(id) {
@@ -56,7 +56,7 @@ function normalize(spec) {
   // The catalogue renders this from its own origin, so a relative path would
   // resolve against the wrong host. Core rejects it too; failing here names
   // the spec file instead of a generated line.
-  if (!/^https:\/\//.test(spec.icon)) {
+  if (!String(spec.icon).startsWith("https://")) {
     fail(`${where}: "icon" must be an absolute https: URL, not "${spec.icon}".`);
   }
   if (!Array.isArray(spec.actions) || spec.actions.length === 0) {
@@ -70,7 +70,7 @@ not generated: the flow is not implemented in core, so a generated OAuth app wou
 look finished and not be.`);
   }
 
-  const options = { ...(spec.options ?? {}) };
+  const options = { ...spec.options };
   for (const source of [spec.baseUrl, ...(spec.allowedHosts ?? [])]) {
     for (const name of placeholders(source)) {
       if (!options[name]) {
