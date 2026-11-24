@@ -133,3 +133,44 @@ describe("renderDeclarations", () => {
     );
   });
 });
+
+describe("constraints the type cannot express", () => {
+  it("puts a numeric range and its default in the doc comment", () => {
+    const rendered = renderType(
+      toJsonSchema(z.object({ limit: z.number().int().min(1).max(30).default(10) })),
+    );
+
+    // The bug this exists for: a script asked for `limit: 50` against a
+    // `max(30)` and failed five times, because `limit?: number` said nothing
+    // about the bound. A validator enforcing a rule the caller cannot see is
+    // a trap.
+    expect(rendered).toContain("1 to 30. Defaults to 10.");
+  });
+
+  it("keeps the description and adds the bound to it", () => {
+    const rendered = renderType(
+      toJsonSchema(z.object({ size: z.number().max(5).describe("How many.") })),
+    );
+
+    expect(rendered).toContain("/** How many. At most 5. */");
+  });
+
+  it("says nothing about a bound that only means positive", () => {
+    const rendered = renderType(toJsonSchema(z.object({ id: z.number().int().positive() })));
+
+    // `.positive()` and the implicit MAX_SAFE_INTEGER ceiling are on every id
+    // in every signature and constrain nothing a model would try.
+    expect(rendered).not.toContain("At least");
+    expect(rendered).not.toContain("At most");
+    expect(rendered.replace(/\s+/g, " ")).toContain("id: number");
+  });
+
+  it("carries string length and format", () => {
+    const rendered = renderType(
+      toJsonSchema(z.object({ name: z.string().min(2).max(40), site: z.url().optional() })),
+    );
+
+    expect(rendered).toContain("2 to 40 characters.");
+    expect(rendered).toContain("Format: uri.");
+  });
+});

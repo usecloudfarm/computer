@@ -1,0 +1,534 @@
+[
+  { "name": "echo", "script": "echo hello world", "stdout": "hello world\n", "code": 0 },
+  { "name": "echo -n", "script": "echo -n hi; echo there", "stdout": "hithere\n", "code": 0 },
+  { "name": "echo -e", "script": "echo -e 'a\\tb\\nc'", "stdout": "a\tb\nc\n", "code": 0 },
+  {
+    "name": "quotes",
+    "script": "echo 'single $HOME' \"double\" mixed'q'\"q\" ",
+    "stdout": "single $HOME double mixedqq\n",
+    "code": 0
+  },
+  {
+    "name": "vars",
+    "script": "x=5; y=hello; echo $x $y ${y}!",
+    "stdout": "5 hello hello!\n",
+    "code": 0
+  },
+  {
+    "name": "var default",
+    "script": "echo ${unset:-fallback} ${unset:=set}; echo $unset",
+    "stdout": "fallback set\nset\n",
+    "code": 0
+  },
+  {
+    "name": "var alt",
+    "script": "a=1; echo ${a:+yes} ${b:+no}end",
+    "stdout": "yes end\n",
+    "code": 0
+  },
+  { "name": "var length", "script": "s=hello; echo ${#s}", "stdout": "5\n", "code": 0 },
+  {
+    "name": "prefix strip",
+    "script": "f=dir/sub/file.tar.gz; echo ${f#*/} ${f##*/} ${f%.*} ${f%%.*}",
+    "stdout": "sub/file.tar.gz file.tar.gz dir/sub/file.tar dir/sub/file\n",
+    "code": 0
+  },
+  {
+    "name": "replace",
+    "script": "s=foo-bar-baz; echo ${s/-/_} ${s//-/_} ${s/#foo/X} ${s/%baz/Y}",
+    "stdout": "foo_bar-baz foo_bar_baz X-bar-baz foo-bar-Y\n",
+    "code": 0
+  },
+  {
+    "name": "substring",
+    "script": "s=abcdef; echo ${s:2} ${s:1:3} ${s: -2}",
+    "stdout": "cdef bcd ef\n",
+    "code": 0
+  },
+  {
+    "name": "case mod",
+    "script": "s=hello; echo ${s^^} ${s^} ; t=WORLD; echo ${t,,}",
+    "stdout": "HELLO Hello\nworld\n",
+    "code": 0
+  },
+  {
+    "name": "arith",
+    "script": "echo $((2+3*4)) $((10/3)) $((10%3)) $((2**10)) $(( (1+2) * 3 ))",
+    "stdout": "14 3 1 1024 9\n",
+    "code": 0
+  },
+  {
+    "name": "arith vars",
+    "script": "a=7; b=3; echo $((a*b)) $((a>b)) $((a==7 ? 100 : 0))",
+    "stdout": "21 1 100\n",
+    "code": 0
+  },
+  {
+    "name": "arith assign",
+    "script": "i=0; ((i++)); ((i+=5)); echo $i",
+    "stdout": "6\n",
+    "code": 0
+  },
+  {
+    "name": "cmd subst",
+    "script": "x=$(echo inner); echo \"got $x\"; echo `echo back`",
+    "stdout": "got inner\nback\n",
+    "code": 0
+  },
+  { "name": "nested subst", "script": "echo $(echo $(echo deep))", "stdout": "deep\n", "code": 0 },
+  {
+    "name": "exit status",
+    "script": "false; echo $?; true; echo $?",
+    "stdout": "1\n0\n",
+    "code": 0
+  },
+  {
+    "name": "and or",
+    "script": "true && echo yes; false && echo no; false || echo fallback",
+    "stdout": "yes\nfallback\n",
+    "code": 0
+  },
+  { "name": "negation", "script": "! false && echo negated", "stdout": "negated\n", "code": 0 },
+  {
+    "name": "brace expand",
+    "script": "echo {a,b,c}.txt; echo {1..5}; echo x{1..3}y",
+    "stdout": "a.txt b.txt c.txt\n1 2 3 4 5\nx1y x2y x3y\n",
+    "code": 0
+  },
+  {
+    "name": "brace seq step",
+    "script": "echo {0..10..3} {c..a}",
+    "stdout": "0 3 6 9 c b a\n",
+    "code": 0
+  },
+  { "name": "tilde", "script": "echo ~ | grep -c /", "stdout": "1\n", "code": 0 },
+  {
+    "name": "field split",
+    "script": "v='a  b   c'; for w in $v; do echo \"[$w]\"; done",
+    "stdout": "[a]\n[b]\n[c]\n",
+    "code": 0
+  },
+  {
+    "name": "quoted no split",
+    "script": "v='a  b'; for w in \"$v\"; do echo \"[$w]\"; done",
+    "stdout": "[a  b]\n",
+    "code": 0
+  },
+  {
+    "name": "positional",
+    "script": "set -- one two three; echo $# $1 $3; shift; echo $@",
+    "stdout": "3 one three\ntwo three\n",
+    "code": 0
+  },
+  {
+    "name": "dollar at",
+    "script": "f() { for a in \"$@\"; do echo \"<$a>\"; done; }; f 'x y' z",
+    "stdout": "<x y>\n<z>\n",
+    "code": 0
+  },
+  {
+    "name": "if",
+    "script": "if [ 3 -gt 2 ]; then echo big; else echo small; fi",
+    "stdout": "big\n",
+    "code": 0
+  },
+  {
+    "name": "elif",
+    "script": "x=5; if [ $x -lt 3 ]; then echo a; elif [ $x -lt 10 ]; then echo b; else echo c; fi",
+    "stdout": "b\n",
+    "code": 0
+  },
+  {
+    "name": "for",
+    "script": "for i in 1 2 3; do echo item $i; done",
+    "stdout": "item 1\nitem 2\nitem 3\n",
+    "code": 0
+  },
+  {
+    "name": "for brace",
+    "script": "for i in {1..3}; do printf '%s,' $i; done; echo",
+    "stdout": "1,2,3,\n",
+    "code": 0
+  },
+  {
+    "name": "c for",
+    "script": "for ((i=0; i<3; i++)); do echo $i; done",
+    "stdout": "0\n1\n2\n",
+    "code": 0
+  },
+  {
+    "name": "while",
+    "script": "i=0; while [ $i -lt 3 ]; do echo $i; i=$((i+1)); done",
+    "stdout": "0\n1\n2\n",
+    "code": 0
+  },
+  {
+    "name": "until",
+    "script": "i=0; until [ $i -ge 2 ]; do echo u$i; i=$((i+1)); done",
+    "stdout": "u0\nu1\n",
+    "code": 0
+  },
+  {
+    "name": "break continue",
+    "script": "for i in 1 2 3 4 5; do [ $i = 2 ] && continue; [ $i = 4 ] && break; echo $i; done",
+    "stdout": "1\n3\n",
+    "code": 0
+  },
+  {
+    "name": "case",
+    "script": "for f in a.txt b.md c.rs; do case $f in *.txt) echo text;; *.md|*.rst) echo doc;; *) echo other;; esac; done",
+    "stdout": "text\ndoc\nother\n",
+    "code": 0
+  },
+  {
+    "name": "function",
+    "script": "greet() { echo \"hi $1\"; return 3; }; greet bob; echo $?",
+    "stdout": "hi bob\n3\n",
+    "code": 0
+  },
+  {
+    "name": "local",
+    "script": "x=global; f() { local x=inner; echo $x; }; f; echo $x",
+    "stdout": "inner\nglobal\n",
+    "code": 0
+  },
+  {
+    "name": "recursion",
+    "script": "fact() { if [ $1 -le 1 ]; then echo 1; else echo $(( $1 * $(fact $(($1-1))) )); fi; }; fact 6",
+    "stdout": "720\n",
+    "code": 0
+  },
+  {
+    "name": "subshell",
+    "script": "x=1; (x=2; echo in $x); echo out $x",
+    "stdout": "in 2\nout 1\n",
+    "code": 0
+  },
+  { "name": "brace group", "script": "{ echo a; echo b; } | wc -l", "stdout": "2\n", "code": 0 },
+  {
+    "name": "[[ ]]",
+    "script": "s=hello.txt; [[ $s == *.txt ]] && echo match; [[ -z '' && -n x ]] && echo ok",
+    "stdout": "match\nok\n",
+    "code": 0
+  },
+  {
+    "name": "[[ regex ]]",
+    "script": "[[ abc123 =~ ^[a-z]+[0-9]+$ ]] && echo re-ok",
+    "stdout": "re-ok\n",
+    "code": 0
+  },
+  {
+    "name": "test ops",
+    "script": "[ abc = abc ] && echo eq; [ 1 -ne 2 ] && echo ne; [ -n '' ] || echo empty",
+    "stdout": "eq\nne\nempty\n",
+    "code": 0
+  },
+  {
+    "name": "redirect",
+    "script": "echo one > f.txt; echo two >> f.txt; cat f.txt",
+    "stdout": "one\ntwo\n",
+    "code": 0
+  },
+  {
+    "name": "stdin redirect",
+    "script": "printf 'b\\na\\nc\\n' > in.txt; sort < in.txt",
+    "stdout": "a\nb\nc\n",
+    "code": 0
+  },
+  {
+    "name": "stderr redirect",
+    "script": "ls /nope 2> err.txt; grep -c 'No such' err.txt",
+    "stdout": "1\n",
+    "code": 0
+  },
+  { "name": "2>&1", "script": "ls /nope 2>&1 | grep -c 'No such'", "stdout": "1\n", "code": 0 },
+  {
+    "name": "dev null",
+    "script": "ls /nope 2>/dev/null; echo code $?",
+    "stdout": "code 2\n",
+    "code": 0
+  },
+  {
+    "name": "heredoc",
+    "script": "cat <<EOF\nline1\nvalue=$((1+1))\nEOF",
+    "stdout": "line1\nvalue=2\n",
+    "code": 0
+  },
+  {
+    "name": "heredoc quoted",
+    "script": "cat <<'EOF'\nno $expansion here\nEOF",
+    "stdout": "no $expansion here\n",
+    "code": 0
+  },
+  { "name": "herestring", "script": "tr a-z A-Z <<< 'shout'", "stdout": "SHOUT\n", "code": 0 },
+  {
+    "name": "pipeline",
+    "script": "echo -e 'c\\na\\nb\\na' | sort | uniq -c | sort -rn | head -1",
+    "stdout": "      2 a\n",
+    "code": 0
+  },
+  {
+    "name": "read loop",
+    "script": "printf 'x 1\\ny 2\\n' | while read k v; do echo \"$v=$k\"; done",
+    "stdout": "1=x\n2=y\n",
+    "code": 0
+  },
+  {
+    "name": "mkdir ls",
+    "script": "mkdir -p a/b/c; touch a/one a/two; ls a",
+    "stdout": "b\none\ntwo\n",
+    "code": 0
+  },
+  {
+    "name": "ls -R",
+    "script": "mkdir -p r/s; touch r/f r/s/g; ls -R r",
+    "stdout": "r:\nf\ns\n\nr/s:\ng\n",
+    "code": 0
+  },
+  {
+    "name": "cp mv rm",
+    "script": "echo data > x; cp x y; mv y z; cat z; rm x z; ls x 2>/dev/null || echo gone",
+    "stdout": "data\ngone\n",
+    "code": 0
+  },
+  {
+    "name": "cp -r",
+    "script": "mkdir -p src/d; echo 1 > src/d/f; cp -r src dst; cat dst/d/f",
+    "stdout": "1\n",
+    "code": 0
+  },
+  {
+    "name": "glob",
+    "script": "mkdir g; touch g/a.txt g/b.txt g/c.md; echo g/*.txt; ls g/*.md",
+    "stdout": "g/a.txt g/b.txt\ng/c.md\n",
+    "code": 0
+  },
+  { "name": "glob no match", "script": "echo nomatch*.zzz", "stdout": "nomatch*.zzz\n", "code": 0 },
+  {
+    "name": "find",
+    "script": "mkdir -p p/q; touch p/1.rs p/q/2.rs p/q/3.txt; find p -name '*.rs' | sort",
+    "stdout": "p/1.rs\np/q/2.rs\n",
+    "code": 0
+  },
+  {
+    "name": "find type",
+    "script": "mkdir -p t/u; touch t/f; find t -type d | sort",
+    "stdout": "t\nt/u\n",
+    "code": 0
+  },
+  {
+    "name": "test -f -d",
+    "script": "touch ff; mkdir dd; [ -f ff ] && echo file; [ -d dd ] && echo dir; [ -e nope ] || echo missing",
+    "stdout": "file\ndir\nmissing\n",
+    "code": 0
+  },
+  {
+    "name": "grep basic",
+    "script": "printf 'apple\\nbanana\\ncherry\\n' > fr; grep an fr; grep -c a fr; grep -v a fr",
+    "stdout": "banana\n2\ncherry\n",
+    "code": 0
+  },
+  {
+    "name": "grep -i -n",
+    "script": "printf 'Foo\\nbar\\nFOO\\n' | grep -in foo",
+    "stdout": "1:Foo\n3:FOO\n",
+    "code": 0
+  },
+  {
+    "name": "grep -E -o",
+    "script": "echo 'id=42 id=7 x=1' | grep -oE 'id=[0-9]+'",
+    "stdout": "id=42\nid=7\n",
+    "code": 0
+  },
+  {
+    "name": "grep -r",
+    "script": "mkdir -p rr/s; echo needle > rr/a; echo hay > rr/s/b; echo needle2 > rr/s/c; grep -r needle rr | sort",
+    "stdout": "rr/a:needle\nrr/s/c:needle2\n",
+    "code": 0
+  },
+  {
+    "name": "grep -l -q",
+    "script": "echo hit > g1; echo miss > g2; grep -l hit g1 g2; grep -q hit g1 && echo quiet-ok",
+    "stdout": "g1\nquiet-ok\n",
+    "code": 0
+  },
+  {
+    "name": "grep BRE",
+    "script": "echo 'aaa bbb' | grep 'a\\{3\\}'",
+    "stdout": "aaa bbb\n",
+    "code": 0
+  },
+  {
+    "name": "sed s",
+    "script": "echo 'hello world' | sed 's/o/0/g'",
+    "stdout": "hell0 w0rld\n",
+    "code": 0
+  },
+  {
+    "name": "sed groups",
+    "script": "echo 'john smith' | sed -E 's/([a-z]+) ([a-z]+)/\\2, \\1/'",
+    "stdout": "smith, john\n",
+    "code": 0
+  },
+  { "name": "sed addr", "script": "seq 1 6 | sed -n '2,4p'", "stdout": "2\n3\n4\n", "code": 0 },
+  { "name": "sed delete", "script": "seq 1 5 | sed '/3/d'", "stdout": "1\n2\n4\n5\n", "code": 0 },
+  {
+    "name": "sed -i",
+    "script": "printf 'a\\nb\\n' > s.txt; sed -i 's/a/A/' s.txt; cat s.txt",
+    "stdout": "A\nb\n",
+    "code": 0
+  },
+  {
+    "name": "sed multi",
+    "script": "echo abc | sed -e 's/a/1/' -e 's/c/3/'",
+    "stdout": "1b3\n",
+    "code": 0
+  },
+  {
+    "name": "cut",
+    "script": "echo 'a:b:c:d' | cut -d: -f2,4; echo hello | cut -c2-4",
+    "stdout": "b:d\nell\n",
+    "code": 0
+  },
+  {
+    "name": "tr",
+    "script": "echo hello | tr a-z A-Z; echo 'a  b   c' | tr -s ' '; echo hello | tr -d l",
+    "stdout": "HELLO\na b c\nheo\n",
+    "code": 0
+  },
+  {
+    "name": "sort opts",
+    "script": "printf '10\\n9\\n100\\n' | sort -n; printf 'b\\na\\nb\\n' | sort -u; printf 'x 3\\ny 1\\nz 2\\n' | sort -k2 -n",
+    "stdout": "9\n10\n100\na\nb\ny 1\nz 2\nx 3\n",
+    "code": 0
+  },
+  {
+    "name": "uniq",
+    "script": "printf 'a\\na\\nb\\nc\\nc\\nc\\n' | uniq -c",
+    "stdout": "      2 a\n      1 b\n      3 c\n",
+    "code": 0
+  },
+  {
+    "name": "head tail",
+    "script": "seq 1 20 > n; head -3 n; tail -2 n; tail -n +19 n",
+    "stdout": "1\n2\n3\n19\n20\n19\n20\n",
+    "code": 0
+  },
+  {
+    "name": "wc",
+    "script": "printf 'one two\\nthree\\n' > w; wc -l w; wc -w < w; cat w | wc -c",
+    "stdout": "2 w\n3\n14\n",
+    "code": 0
+  },
+  {
+    "name": "seq",
+    "script": "seq 3; seq 2 2 8; seq -s , 1 4",
+    "stdout": "1\n2\n3\n2\n4\n6\n8\n1,2,3,4\n",
+    "code": 0
+  },
+  {
+    "name": "printf",
+    "script": "printf '%s=%d\\n' a 1 b 2; printf '%5s|%-5s|%05d|%.2f\\n' x y 42 3.14159",
+    "stdout": "a=1\nb=2\n    x|y    |00042|3.14\n",
+    "code": 0
+  },
+  {
+    "name": "basename dirname",
+    "script": "basename /a/b/c.txt; basename /a/b/c.txt .txt; dirname /a/b/c.txt",
+    "stdout": "c.txt\nc\n/a/b\n",
+    "code": 0
+  },
+  {
+    "name": "tee",
+    "script": "echo teed | tee t1 > /dev/null; cat t1",
+    "stdout": "teed\n",
+    "code": 0
+  },
+  {
+    "name": "xargs",
+    "script": "echo a b c | xargs echo got; printf '1\\n2\\n3\\n' | xargs -n 1 echo n",
+    "stdout": "got a b c\nn 1\nn 2\nn 3\n",
+    "code": 0
+  },
+  {
+    "name": "rev tac",
+    "script": "echo abc | rev; printf '1\\n2\\n3\\n' | tac",
+    "stdout": "cba\n3\n2\n1\n",
+    "code": 0
+  },
+  {
+    "name": "paste",
+    "script": "printf '1\\n2\\n' > p1; printf 'a\\nb\\n' > p2; paste -d, p1 p2",
+    "stdout": "1,a\n2,b\n",
+    "code": 0
+  },
+  {
+    "name": "jq field",
+    "script": "echo '{\"name\":\"x\",\"n\":3}' | jq -r .name",
+    "stdout": "x\n",
+    "code": 0
+  },
+  {
+    "name": "jq map",
+    "script": "echo '[1,2,3]' | jq -c 'map(.*2)'",
+    "stdout": "[2,4,6]\n",
+    "code": 0
+  },
+  {
+    "name": "jq select",
+    "script": "echo '[{\"a\":1},{\"a\":5}]' | jq -c '.[] | select(.a > 2)'",
+    "stdout": "{\"a\":5}\n",
+    "code": 0
+  },
+  {
+    "name": "jq pretty",
+    "script": "echo '{\"a\":[1,{\"b\":2}]}' | jq .",
+    "stdout": "{\n  \"a\": [\n    1,\n    {\n      \"b\": 2\n    }\n  ]\n}\n",
+    "code": 0
+  },
+  {
+    "name": "jq keys length",
+    "script": "echo '{\"b\":1,\"a\":2}' | jq -c 'keys, length'",
+    "stdout": "[\"a\",\"b\"]\n2\n",
+    "code": 0
+  },
+  {
+    "name": "jq arg",
+    "script": "jq -n --arg v hi '{greeting: $v}' -c",
+    "stdout": "{\"greeting\":\"hi\"}\n",
+    "code": 0
+  },
+  { "name": "jq slurp", "script": "printf '1\\n2\\n3\\n' | jq -s add", "stdout": "6\n", "code": 0 },
+  {
+    "name": "jq strings",
+    "script": "echo '\"Hello\"' | jq -r 'ascii_downcase + \"!\"'",
+    "stdout": "hello!\n",
+    "code": 0
+  },
+  {
+    "name": "agent pipeline",
+    "script": "mkdir -p proj/src; printf 'fn main() {}\\n// TODO: x\\n' > proj/src/main.rs; printf '// TODO: y\\n// TODO: z\\n' > proj/src/lib.rs\ngrep -rn TODO proj | sort | awk_free=1 cut -d: -f1 | sort | uniq -c | sort -rn",
+    "stdout": "      2 proj/src/lib.rs\n      1 proj/src/main.rs\n",
+    "code": 0
+  },
+  {
+    "name": "json report",
+    "script": "echo '[{\"f\":\"a.rs\",\"n\":3},{\"f\":\"b.rs\",\"n\":9}]' > r.json\ntotal=$(jq '[.[].n] | add' r.json); top=$(jq -r 'max_by(.n).f' r.json); echo \"total=$total top=$top\" ",
+    "stdout": "total=12 top=b.rs\n",
+    "code": 0
+  },
+  {
+    "name": "script file",
+    "script": "printf 'echo from script $1\\n' > s.sh; bash s.sh arg1",
+    "stdout": "from script arg1\n",
+    "code": 0
+  },
+  {
+    "name": "eval",
+    "script": "cmd='echo evaluated'; eval $cmd",
+    "stdout": "evaluated\n",
+    "code": 0
+  },
+  { "name": "command not found", "script": "nosuchcmd; echo $?", "stdout": "127\n", "code": 0 },
+  { "name": "syntax error", "script": "if then fi", "stdout": "", "code": 2 }
+]

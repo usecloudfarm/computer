@@ -1,5 +1,5 @@
 # Packages are grouped by the kind of plugin they implement, so the folder a
-# package lives in tells you which interface in @cloudfarm/core it satisfies.
+# package lives in tells you which interface in @cloudfarm/computer it satisfies.
 # See .claude/skills/cloudfarm-structure/SKILL.md before adding one.
 packages:
   - "packages/*" # core

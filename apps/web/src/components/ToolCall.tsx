@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { asRecord, hasFailed, isPending, LABEL, truncate } from "@/lib/calls.ts";
+import { formatDuration } from "@/lib/elapsed.ts";
 import type { AnyToolPart } from "@/lib/calls.ts";
 
 /**
@@ -12,7 +13,18 @@ import type { AnyToolPart } from "@/lib/calls.ts";
  * whose input is a whole script — is impossible to judge from a transcript
  * that only shows prose.
  */
-export function ToolCall({ id, part, name }: { id: string; part: AnyToolPart; name: string }) {
+export function ToolCall({
+  id,
+  part,
+  name,
+  elapsed,
+}: {
+  id: string;
+  part: AnyToolPart;
+  name: string;
+  /** Measured by the group, which is mounted even while this row is not. */
+  elapsed: number | null;
+}) {
   // `code` is the interesting one, so it opens itself; the rest stay out of
   // the way until asked for.
   const [open, setOpen] = useState(name === "code");
@@ -39,12 +51,23 @@ export function ToolCall({ id, part, name }: { id: string; part: AnyToolPart; na
         </span>
         <span
           className={cn(
-            "ml-auto flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
+            "ml-auto flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide",
             failed ? "text-failed" : pending ? "text-running" : "text-muted-foreground",
           )}
         >
           {pending && <Loader2 className="size-3 animate-spin" />}
-          {failed ? "failed" : LABEL[part.state]}
+          {failed ? (
+            <span className="uppercase">failed</span>
+          ) : pending ? (
+            <span className="uppercase">{LABEL[part.state]}</span>
+          ) : (
+            <>
+              {/* A tick says "done" in less space than the word did, which
+                  leaves room for the number that is actually informative. */}
+              <Check className="size-3.5" />
+              {elapsed !== null && <span>{formatDuration(elapsed)}</span>}
+            </>
+          )}
         </span>
       </button>
 

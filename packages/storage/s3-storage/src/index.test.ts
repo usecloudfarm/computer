@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
 import { quickjs } from "@cloudfarm/qjs-engine";
 import { s3 } from "./index.js";
 

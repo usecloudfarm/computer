@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { createAction, createApp, noAuth } from "@cloudfarm/core";
-import type { ActionContext } from "@cloudfarm/core";
+import { createAction, createApp, noAuth } from "@cloudfarm/computer";
+import type { ActionContext } from "@cloudfarm/computer";
 
 const FIREBASE = "https://hacker-news.firebaseio.com/v0";
 const ALGOLIA = "https://hn.algolia.com/api/v1";

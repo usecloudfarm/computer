@@ -1,0 +1,4 @@
+# cargo build output; the committed artefact is vendor/rust_bash_bg.wasm
+target/
+pkg/
+pkg-web/

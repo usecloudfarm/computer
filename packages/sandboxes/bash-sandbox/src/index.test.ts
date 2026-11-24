@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { Computer, MemoryStorage, resetDefaults, setTestDefaults } from "@cloudfarm/core";
+import { Computer, MemoryStorage, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
 import { JustBash } from "./index.js";
 
 /**

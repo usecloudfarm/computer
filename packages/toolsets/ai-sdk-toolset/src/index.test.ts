@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
-import type { App } from "@cloudfarm/core";
-import { fakeSandbox } from "@cloudfarm/core/testing";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
+import type { App } from "@cloudfarm/computer";
+import { fakeSandbox } from "@cloudfarm/computer/testing";
 import { AISDKToolset, repairToRun } from "./index.js";
 import { NoSuchToolError } from "ai";
 

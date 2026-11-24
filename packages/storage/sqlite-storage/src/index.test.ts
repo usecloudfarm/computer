@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
 import { JustBash } from "@cloudfarm/bash-sandbox";
 import { quickjs } from "@cloudfarm/qjs-engine";
 import { sqliteStorage, nodeDriver, resolveLocation } from "./node.js";

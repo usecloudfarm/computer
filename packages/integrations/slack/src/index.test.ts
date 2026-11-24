@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { slack } from "./index.js";
 
 /** Replaces global fetch so no test ever reaches the network. */

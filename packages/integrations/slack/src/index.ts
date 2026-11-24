@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiKey, createAction, createApp, UpstreamRejectedError } from "@cloudfarm/core";
+import { apiKey, createAction, createApp, UpstreamRejectedError } from "@cloudfarm/computer";
 
 const BASE = "https://slack.com/api";
 

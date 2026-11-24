@@ -21,6 +21,6 @@ agent calls keep their bare service name: `@cloudfarm/slack`,
 `@cloudfarm/firecrawl`, `@cloudfarm/hackernews`,
 `@cloudfarm/cloudflare-browser`. The absence of a role is itself the signal.
 
-`@cloudfarm/core` is unchanged.
+`@cloudfarm/computer` is unchanged.
 
 Only names move. No exports, options or behaviour change.

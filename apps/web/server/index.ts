@@ -11,7 +11,7 @@ import { Hono } from "hono";
 import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { sqliteStorage } from "@cloudfarm/sqlite-storage";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
@@ -65,9 +65,8 @@ const search = process.env["FIRECRAWL_API_KEY"]
  * and used to pick between them on the presence of keys, which meant the thing
  * being exercised depended on what happened to be in `.env`.
  */
-const storage = sqliteStorage({
-  path: process.env["CLOUDFARM_DB"] ?? ".cloudfarm/playground.db",
-});
+const databasePath = process.env["CLOUDFARM_DB"] ?? ".cloudfarm/playground.db";
+const storage = sqliteStorage({ path: databasePath });
 
 const computer = new Computer({
   toolset: new AISDKToolset(),
@@ -154,6 +153,17 @@ app.get("/api/workspace", async (context) => {
     files,
     apps: apps.status === "ok" ? (apps.value as { apps: unknown[] }).apps : [],
     tools: workspace.toolSpecs(),
+    // Which storage these came out of. The panel is the clearest evidence a
+    // tool call did what it claimed, and that argument only holds if you can
+    // see where it is reading from — a file listed from memory and one
+    // listed from a database look identical until something says so.
+    storage: {
+      id: storage.id,
+      description: storage.description,
+      // The server's own detail, not the package's: a local path is useful
+      // in a playground and has no business in a published description.
+      location: databasePath,
+    },
   });
 });
 

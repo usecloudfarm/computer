@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
-import type { App, ActionDefinition } from "@cloudfarm/core";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
+import type { App, ActionDefinition } from "@cloudfarm/computer";
 import { quickjs } from "./node.js";
 
 function app(calls: unknown[] = []): App {

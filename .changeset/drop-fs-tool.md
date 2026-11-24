@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 Drop the `fs` tool. The surface is four tools now: `search`, `code`, `run`,

@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": major
+"@cloudfarm/computer": major
 ---
 
 Remove the `list_apps` tool. The surface is three: `search`, `code`, `run`.

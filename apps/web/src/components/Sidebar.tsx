@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { FileTree } from "./sections/FileTree.tsx";
+import type { StorageInfo } from "@/types.ts";
 import { AppList } from "./sections/AppList.tsx";
 import { ToolList } from "./sections/ToolList.tsx";
 import { CallHistory } from "./sections/CallHistory.tsx";
@@ -42,6 +43,7 @@ const SECTIONS: Section[] = [
  */
 export function Sidebar({
   files,
+  storage,
   apps,
   tools,
   history,
@@ -50,6 +52,7 @@ export function Sidebar({
   openPath,
   onSelectCall,
 }: {
+  storage: StorageInfo | undefined;
   files: FileEntry[];
   apps: AppInfo[];
   tools: ToolSpecInfo[];
@@ -129,7 +132,12 @@ export function Sidebar({
                   {counts[section.id]}
                 </span>
               </div>
-              <p className="text-muted-foreground truncate text-[11px]">{section.hint}</p>
+              <p className="text-muted-foreground truncate text-[11px]">
+                {/* The Files panel names its storage instead of describing
+                    itself: "the workspace filesystem" is true of every
+                    configuration and so tells you nothing about this one. */}
+                {active === "files" && storage ? storageHint(storage) : section.hint}
+              </p>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -143,7 +151,12 @@ export function Sidebar({
           <ScrollArea className="min-h-0 flex-1">
             <div className="px-1 pb-4">
               {active === "files" && (
-                <FileTree files={files} onOpenFile={onOpenFile} openPath={openPath} />
+                <FileTree
+                  files={files}
+                  storage={storage}
+                  onOpenFile={onOpenFile}
+                  openPath={openPath}
+                />
               )}
               {active === "apps" && <AppList apps={apps} />}
               {active === "tools" && <ToolList tools={tools} />}
@@ -226,4 +239,9 @@ function WorkspaceBadge({ info }: { info: Info | null }) {
       </TooltipContent>
     </Tooltip>
   );
+}
+
+/** `sqlite · .cloudfarm/playground.db`, or just the name when there is no place. */
+function storageHint(storage: StorageInfo): string {
+  return storage.location ? `${storage.id} · ${storage.location}` : storage.id;
 }

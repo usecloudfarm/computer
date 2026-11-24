@@ -3,20 +3,21 @@ import type { CodeEngine, SandboxProvider } from "./ports.js";
 /**
  * The shell and the engine, found rather than imported.
  *
- * There is one of each and no way to substitute either: the shell is
- * `just-bash` and code mode is QuickJS. `new Computer()` takes no provider and
- * no engine, so this is lookup rather than selection.
+ * `new Computer()` takes neither, so this is lookup rather than selection:
+ * which shell runs is decided by what is installed. Code mode is QuickJS and
+ * only QuickJS.
  *
- * Found rather than imported because both packages depend on core, so core
- * cannot depend on them back without a cycle. Install them and the `run` and
- * `code` tools exist; leave one out and that tool is absent rather than
- * broken.
+ * Found rather than imported because the packages depend on core, so core
+ * cannot depend on them back without a cycle. Install one and the matching
+ * tool exists; leave it out and that tool is absent rather than broken.
  *
  * The specifiers are variables on purpose. A literal would invite a bundler to
- * pull the Node build of the QuickJS engine into a Workers bundle, where it
- * cannot work — hence `wasmModule` below.
+ * pull a Node build into a Workers bundle, where it cannot work — hence the
+ * wasm modules passed in below.
  */
 
+const RBASH = "@cloudfarm/rbash-sandbox";
+const RBASH_WORKERS = "@cloudfarm/rbash-sandbox/workers";
 const BASH = "@cloudfarm/bash-sandbox";
 const QUICKJS = "@cloudfarm/qjs-engine";
 const QUICKJS_WORKERS = "@cloudfarm/qjs-engine/workers";
@@ -24,8 +25,34 @@ const QUICKJS_WORKERS = "@cloudfarm/qjs-engine/workers";
 let provider: Promise<SandboxProvider | undefined> | undefined;
 let engine: Promise<CodeEngine | undefined> | undefined;
 
-export function defaultProvider(): Promise<SandboxProvider | undefined> {
+/**
+ * The shell: `rust-bash` when it is installed, `just-bash` otherwise.
+ *
+ * `rust-bash` is preferred because it covers every command `just-bash` has
+ * and is faster on all of them. It is wasm, so on Workers it needs its module
+ * handed in; without one the lookup falls through to `just-bash`, which is
+ * TypeScript and needs nothing. That means a Worker that does not pass
+ * `wasm.shell` gets a different shell from the same code on Node — which is
+ * why the option exists and why this says so here.
+ */
+export function defaultProvider(
+  shellWasm?: WebAssembly.Module,
+): Promise<SandboxProvider | undefined> {
   provider ??= (async () => {
+    try {
+      if (shellWasm) {
+        const module = (await import(/* @vite-ignore */ RBASH_WORKERS)) as {
+          rbashForWorkers: (wasm: WebAssembly.Module) => SandboxProvider;
+        };
+        return module.rbashForWorkers(shellWasm);
+      }
+      const module = (await import(/* @vite-ignore */ RBASH)) as {
+        rbash: () => SandboxProvider;
+      };
+      return module.rbash();
+    } catch {
+      // Not installed, or its wasm could not load here.
+    }
     try {
       const module = (await import(/* @vite-ignore */ BASH)) as {
         JustBash: new () => SandboxProvider;

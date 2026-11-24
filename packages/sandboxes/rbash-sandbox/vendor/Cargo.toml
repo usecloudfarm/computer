@@ -1,0 +1,39 @@
+[package]
+name = "rust_bash"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+brush-parser = "0.4.0"
+jaq-core = { version = "3.1.2", optional = true }
+jaq-json = { version = "2.0.3", optional = true }
+jaq-std = { version = "3.0.4", optional = true }
+miniz_oxide = { version = "0.9.1", default-features = false, features = ["with-alloc"] }
+regex = { version = "1", default-features = false, features = ["std", "perf-literal", "unicode-case", "unicode-perl"] }
+saphyr = "0.4.0"
+wasm-bindgen = "=0.2.100"
+
+[features]
+default = ["jq"]
+jq = ["dep:jaq-core", "dep:jaq-json", "dep:jaq-std"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[target.wasm32-unknown-unknown.dependencies]
+js-sys = "=0.3.77"
+wasm-bindgen-futures = "=0.4.50"
+
+# wasm-pack's bundled wasm-opt rejects the module unless it is passed the
+# feature flags in build.sh (bulk-memory and friends), and the standalone
+# wasm-bindgen CLI is not assumed to be installed. `opt-level = "z"` and LTO
+# above already do most of the work; skipping wasm-opt costs some size.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

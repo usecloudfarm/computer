@@ -1,13 +1,13 @@
 import { Bash } from "just-bash";
-import { WORKSPACE_ROOT } from "@cloudfarm/core";
+import { WORKSPACE_ROOT } from "@cloudfarm/computer";
 import type {
   ComputerHost,
   ExecHandle,
   FileSystem,
   Sandbox,
   SandboxProvider,
-} from "@cloudfarm/core";
-import type { ExecEvent, ExecOptions, ExecResult, Json } from "@cloudfarm/core";
+} from "@cloudfarm/computer";
+import type { ExecEvent, ExecOptions, ExecResult, Json } from "@cloudfarm/computer";
 
 export interface JustBashOptions {
   /** Working directory inside the sandbox. Defaults to the workspace root. */

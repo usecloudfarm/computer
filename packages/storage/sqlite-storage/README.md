@@ -4,7 +4,7 @@ Workspace files in SQLite: a local file on Node, the Durable Object's own
 storage on Workers.
 
 ```ts
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { sqliteStorage } from "@cloudfarm/sqlite-storage";
 
 const computer = new Computer({

@@ -1,0 +1,110 @@
+---
+/**
+ * The brand, plus the top-level links.
+ *
+ * Starlight's header has no nav of its own — it is title, search, socials,
+ * theme — so the links go here, immediately after the title, which is where
+ * a reader looks for them and where Mintlify puts its tabs.
+ *
+ * Overriding `SiteTitle` rather than `Header` keeps search, the theme toggle
+ * and the mobile menu exactly as Starlight ships them.
+ */
+import type { Props } from "@astrojs/starlight/props";
+
+const { siteTitle, siteTitleHref } = Astro.props;
+const here = Astro.url.pathname;
+
+const links = [
+  { label: "Home", href: "/" },
+  { label: "Docs", href: "/start/introduction/" },
+  { label: "Apps", href: "/configuration/integrations/" },
+];
+
+/** `/` only matches itself; the rest match their whole section. */
+const isCurrent = (href: string) =>
+  href === "/" ? here === "/" : here.startsWith(href.split("/").slice(0, 2).join("/") + "/");
+---
+
+<div class="site-title-group">
+  <a href={siteTitleHref} class="site-title">
+    <span class="mark" aria-hidden="true"></span>
+    <span>{siteTitle}</span>
+  </a>
+
+  <nav class="top-nav" aria-label="Sections">
+    {
+      links.map((link) => (
+        <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined}>
+          {link.label}
+        </a>
+      ))
+    }
+  </nav>
+</div>
+
+<style>
+  .site-title-group {
+    display: flex;
+    align-items: stretch;
+    gap: 1.75rem;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .site-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--sl-color-white);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .mark {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 0.25rem;
+    background: linear-gradient(140deg, var(--sl-color-accent), var(--sl-color-accent-high));
+  }
+
+  .top-nav {
+    display: flex;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  /* Full height, so the active underline lands on the header's own bottom
+     edge — a tab — instead of floating under the word. */
+  .top-nav a {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 450;
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition:
+      color 0.15s,
+      border-color 0.15s;
+  }
+
+  .top-nav a:hover {
+    color: var(--sl-color-white);
+  }
+
+  .top-nav a[aria-current="page"] {
+    color: var(--sl-color-white);
+    border-bottom-color: var(--sl-color-accent);
+  }
+
+  /* The header is tight on a phone; the sidebar already carries these. */
+  @media (max-width: 50rem) {
+    .top-nav {
+      display: none;
+    }
+  }
+</style>

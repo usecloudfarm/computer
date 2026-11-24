@@ -1,6 +1,6 @@
 ---
 "@cloudfarm/sqlite-storage": minor
-"@cloudfarm/core": patch
+"@cloudfarm/computer": patch
 ---
 
 Add `@cloudfarm/sqlite-storage`: workspace files in SQLite, through
@@ -60,7 +60,7 @@ reports only "unable to open database file". `readOnly` opens without write
 access. URI query parameters are not supported; SQLite needs an open flag for
 those that `node:sqlite` does not expose.
 
-`@cloudfarm/core` now exports `FileNotFoundError`, which a storage provider
+`@cloudfarm/computer` now exports `FileNotFoundError`, which a storage provider
 needs to report a missing file the way the rest of the system expects — code
 mode maps it to `ENOENT`.
 

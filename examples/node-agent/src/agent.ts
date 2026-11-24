@@ -13,7 +13,7 @@
  */
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs } from "ai";
-import { createAction, Computer, createApp, noAuth } from "@cloudfarm/core";
+import { createAction, Computer, createApp, noAuth } from "@cloudfarm/computer";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 import { firecrawl } from "@cloudfarm/firecrawl";
 import { z } from "zod";

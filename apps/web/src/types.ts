@@ -25,10 +25,19 @@ export interface ToolSpecInfo {
   };
 }
 
+/** Where the files in the panel actually live. */
+export interface StorageInfo {
+  id: string;
+  description: string;
+  /** Set when the storage is something you could go and look at. */
+  location?: string;
+}
+
 export interface WorkspaceState {
   files: FileEntry[];
   apps: AppInfo[];
   tools: ToolSpecInfo[];
+  storage?: StorageInfo;
 }
 
 /** What /api/info returns: enough to name what you are talking to. */

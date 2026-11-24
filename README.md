@@ -7,7 +7,7 @@ apps as plugins, and _code mode_ — where the agent searches for an action,
 gets typed signatures back, and writes code that runs in an isolate.
 
 ```ts
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 
@@ -52,13 +52,22 @@ process starts in a millisecond and shares one filesystem with the workspace;
 the microVM took a second to boot and 1.6s per `code()` call, with a tail into
 the tens of seconds.
 
-On Workers, pass `wasmModule` — not a choice of engine, but the one thing only
-your bundler can do:
+The shell is `@cloudfarm/rbash-sandbox` when it is installed — bash compiled
+to WebAssembly, covering every command `just-bash` has and faster on all of
+them — and `@cloudfarm/bash-sandbox` otherwise. Which one runs is decided by
+what is installed, not by what you pass.
+
+On Workers, hand in the wasm — not a choice, but the one thing only your
+bundler can do:
 
 ```ts
-import wasmModule from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
-new Computer({ wasmModule });
+import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
+import shell from "@cloudfarm/rbash-sandbox/wasm";
+new Computer({ wasm: { engine, shell } });
 ```
+
+Omit `shell` there and the shell falls back to `@cloudfarm/bash-sandbox`,
+which is TypeScript and needs no module.
 
 On Cloudflare Workers, configure the engine explicitly:
 `codeEngine: quickjsForWorkers(wasmModule)`. The wasm has to be a static
@@ -124,13 +133,13 @@ calls made  0
 
 | package                     | what it is                                                                   | runs on              |
 | --------------------------- | ---------------------------------------------------------------------------- | -------------------- |
-| `@cloudfarm/core`           | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
+| `@cloudfarm/computer`       | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
 | `@cloudfarm/bash-sandbox`   | the default sandbox: bash in TypeScript, no infrastructure                   | Node and Workers     |
 | `@cloudfarm/qjs-engine`     | code mode in a WebAssembly isolate                                           | Node and Workers     |
 | `@cloudfarm/ai-sdk-toolset` | tools for the Vercel AI SDK                                                  | Node and Workers     |
 | `@cloudfarm/slack`          | Slack as an app plugin                                                       | Node and Workers     |
 
-`@cloudfarm/core` is isomorphic by construction, not by discipline: it has no
+`@cloudfarm/computer` is isomorphic by construction, not by discipline: it has no
 `@types/node`, oxlint refuses `node:*` imports inside it, and **its entire test
 suite runs under workerd in CI** as well as Node. That last one is the actual
 guarantee.

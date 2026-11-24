@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 
 /**
  * The zero-config path. These assertions only mean something where both

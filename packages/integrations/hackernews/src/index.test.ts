@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { hackernews } from "./index.js";
 
 /** Replaces global fetch, so no test in this block reaches the network. */

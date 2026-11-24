@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import type { AddressInfo } from "node:net";
-import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
 import { JustBash } from "@cloudfarm/bash-sandbox";
 import { quickjs } from "@cloudfarm/qjs-engine";
 import { d1Storage } from "./d1.js";

@@ -1,6 +1,6 @@
 ---
 "@cloudfarm/s3-storage": minor
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 Add `@cloudfarm/s3-storage`: workspace files in any S3-compatible bucket you own —

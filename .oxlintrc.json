@@ -17,11 +17,11 @@
   },
   "overrides": [
     {
-      // The isomorphism gate. @cloudfarm/core must run unchanged on Workers,
+      // The isomorphism gate. @cloudfarm/computer must run unchanged on Workers,
       // so nothing in it may reach for a Node built-in or a browser global.
       // The real guarantee is `pnpm test:workers`, which runs its whole suite
       // under workerd; this just fails faster and with a better message.
-      "files": ["packages/core/src/**/*.ts"],
+      "files": ["packages/computer/src/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -29,7 +29,7 @@
             "patterns": [
               {
                 "group": ["node:*"],
-                "message": "@cloudfarm/core is isomorphic: put platform code in a leaf package."
+                "message": "@cloudfarm/computer is isomorphic: put platform code in a leaf package."
               }
             ]
           }
@@ -38,9 +38,9 @@
           "error",
           {
             "name": "process",
-            "message": "@cloudfarm/core is isomorphic: take env through options."
+            "message": "@cloudfarm/computer is isomorphic: take env through options."
           },
-          { "name": "Buffer", "message": "@cloudfarm/core is isomorphic: use Uint8Array." },
+          { "name": "Buffer", "message": "@cloudfarm/computer is isomorphic: use Uint8Array." },
           { "name": "window", "message": "Not available on Workers or Node." },
           { "name": "document", "message": "Not available on Workers or Node." },
           { "name": "localStorage", "message": "Not available on Workers or Node." },

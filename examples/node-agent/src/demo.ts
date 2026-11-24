@@ -6,7 +6,7 @@
  * No API keys needed — the Slack app is pointed at a local stub so the whole
  * thing runs offline.
  */
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 import { createServer } from "node:http";

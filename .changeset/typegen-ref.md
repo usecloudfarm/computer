@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": patch
+"@cloudfarm/computer": patch
 ---
 
 Fix the generated `.d.ts` declaring refs that do not exist.

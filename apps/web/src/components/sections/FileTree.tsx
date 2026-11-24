@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronRight, File, Folder, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { formatSize } from "@/lib/history.ts";
-import type { FileEntry } from "@/types.ts";
+import type { FileEntry, StorageInfo } from "@/types.ts";
 
 /**
  * What is on disk, as a collapsible tree.
@@ -12,17 +12,24 @@ import type { FileEntry } from "@/types.ts";
  */
 export function FileTree({
   files,
+  storage,
   onOpenFile,
   openPath,
 }: {
   files: FileEntry[];
+  storage: StorageInfo | undefined;
   onOpenFile: (path: string) => void;
   openPath: string | null;
 }) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
   if (files.length === 0) {
-    return <Empty>No files yet. Ask the agent to write one.</Empty>;
+    return (
+      <Empty>
+        No files yet. Ask the agent to write one.
+        {storage && <> They will be kept in {storage.description.replace(/\.$/, "")}.</>}
+      </Empty>
+    );
   }
 
   // The API returns every directory first and then every file, which rendered
@@ -91,6 +98,31 @@ export function FileTree({
           </button>
         );
       })}
+
+      {storage && <StorageFooter files={files} storage={storage} />}
+    </div>
+  );
+}
+
+/**
+ * What is stored, and where.
+ *
+ * The tree shows paths; this says they are real. A workspace backed by memory
+ * and one backed by a database render identically, and the difference —
+ * whether any of it survives the next restart — is the thing worth knowing.
+ */
+function StorageFooter({ files, storage }: { files: FileEntry[]; storage: StorageInfo }) {
+  const stored = files.filter((entry) => entry.type === "file");
+  const bytes = stored.reduce((total, entry) => total + entry.size, 0);
+
+  return (
+    <div className="text-muted-foreground mt-2 border-t px-3 pt-2 text-[11px] leading-relaxed">
+      <p className="font-mono tabular-nums">
+        {stored.length} file{stored.length === 1 ? "" : "s"} · {formatSize(bytes)}
+      </p>
+      <p className="truncate" title={storage.location ?? storage.id}>
+        in {storage.location ?? storage.id}
+      </p>
     </div>
   );
 }

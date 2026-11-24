@@ -18,6 +18,70 @@ export function toJsonSchema(schema: z.ZodType): JsonSchema {
   return generated;
 }
 
+/**
+ * The doc comment for one field: its description, plus whatever the schema
+ * constrains it to.
+ *
+ * TypeScript cannot express "between 1 and 30", so without this the bound is
+ * simply absent and the model guesses. It does guess: a script asking for
+ * `limit: 50` against a `max(30)` failed validation five times in a row, and
+ * nothing in `limit?: number` could have told it otherwise. A validator that
+ * knows a rule the caller cannot see is a trap.
+ */
+function describeField(schema: JsonSchema): string {
+  const parts: string[] = [];
+  const description = schema["description"];
+  if (typeof description === "string" && description.trim() !== "") {
+    parts.push(description.trim());
+  }
+
+  // Zod puts `maximum: Number.MAX_SAFE_INTEGER` on every integer, and
+  // `.positive()` becomes `exclusiveMinimum: 0`. Neither is a constraint
+  // anyone needs to read, and both would be on every id in every signature.
+  const exclusiveMin = schema["exclusiveMinimum"];
+  const inclusiveMin = schema["minimum"];
+  const max = schema["maximum"] ?? schema["exclusiveMaximum"];
+  const upper = typeof max === "number" && max < Number.MAX_SAFE_INTEGER ? max : undefined;
+  const lower =
+    typeof inclusiveMin === "number"
+      ? inclusiveMin
+      : typeof exclusiveMin === "number"
+        ? exclusiveMin + 1
+        : undefined;
+  // A lower bound alone, at 0 or 1, says only "a positive number" — which a
+  // model already assumes. Worth the tokens only when it caps something.
+  const worthSaying = upper !== undefined || (lower !== undefined && lower > 1);
+  if (worthSaying) {
+    if (lower !== undefined && upper !== undefined) parts.push(`${lower} to ${upper}.`);
+    else if (upper !== undefined) parts.push(`At most ${upper}.`);
+    else parts.push(`At least ${lower}.`);
+  }
+
+  const minLength = schema["minLength"];
+  const maxLength = schema["maxLength"];
+  if (typeof minLength === "number" || typeof maxLength === "number") {
+    if (typeof minLength === "number" && typeof maxLength === "number") {
+      parts.push(`${minLength} to ${maxLength} characters.`);
+    } else if (typeof maxLength === "number") {
+      parts.push(`At most ${maxLength} characters.`);
+    } else {
+      parts.push(`At least ${minLength} characters.`);
+    }
+  }
+
+  if (typeof schema["pattern"] === "string") parts.push(`Matches ${schema["pattern"]}.`);
+  if (typeof schema["format"] === "string") parts.push(`Format: ${schema["format"]}.`);
+  if (typeof schema["default"] !== "undefined") {
+    parts.push(`Defaults to ${JSON.stringify(schema["default"])}.`);
+  }
+
+  // One line, and each sentence ends with a stop so they read as prose.
+  return parts
+    .map((part, i) => (i === 0 && !part.endsWith(".") ? `${part}.` : part))
+    .join(" ")
+    .trim();
+}
+
 /** JSON Schema → a TypeScript type literal. Covers the subset Zod emits. */
 export function renderType(schema: JsonSchema, indent = 0): string {
   const pad = "  ".repeat(indent);
@@ -65,10 +129,8 @@ export function renderType(schema: JsonSchema, indent = 0): string {
       if (entries.length === 0) return "Record<string, unknown>";
 
       const lines = entries.map(([key, value]) => {
-        const docs =
-          typeof value["description"] === "string"
-            ? `${padInner}/** ${value["description"]} */\n`
-            : "";
+        const note = describeField(value);
+        const docs = note ? `${padInner}/** ${note} */\n` : "";
         const optional = required.has(key) ? "" : "?";
         return `${docs}${padInner}${key}${optional}: ${renderType(value, indent + 1)};`;
       });

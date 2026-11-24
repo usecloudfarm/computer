@@ -1,5 +1,5 @@
-import { FileNotFoundError, dirname, normalizePath } from "@cloudfarm/core";
-import type { FileStat, FileSystem, StorageProvider } from "@cloudfarm/core";
+import { FileNotFoundError, dirname, normalizePath } from "@cloudfarm/computer";
+import type { FileStat, FileSystem, StorageProvider } from "@cloudfarm/computer";
 import {
   CHUNK_BYTES,
   schemaStatements,
@@ -321,4 +321,4 @@ function fromHex(hex: string): Uint8Array {
   return out;
 }
 
-export type { FileStat } from "@cloudfarm/core";
+export type { FileStat } from "@cloudfarm/computer";

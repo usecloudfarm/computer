@@ -53,7 +53,7 @@
     "test:workers": "vitest run --config vitest.workers.config.ts"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^"
+    "@cloudfarm/computer": "workspace:^"
   },
   "devDependencies": {
     "@cloudfarm/bash-sandbox": "workspace:^",

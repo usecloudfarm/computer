@@ -4,7 +4,7 @@
  * If this file stops compiling, the public API has drifted from what was
  * designed — which is the point of keeping it in the workspace.
  */
-import { Computer } from "@cloudfarm/core";
+import { Computer } from "@cloudfarm/computer";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 

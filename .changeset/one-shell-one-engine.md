@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": major
+"@cloudfarm/computer": major
 "@cloudfarm/bash-sandbox": major
 "@cloudfarm/qjs-engine": major
 "@cloudfarm/s3-storage": major

@@ -1,0 +1,74 @@
+{
+  "name": "@cloudfarm/computer",
+  "version": "0.0.1",
+  "description": "Computer: a workspace, a filesystem, bash, apps and code mode for an agent",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@cloudfarm/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "@cloudfarm/source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "test:watch": "vitest",
+    "lint": "oxlint src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf dist .turbo .wrangler *.tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.9.0",
+    "@cloudflare/workers-types": "^5.20261120.1",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.166.0"
+  },
+  "peerDependencies": {
+    "@cloudfarm/bash-sandbox": "workspace:^",
+    "@cloudfarm/qjs-engine": "workspace:^",
+    "@cloudfarm/rbash-sandbox": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@cloudfarm/bash-sandbox": {
+      "optional": true
+    },
+    "@cloudfarm/qjs-engine": {
+      "optional": true
+    },
+    "@cloudfarm/rbash-sandbox": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usecloudfarm/computer.git",
+    "directory": "packages/computer"
+  },
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/computer#readme",
+  "bugs": {
+    "url": "https://github.com/usecloudfarm/computer/issues"
+  }
+}

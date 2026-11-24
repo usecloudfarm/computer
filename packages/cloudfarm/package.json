@@ -1,7 +1,7 @@
 {
-  "name": "@cloudfarm/core",
+  "name": "cloudfarm",
   "version": "0.0.1",
-  "description": "Computer: a workspace, a filesystem, bash, apps and code mode for an agent",
+  "description": "Hand an agent a computer: a filesystem, a shell, apps and code mode, in one install",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -26,34 +26,20 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:workers": "vitest run --config vitest.workers.config.ts",
     "test:watch": "vitest",
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "clean": "rm -rf dist .turbo .wrangler *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "zod": "^4.6.7"
+    "@cloudfarm/computer": "workspace:^",
+    "@cloudfarm/qjs-engine": "workspace:^",
+    "@cloudfarm/rbash-sandbox": "workspace:^"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.9.0",
-    "@cloudflare/workers-types": "^5.20261120.1",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
-    "vitest": "^5.1.1",
-    "wrangler": "^4.166.0"
-  },
-  "peerDependencies": {
-    "@cloudfarm/bash-sandbox": "workspace:^",
-    "@cloudfarm/qjs-engine": "workspace:^"
-  },
-  "peerDependenciesMeta": {
-    "@cloudfarm/bash-sandbox": {
-      "optional": true
-    },
-    "@cloudfarm/qjs-engine": {
-      "optional": true
-    }
+    "vitest": "^5.1.1"
   },
   "publishConfig": {
     "access": "public"
@@ -61,9 +47,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/usecloudfarm/computer.git",
-    "directory": "packages/core"
+    "directory": "packages/cloudfarm"
   },
-  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/core#readme",
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/cloudfarm#readme",
   "bugs": {
     "url": "https://github.com/usecloudfarm/computer/issues"
   }

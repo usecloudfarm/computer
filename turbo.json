@@ -11,6 +11,7 @@
         "tsconfig*.json",
         "tsup.config.ts",
         "vite.config.ts",
+        "astro.config.mjs",
         "package.json"
       ],
       "outputs": ["dist/**"]

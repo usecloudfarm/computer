@@ -1,5 +1,5 @@
 import { AwsClient } from "aws4fetch";
-import type { FileStat, FileSystem, StorageProvider } from "@cloudfarm/core";
+import type { FileStat, FileSystem, StorageProvider } from "@cloudfarm/computer";
 
 export interface S3StorageOptions {
   readonly bucket: string;

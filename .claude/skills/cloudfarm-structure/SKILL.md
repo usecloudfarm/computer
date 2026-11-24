@@ -7,13 +7,13 @@ description: The layout of the cloudfarm monorepo and the conventions every pack
 
 ## The organising idea
 
-`@cloudfarm/core` defines a handful of plugin interfaces. **Every other package
+`@cloudfarm/computer` defines a handful of plugin interfaces. **Every other package
 implements exactly one of them, and lives in the folder named after it.** The
 path tells you the contract:
 
 ```
 packages/
-├── core/                    @cloudfarm/core — the Computer, and every interface below
+├── core/                    @cloudfarm/computer — the Computer, and every interface below
 ├── sandboxes/               where bash runs — closed, exactly one
 │   └── bash-sandbox/        @cloudfarm/bash-sandbox   (just-bash, in-process)
 ├── engines/                 where code mode executes — closed, exactly one
@@ -57,7 +57,7 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 3. **Fix the relative paths** — grouped packages sit one level deeper than
    `core`:
 
-   | file                       | in `packages/core`         | in `packages/<kind>/<name>`   |
+   | file                       | in `packages/computer`     | in `packages/<kind>/<name>`   |
    | -------------------------- | -------------------------- | ----------------------------- |
    | `tsconfig.json` extends    | `../../tsconfig.base.json` | `../../../tsconfig.base.json` |
    | `vitest.config.ts` imports | `../../vitest.config.js`   | `../../../vitest.config.js`   |
@@ -77,7 +77,7 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 Use `createApp` from core, with one `createAction()` per member:
 
 ```ts
-import { createAction, createApp } from "@cloudfarm/core";
+import { createAction, createApp } from "@cloudfarm/computer";
 
 export function linear(options: { apiKey: string }) {
   return createApp({
@@ -204,7 +204,7 @@ new apps should use the factory.
 `@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` are the defaults for `provider` and
 `codeEngine`. Core cannot import them — they depend on core — so it declares
 them as **optional peer dependencies** and resolves them at runtime through a
-dynamic import in `packages/core/src/defaults.ts`. Installed means default;
+dynamic import in `packages/computer/src/defaults.ts`. Installed means default;
 absent means the matching tool is simply missing.
 
 pnpm reports a cyclic workspace dependency because of those peers. It is
@@ -228,11 +228,11 @@ but nothing publishes.
 
 **Zod for data, interfaces for behaviour.** Anything that crosses a boundary —
 action inputs and outputs, run results, wire frames — is a Zod schema in
-`packages/core/src/schemas.ts` with its TypeScript type inferred from it. One
+`packages/computer/src/schemas.ts` with its TypeScript type inferred from it. One
 definition validates the model's arguments, generates the JSON Schema that tool
 definitions need, and renders the TypeScript the model writes against in code
 mode. Things with methods (filesystems, providers, engines) stay plain
-interfaces in `packages/core/src/ports.ts`; Zod has nothing useful to say about
+interfaces in `packages/computer/src/ports.ts`; Zod has nothing useful to say about
 a method.
 
 **Descriptions are prompt text.** Every `description` field on a provider, app
@@ -242,12 +242,12 @@ expect tests to assert on it.
 
 ## The isomorphism rule
 
-`@cloudfarm/core` runs on Node **and** Cloudflare Workers, and that is enforced
+`@cloudfarm/computer` runs on Node **and** Cloudflare Workers, and that is enforced
 mechanically rather than by discipline:
 
 - it has no `@types/node` dependency and `"types": []` in its tsconfig, so
   `node:*` imports and `process` do not typecheck;
-- oxlint bans `node:` imports and browser-only globals inside `packages/core/src`;
+- oxlint bans `node:` imports and browser-only globals inside `packages/computer/src`;
 - `pnpm test:workers` runs core's **entire** suite inside workerd, and CI runs
   it alongside the Node suite.
 

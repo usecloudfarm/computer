@@ -1,6 +1,6 @@
 ---
 "@cloudfarm/qjs-engine": minor
-"@cloudfarm/core": patch
+"@cloudfarm/computer": patch
 ---
 
 `await` works in code mode.

@@ -1,5 +1,5 @@
 ---
-"@cloudfarm/core": minor
+"@cloudfarm/computer": minor
 ---
 
 The `run`, `code` and `fs` tool descriptions are built from what a computer

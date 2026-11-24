@@ -47,22 +47,30 @@ export interface ComputerOptions<T = unknown> {
   /** Where workspace files live. Defaults to memory. */
   storage?: StorageProvider;
   /**
-   * The compiled QuickJS wasm, for Workers only.
+   * Compiled wasm modules, for Workers only.
    *
-   * The shell and the engine are not configurable — they are `just-bash` and
-   * QuickJS, found at runtime. This is the one exception, and it is not a
-   * choice of engine: Workers refuses `WebAssembly.compile` on bytes, so the
-   * module has to arrive as a static import, and only your bundler can emit
-   * one.
+   * The shell and the engine are not configurable — which one runs is decided
+   * by what is installed, not by what you pass. This is the one exception,
+   * and it is not a choice: Workers refuses `WebAssembly.compile` on bytes,
+   * so a module has to arrive as a static import and only your bundler can
+   * emit one.
    *
    * ```ts
-   * import wasmModule from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
-   * new Computer({ wasmModule });
+   * import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
+   * import shell from "@cloudfarm/rbash-sandbox/wasm";
+   * new Computer({ wasm: { engine, shell } });
    * ```
    *
-   * On Node, leave it out; the variant loads its own `.wasm` from disk.
+   * On Node, leave it out: both load their own `.wasm` from disk. Omit
+   * `shell` and the shell falls back to `@cloudfarm/bash-sandbox`, which is
+   * TypeScript and needs no module.
    */
-  wasmModule?: WebAssembly.Module;
+  wasm?: {
+    /** QuickJS, for code mode. */
+    readonly engine?: WebAssembly.Module;
+    /** `rust-bash`, for the shell. */
+    readonly shell?: WebAssembly.Module;
+  };
   apps?: readonly App[];
   limits?: Partial<CodeLimits>;
   /** Literal secrets to scrub from anything the model reads. */
@@ -188,8 +196,8 @@ export class Computer<T = unknown> {
     this.#resolvedOptions ??= (async () => {
       const options = this.#options as ComputerOptions<unknown>;
       const [provider, codeEngine] = await Promise.all([
-        defaultProvider(),
-        defaultCodeEngine(options.wasmModule),
+        defaultProvider(options.wasm?.shell),
+        defaultCodeEngine(options.wasm?.engine),
       ]);
       return {
         ...options,
@@ -430,7 +438,7 @@ export class Workspace<T = unknown> {
           name: "NoCodeEngineError",
           message:
             "Code mode could not start: @cloudfarm/qjs-engine is not installed. " +
-            "Install it. On Workers, also pass `wasmModule` — the wasm has to " +
+            "Install it. On Workers, also pass `wasm.engine` — the wasm has to " +
             "be a static import, which only your bundler can emit.",
         },
         bridge,

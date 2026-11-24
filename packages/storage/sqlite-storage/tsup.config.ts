@@ -19,5 +19,5 @@ export default defineConfig({
   // tests do not catch it: they resolve `@cloudfarm/source` and run the
   // TypeScript, so `dist` is only ever exercised by a consumer.
   removeNodeProtocol: false,
-  external: ["@cloudfarm/core", "node:sqlite"],
+  external: ["@cloudfarm/computer", "node:sqlite"],
 });

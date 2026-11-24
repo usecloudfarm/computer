@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Both optional packages resolve in this workspace, so "not installed" has to
-// be arranged. Replacing them with empty modules exercises the real path:
-// `defaultProvider` constructs `module.JustBash`, which is undefined here, and
-// the catch turns that into "no default". Passing `null` no longer does this —
-// it resolves the default, same as leaving the field unset.
+// Every optional package resolves in this workspace, so "not installed" has
+// to be arranged. Replacing them with empty modules exercises the real path:
+// `defaultProvider` calls `module.rbash`, then `module.JustBash`, both
+// undefined here, and the catch turns that into "no default".
+vi.mock("@cloudfarm/rbash-sandbox", () => ({}));
 vi.mock("@cloudfarm/bash-sandbox", () => ({}));
 vi.mock("@cloudfarm/qjs-engine", () => ({}));
 
@@ -22,7 +22,7 @@ describe("a computer whose optional packages are not installed", () => {
       status: "error",
       error: {
         code: "unknown_ref",
-        message: expect.stringContaining("install @cloudfarm/bash-sandbox"),
+        message: expect.stringContaining("@cloudfarm/bash-sandbox"),
       },
     });
   });

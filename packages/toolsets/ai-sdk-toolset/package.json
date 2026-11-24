@@ -27,7 +27,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/core": "workspace:^"
+    "@cloudfarm/computer": "workspace:^"
   },
   "devDependencies": {
     "@cloudfarm/qjs-engine": "workspace:^",
