@@ -74,7 +74,7 @@ bundler can do:
 
 ```ts
 import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
-import shell from "@cloudfarm/rbash-sandbox/wasm";
+import shell from "@cloudfarm/rbash/wasm";
 new Computer({ wasm: { engine, shell } });
 ```
 
@@ -147,7 +147,8 @@ calls made  0
 | ------------------------------- | ---------------------------------------------------------------------------- | -------------------- |
 | `cloudfarm`                     | the Computer, the shell and the engine in one install                        | Node **and** Workers |
 | `@cloudfarm/computer`           | `Computer`, `Workspace`, every plugin interface, dispatch, search, redaction | Node **and** Workers |
-| `@cloudfarm/rbash-sandbox`      | the shell: bash compiled to WebAssembly                                      | Node and Workers     |
+| `@cloudfarm/rbash`              | the bash interpreter alone: wasm, an in-memory filesystem, no Computer       | Node and Workers     |
+| `@cloudfarm/rbash-sandbox`      | that interpreter as the shell a Computer runs                                | Node and Workers     |
 | `@cloudfarm/bash-sandbox`       | the fallback shell: bash in TypeScript, no infrastructure                    | Node and Workers     |
 | `@cloudfarm/sqlite-storage`     | a workspace in SQLite — a local file, a Durable Object, or D1                | Node and Workers     |
 | `@cloudfarm/s3-storage`         | a workspace in any S3-compatible bucket                                      | Node and Workers     |

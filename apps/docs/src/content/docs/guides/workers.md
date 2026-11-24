@@ -14,7 +14,7 @@ as a static import — and only your bundler can emit one.
 
 ```ts
 import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
-import shell from "@cloudfarm/rbash-sandbox/wasm";
+import shell from "@cloudfarm/rbash/wasm";
 
 const computer = new Computer({ wasm: { engine, shell } });
 ```
@@ -38,7 +38,7 @@ import { DurableObject } from "cloudflare:workers";
 import { Computer } from "@cloudfarm/computer";
 import { sqliteStorage } from "@cloudfarm/sqlite-storage/workers";
 import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
-import shell from "@cloudfarm/rbash-sandbox/wasm";
+import shell from "@cloudfarm/rbash/wasm";
 
 export class Workspace extends DurableObject {
   computer = new Computer({

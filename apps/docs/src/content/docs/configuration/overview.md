@@ -20,7 +20,8 @@ it satisfies. The name says it too: `<what>-<role>`.
 | ------------------------------- | --------------------------------------- | --------------------------------- |
 | `cloudfarm`                     | the Computer, the shell and the engine  | one install, nothing to wire      |
 | `@cloudfarm/computer`           | the Computer, and every interface below | isomorphic: no Node built-ins     |
-| `@cloudfarm/rbash-sandbox`      | the shell                               | bash compiled to WebAssembly      |
+| `@cloudfarm/rbash`              | the bash interpreter, standalone        | wasm; usable without a Computer   |
+| `@cloudfarm/rbash-sandbox`      | the shell                               | the interpreter, as a provider    |
 | `@cloudfarm/bash-sandbox`       | the shell                               | `just-bash`, pure TypeScript      |
 | `@cloudfarm/qjs-engine`         | code mode                               | QuickJS, in WebAssembly           |
 | `@cloudfarm/sqlite-storage`     | storage                                 | local file, Durable Object, or D1 |

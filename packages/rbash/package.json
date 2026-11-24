@@ -1,0 +1,77 @@
+{
+  "name": "@cloudfarm/rbash",
+  "version": "0.0.1",
+  "description": "A sandboxed bash interpreter with an in-memory filesystem, written in Rust and compiled to WebAssembly",
+  "keywords": [
+    "bash",
+    "shell",
+    "wasm",
+    "webassembly",
+    "sandbox",
+    "interpreter",
+    "workers"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "vendor/rust_bash.js",
+    "vendor/rust_bash.d.ts",
+    "vendor/rust_bash_bg.wasm",
+    "vendor/rust_bash_bg.wasm.d.ts",
+    "LICENSE"
+  ],
+  "main": "./dist/node.js",
+  "types": "./dist/node.d.ts",
+  "exports": {
+    ".": {
+      "workerd": {
+        "@cloudfarm/source": "./src/workers.ts",
+        "types": "./dist/workers.d.ts",
+        "import": "./dist/workers.js"
+      },
+      "@cloudfarm/source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./workers": {
+      "@cloudfarm/source": "./src/workers.ts",
+      "types": "./dist/workers.d.ts",
+      "import": "./dist/workers.js"
+    },
+    "./node": {
+      "@cloudfarm/source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./wasm": "./vendor/rust_bash_bg.wasm"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usecloudfarm/computer.git",
+    "directory": "packages/rbash"
+  },
+  "homepage": "https://github.com/usecloudfarm/computer/tree/main/packages/rbash#readme",
+  "bugs": {
+    "url": "https://github.com/usecloudfarm/computer/issues"
+  }
+}

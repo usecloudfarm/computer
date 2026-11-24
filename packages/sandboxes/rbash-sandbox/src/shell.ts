@@ -9,44 +9,17 @@ import type {
 import type { ExecEvent, ExecOptions, ExecResult, Json } from "@cloudfarm/computer";
 import { execHandle } from "@cloudfarm/computer";
 
-/** The slice of the wasm-bindgen class this package uses. */
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
+import type {
+  ExecOutput,
+  Shell,
+  ShellConstructor,
+  ShellRequest,
+  ShellResponse,
+} from "@cloudfarm/rbash";
 
-/** What the shell asks the host to fetch, and what it expects back. */
-export interface ShellRequest {
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-  body: string | null;
-}
-
-export interface ShellResponse {
-  status?: number;
-  headers?: Record<string, string>;
-  body?: string;
-  error?: string;
-}
-
-export interface RustBash {
-  exec(script: string): ExecOutput;
-  /** Execution that can wait on the host, which `curl` needs. */
-  execAsync(script: string): Promise<ExecOutput>;
-  /** Wires in the network. Without it, `curl` and `wget` do not exist. */
-  setFetch(fetch?: ((request: ShellRequest) => Promise<ShellResponse>) | null): void;
-  /** Byte-exact, so a gzip stream or a tarball survives the trip. */
-  writeFileBytes(path: string, content: Uint8Array): void;
-  readFileBytes(path: string): Uint8Array | undefined;
-  free(): void;
-}
-
-export interface RustBashConstructor {
-  new (): RustBash;
-  commands(): string[];
-}
+// Re-exported so a consumer of the provider does not have to reach for
+// the shell package to name what it works with.
+export type { ExecOutput, Shell, ShellConstructor, ShellRequest, ShellResponse };
 
 export interface RbashOptions {
   /** Working directory. Defaults to the workspace root. */
@@ -98,10 +71,10 @@ export class Rbash implements SandboxProvider {
     "xan (CSV), sqlite3 and html-to-markdown. Cannot run npm, node or python.";
   readonly capabilities = new Set(["bash" as const]);
 
-  readonly #Bash: RustBashConstructor;
+  readonly #Bash: ShellConstructor;
   readonly #options: RbashOptions;
 
-  constructor(Bash: RustBashConstructor, options: RbashOptions = {}) {
+  constructor(Bash: ShellConstructor, options: RbashOptions = {}) {
     this.#Bash = Bash;
     this.#options = options;
   }
@@ -112,17 +85,12 @@ export class Rbash implements SandboxProvider {
 }
 
 class RbashSandbox implements Sandbox {
-  readonly #Bash: RustBashConstructor;
+  readonly #Bash: ShellConstructor;
   readonly #fs: FileSystem;
   readonly #options: RbashOptions;
   readonly #host: ComputerHost;
 
-  constructor(
-    Bash: RustBashConstructor,
-    fs: FileSystem,
-    options: RbashOptions,
-    host: ComputerHost,
-  ) {
+  constructor(Bash: ShellConstructor, fs: FileSystem, options: RbashOptions, host: ComputerHost) {
     this.#Bash = Bash;
     this.#fs = fs;
     this.#options = options;
@@ -184,7 +152,7 @@ class RbashSandbox implements Sandbox {
  * which is every tarball and every gzip stream — a `tar -czf` in one command
  * would not survive to the next.
  */
-async function push(shell: RustBash, fs: FileSystem): Promise<Map<string, string>> {
+async function push(shell: Shell, fs: FileSystem): Promise<Map<string, string>> {
   const before = new Map<string, string>();
   for await (const entry of fs.list("/")) {
     if (entry.type !== "file") continue;
@@ -226,7 +194,7 @@ function fingerprint(bytes: Uint8Array): string {
  * like: `find` is one of its own builtins and reads the same in-memory
  * filesystem the script wrote to, so it sees exactly what a caller would.
  */
-async function pull(shell: RustBash, fs: FileSystem, before: Map<string, string>): Promise<void> {
+async function pull(shell: Shell, fs: FileSystem, before: Map<string, string>): Promise<void> {
   const listing = shell.exec(`find ${WORKSPACE_ROOT} -type f 2>/dev/null`);
   const paths = listing.stdout.split("\n").filter((line) => line.startsWith(`${WORKSPACE_ROOT}/`));
   const seen = new Set(paths);

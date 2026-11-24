@@ -1,11 +1,16 @@
 # `@cloudfarm/rbash-sandbox`
 
-`rust-bash` as a `SandboxProvider`: a bash interpreter written in Rust and
-compiled to WebAssembly, running in this process over the workspace
-filesystem.
+[`@cloudfarm/rbash`](../../rbash#readme) as a `SandboxProvider`: a bash
+interpreter written in Rust and compiled to WebAssembly, running in this
+process over the workspace filesystem.
+
+The interpreter is its own package and usable without any of this — reach for
+it directly if you want a sandboxed shell and not an agent. What this adds is
+the mapping onto a workspace filesystem, the `ExecResult` envelope, and `curl`
+routed through the host's allowlisted fetch.
 
 Same shape as `@cloudfarm/bash-sandbox`, same place in the system, different
-interpreter underneath. **Not wired up as the default** — see the trade below.
+interpreter underneath.
 
 ```ts
 import { rbash } from "@cloudfarm/rbash-sandbox";
@@ -16,7 +21,7 @@ On Workers the wasm has to be handed in, because Workers refuses
 `WebAssembly.compile` on bytes and only your bundler can emit a static import:
 
 ```ts
-import wasmModule from "@cloudfarm/rbash-sandbox/wasm";
+import wasmModule from "@cloudfarm/rbash/wasm";
 import { rbashForWorkers } from "@cloudfarm/rbash-sandbox/workers";
 
 const provider = rbashForWorkers(wasmModule);

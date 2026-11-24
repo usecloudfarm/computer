@@ -6,8 +6,7 @@
   "type": "module",
   "sideEffects": false,
   "files": [
-    "dist",
-    "vendor"
+    "dist"
   ],
   "main": "./dist/node.js",
   "types": "./dist/node.d.ts",
@@ -31,8 +30,7 @@
       "@cloudfarm/source": "./src/node.ts",
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
-    },
-    "./wasm": "./vendor/rust_bash_bg.wasm"
+    }
   },
   "scripts": {
     "build": "tsup",
@@ -45,7 +43,8 @@
     "clean": "rm -rf dist .turbo .wrangler *.tsbuildinfo"
   },
   "dependencies": {
-    "@cloudfarm/computer": "workspace:^"
+    "@cloudfarm/computer": "workspace:^",
+    "@cloudfarm/rbash": "workspace:^"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.9.0",
