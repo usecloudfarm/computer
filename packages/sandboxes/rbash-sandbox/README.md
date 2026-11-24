@@ -28,36 +28,54 @@ The `@cloudfarm/bash-sandbox` suite runs against this shell unchanged, in
 `parity.test.ts`: 11/11, including the runaway-loop bound, pipelines,
 heredocs, write-back and `cwd`. It runs on workerd too, which is the claim it
 had to earn — `bash-sandbox` is pure TypeScript and runs there by
-construction, where 1.9 MB of wasm is a question only the platform can answer.
+construction, where 3.1 MB of wasm is a question only the platform can answer.
 
-Through `Workspace.exec`, which includes the push/pull both shells pay:
+Speed is measured by `tools/shell-bench`, 48 cases against `just-bash` on the
+same scripts over the same bytes, each checked against an answer computed in
+JavaScript before it is timed. `pnpm bench` regenerates
+`tools/shell-bench/RESULTS.md`; these rows are its provider layer, which
+includes the push/pull both shells pay.
 
-| case                   | just-bash | rbash  | speedup |
-| ---------------------- | --------- | ------ | ------- |
-| echo (round trip)      | 1.14ms    | 0.44ms | 2.6x    |
-| grep -c over 2k lines  | 3.16ms    | 0.70ms | 4.5x    |
-| cut \| sort \| uniq -c | 2.70ms    | 2.11ms | 1.3x    |
-| sed s///g              | 6.35ms    | 1.19ms | 5.4x    |
-| write a file           | 0.78ms    | 0.41ms | 1.9x    |
-| 500-iteration loop     | 21.94ms   | 8.22ms | 2.7x    |
+| case                          | just-bash | rbash   | rbash is     |
+| ----------------------------- | --------- | ------- | ------------ |
+| `echo` (round trip)           | 0.689ms   | 0.037ms | 18.8x faster |
+| `sed s///` over 782 KB        | 209ms     | 17.0ms  | 12.3x faster |
+| 100 file writes               | 11.5ms    | 0.713ms | 16.1x faster |
+| 1000-iteration loop           | 9.59ms    | 0.951ms | 10.1x faster |
+| `grep -c` over 78 KB          | 1.73ms    | 0.844ms | 2.0x faster  |
+| `jq` group + count over 5k    | 14.2ms    | 10.8ms  | 1.3x faster  |
+| `sort \| uniq -c \| sort -rn` | 13.2ms    | 16.9ms  | 1.3x slower  |
 
-Lower multiples than the upstream benchmarks report, and the difference is
-ours, not theirs: upstream times the interpreter, and this times a whole
-`exec`, where copying the workspace in and out dominates a small command.
+Geometric mean across the suite: **4.3x** through `Workspace.exec` and
+**6.3x** against the bare interpreters, ahead on 46 of 49 cases. The three it
+loses are `sort`-dominated pipelines and `base64`.
+
+Cold start, in a process that has never seen either shell: 8.6ms against
+just-bash's 108ms, because loading 3.1 MB of wasm costs less than parsing
+517 KB of JavaScript.
+
+Those numbers depend on the build profile. `vendor/Cargo.toml` compiles at
+`opt-level = 3`, not `"z"`: at `"z"` the same source ran `jq` 1.8x slower and
+glob matching (`${v##*/}`, `case`) 9x slower, losing to the TypeScript shell
+on both. `wasm-opt -Oz` in `build.sh` takes the size back afterwards without
+giving up the speed.
 
 Upstream also reports 102/102 against GNU bash where just-bash scores 98, and
 roughly a sixth of the memory per session. Neither is re-measured here.
 
 ## The trade
 
-**For.** Faster on every shape measured. Bounded by default — a runaway loop
-stops itself, where `just-bash` needs `executionLimits` set. Ships `jq`.
-Better bash coverage upstream. `cwd` survives within a command.
+**For.** Faster on 46 of 49 measured cases, by 4.3x at the geometric mean, and
+an order of magnitude on startup. Bounded by default — a runaway loop stops
+itself, where `just-bash` needs `executionLimits` set. Ships `jq`. Better bash
+coverage upstream. `cwd` survives within a command.
 
 **Against.**
 
-- **2.4 MB of wasm** (0.8 MB gzipped) in the repo and in every bundle.
+- **3.1 MB of wasm** (1.1 MB gzipped) in the repo and in every bundle.
   Dropping `jq` roughly halves it (`cargo build --no-default-features`).
+  0.6 MB of that is the `opt-level = 3` profile, which is what keeps `jq` and
+  glob matching ahead of `just-bash` rather than behind it.
 - **It is a binary artifact.** The Rust source is vendored beside it under
   `vendor/src/`, but what runs is a `.wasm` no CI step rebuilds.
   `bash-sandbox` is TypeScript you can read in the repo.
