@@ -3,7 +3,7 @@ import { clampForModel, toLargeRef } from "./clamp.js";
 import { createHttpClient } from "./http.js";
 import { buildPrelude, ActionBridge, finishResult, resolveLimits } from "./code.js";
 import { validateSource } from "./validate.js";
-import { syncFor, type SandboxSync } from "./sync.js";
+import { fromGuestPath, inSandbox } from "./paths.js";
 import {
   ActionFailedError,
   classifyError,
@@ -16,11 +16,10 @@ import { Redactor } from "./redact.js";
 import { codeModeSpecs, RawToolset } from "./tools.js";
 import { renderDeclarations } from "./typegen.js";
 import { failed, ok } from "./schemas.js";
-import { defaultCodeEngine, defaultProvider, defaultSandboxEngine } from "./defaults.js";
+import { defaultCodeEngine, defaultProvider } from "./defaults.js";
 import { MemoryStorage } from "./vfs.js";
 import type {
   App,
-  Attachment,
   CodeEngine,
   ComputerHost,
   FileSystem,
@@ -34,6 +33,7 @@ import type {
   CodeResult,
   ExecOptions,
   ExecResult,
+  FileStat,
   Json,
   RunResult,
   SearchResult,
@@ -44,30 +44,25 @@ import type {
 export interface ComputerOptions<T = unknown> {
   /** Adapts tool specs to an agent framework. Defaults to handing back raw specs. */
   toolset?: Toolset<T>;
-  /**
-   * Where bash runs.
-   *
-   * There is no way to turn the shell off: `null` and `undefined` both fall
-   * back to `@cloudfarm/bash-sandbox`. A shell is part of what makes this a computer
-   * rather than a tool router, and the one thing an agent reaches for when no
-   * action fits — a Computer without it is a different, worse product rather
-   * than a configuration of this one.
-   */
-  provider?: SandboxProvider | null;
   /** Where workspace files live. Defaults to memory. */
   storage?: StorageProvider;
   /**
-   * Runs code mode.
+   * The compiled QuickJS wasm, for Workers only.
    *
-   * There is no way to turn code mode off: `null` and `undefined` both fall
-   * back to `@cloudfarm/qjs-engine`. Chaining several actions in one pass is the
-   * reason the tool surface stays small, so a Computer without it is a
-   * different, worse product rather than a configuration of this one.
+   * The shell and the engine are not configurable — they are `just-bash` and
+   * QuickJS, found at runtime. This is the one exception, and it is not a
+   * choice of engine: Workers refuses `WebAssembly.compile` on bytes, so the
+   * module has to arrive as a static import, and only your bundler can emit
+   * one.
    *
-   * On Workers, pass `quickjsForWorkers(wasmModule)` explicitly — the wasm
-   * has to be a static import, which only your bundler can do.
+   * ```ts
+   * import wasmModule from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
+   * new Computer({ wasmModule });
+   * ```
+   *
+   * On Node, leave it out; the variant loads its own `.wasm` from disk.
    */
-  codeEngine?: CodeEngine | null;
+  wasmModule?: WebAssembly.Module;
   apps?: readonly App[];
   limits?: Partial<CodeLimits>;
   /** Literal secrets to scrub from anything the model reads. */
@@ -76,10 +71,14 @@ export interface ComputerOptions<T = unknown> {
 }
 
 /**
- * Options once the defaults have been filled in. `null` has been collapsed to
- * absent, so nothing downstream has to distinguish "turned off" from "not set".
+ * Options plus the shell and engine, once they have been found.
+ *
+ * Both are optional here and nowhere else: they are discovered with a dynamic
+ * import, so a consumer who installed neither gets a Computer with storage,
+ * apps and `search` and no `run`/`code` tools, rather than a crash at
+ * construction.
  */
-type ResolvedOptions = Omit<ComputerOptions<unknown>, "provider" | "codeEngine"> & {
+type ResolvedOptions = ComputerOptions<unknown> & {
   provider?: SandboxProvider;
   codeEngine?: CodeEngine;
 };
@@ -137,11 +136,9 @@ export class Computer<T = unknown> {
     };
     const scope = { userId: options.userId, workspaceId };
     const fs = await this.#storage.open(scope);
-    const attachment = (await this.#storage.attachment?.(scope)) ?? null;
     const workspace = new Workspace<T>({
       info,
       fs,
-      attachment,
       storageDescription: this.#storage.description,
       registry: this.#registry,
       toolset: this.#toolset,
@@ -183,30 +180,19 @@ export class Computer<T = unknown> {
   }
 
   /**
-   * Fills in whatever was left unset. Memoised per Computer: finding the
-   * default packages is one dynamic import, and constructing them is cheap —
-   * neither the shell nor the wasm module does any work until first use.
+   * Finds the shell and the engine. Memoised per Computer: it is one dynamic
+   * import each, and constructing them is cheap — neither the shell nor the
+   * wasm variant does any work until first use.
    */
   #resolved(): Promise<ResolvedOptions> {
     this.#resolvedOptions ??= (async () => {
       const options = this.#options as ComputerOptions<unknown>;
-      // For both of these, `null` is not a way to opt out — it resolves the
-      // default, same as leaving the field unset. They can still come back
-      // undefined, but only because the package is not installed, which is a
-      // fact about the deployment rather than a choice about the product.
-      const provider = options.provider ?? (await defaultProvider());
-      // A sandbox that can host code mode gets it: the engine inside has a
-      // real runtime, where the isolate has 64 MiB and a filesystem shim.
-      // Declared by the provider rather than discovered on connect, so the
-      // choice is made once and before anything boots.
-      const codeEngine =
-        options.codeEngine ??
-        (provider?.capabilities.has("code") ? await defaultSandboxEngine() : undefined) ??
-        (await defaultCodeEngine());
-
-      const { provider: _ignoredProvider, codeEngine: _ignoredEngine, ...rest } = options;
+      const [provider, codeEngine] = await Promise.all([
+        defaultProvider(),
+        defaultCodeEngine(options.wasmModule),
+      ]);
       return {
-        ...rest,
+        ...options,
         ...(provider !== undefined ? { provider } : {}),
         ...(codeEngine !== undefined ? { codeEngine } : {}),
       };
@@ -223,7 +209,6 @@ export class Computer<T = unknown> {
 interface WorkspaceInit<T> {
   info: WorkspaceInfo;
   fs: FileSystem;
-  attachment: Attachment | null;
   /** The storage provider's own words, for the `fs` tool description. */
   storageDescription: string;
   registry: ActionRegistry;
@@ -242,16 +227,13 @@ export class Workspace<T = unknown> {
   readonly #redactor = new Redactor();
   readonly #controller = new AbortController();
   #sandbox: Promise<Sandbox> | undefined;
-  #sync: SandboxSync | undefined;
   #runCounter = 0;
 
-  readonly #attachment: Attachment | null;
   readonly #storageDescription: string;
 
   constructor(init: WorkspaceInit<T>) {
     this.info = init.info;
     this.fs = init.fs;
-    this.#attachment = init.attachment;
     this.#storageDescription = init.storageDescription;
     this.#registry = init.registry;
     this.#toolset = init.toolset;
@@ -400,25 +382,15 @@ export class Workspace<T = unknown> {
   async exec(command: string, options: ExecOptions = {}): Promise<ExecResult> {
     const provider = this.#options.provider;
     if (!provider) {
-      throw new UnknownRefError("bash", [
-        "install @cloudfarm/bash-sandbox and pass `provider` to get a shell",
-      ]);
+      throw new UnknownRefError("bash", ["install @cloudfarm/bash-sandbox to get a shell"]);
     }
     const sandbox = await this.#connectSandbox(provider);
 
-    // The sandbox's filesystem and the workspace are the same filesystem, as
-    // far as anything outside can tell. A provider that cannot move files
-    // syncs nothing and behaves as before — `bash-sandbox` is already the
-    // workspace, so it has nothing to copy.
-    this.#sync ??= syncFor(sandbox, this.fs);
-    await this.#sync?.push();
-
+    // No syncing: the shell runs in this process over this filesystem, so
+    // there is one filesystem and nothing to reconcile. There used to be two,
+    // and a push/pull around every command to pretend otherwise.
     const handle = sandbox.exec(command, options);
     const result = await handle.result();
-
-    // After, not only on success: a command that fails part-way has still
-    // written whatever it wrote, and losing that is worse than the failure.
-    await this.#sync?.pull();
 
     const limit = options.maxInlineBytes ?? 32_768;
     const runId = `run-${++this.#runCounter}`;
@@ -458,8 +430,8 @@ export class Workspace<T = unknown> {
           name: "NoCodeEngineError",
           message:
             "Code mode could not start: @cloudfarm/qjs-engine is not installed. " +
-            "Install it, or pass `codeEngine` directly — on Workers that means " +
-            "quickjsForWorkers(wasmModule), since the wasm must be a static import.",
+            "Install it. On Workers, also pass `wasmModule` — the wasm has to " +
+            "be a static import, which only your bundler can emit.",
         },
         bridge,
         durationMs: 0,
@@ -509,41 +481,48 @@ export class Workspace<T = unknown> {
     return engine.evaluate(
       {
         source,
-        prelude: buildPrelude({ nativeModules: engine.capabilities.sandboxed }),
+        prelude: buildPrelude(),
         limits,
         runId: `code-${++this.#runCounter}`,
-        // Connected only for an engine that runs the guest inside it; the
-        // isolate must not be handed one.
-        ...(engine.capabilities.sandboxed && this.#options.provider
-          ? { sandbox: await this.#connectSandbox(this.#options.provider) }
-          : {}),
       },
       bridge,
     );
   }
 
+  /**
+   * The host half of code mode's `fs`.
+   *
+   * Paths arrive as the guest sees them, so they are sandbox paths and get
+   * translated on the way in — and `FileStat.path` is translated back on the
+   * way out, or `readdirSync` would hand the script paths it cannot then
+   * read. The isolate and the in-sandbox engine agree because of this; one of
+   * them has a real `fs` and could not have been talked out of it.
+   */
   async #runFs(member: string, args?: Json): Promise<Json> {
     switch (member) {
       case "read":
-        return this.fs.readText(stringField(args, "path"));
+        return this.fs.readText(fromGuestPath(stringField(args, "path")));
       case "write": {
-        const stat = await this.fs.write(stringField(args, "path"), stringField(args, "content"));
-        return stat as unknown as Json;
+        const stat = await this.fs.write(
+          fromGuestPath(stringField(args, "path")),
+          stringField(args, "content"),
+        );
+        return toGuestStat(stat) as unknown as Json;
       }
       case "list": {
         const entries: Json[] = [];
         const prefix = optionalString(args, "prefix") ?? optionalString(args, "path") ?? "/";
-        for await (const entry of this.fs.list(prefix)) {
-          entries.push(entry as unknown as Json);
+        for await (const entry of this.fs.list(fromGuestPath(prefix))) {
+          entries.push(toGuestStat(entry) as unknown as Json);
         }
         return entries;
       }
       case "stat": {
-        const stat = await this.fs.stat(stringField(args, "path"));
-        return (stat ?? null) as unknown as Json;
+        const stat = await this.fs.stat(fromGuestPath(stringField(args, "path")));
+        return (stat ? toGuestStat(stat) : null) as unknown as Json;
       }
       case "remove":
-        await this.fs.remove(stringField(args, "path"), { recursive: true });
+        await this.fs.remove(fromGuestPath(stringField(args, "path")), { recursive: true });
         return null;
       default:
         throw new UnknownRefError(`fs.${member}`, ["fs.read", "fs.write", "fs.list", "fs.remove"]);
@@ -554,7 +533,6 @@ export class Workspace<T = unknown> {
     this.#controller.abort();
     const sandbox = this.#sandbox;
     this.#sandbox = undefined;
-    this.#sync = undefined;
     if (sandbox) await (await sandbox).close();
   }
 
@@ -592,7 +570,6 @@ export class Workspace<T = unknown> {
       workspace: this.info,
       fetch: globalThis.fetch.bind(globalThis),
       fs: this.fs,
-      attachment: this.#attachment,
       signal: this.#controller.signal,
     };
   }
@@ -691,4 +668,14 @@ function optionalExecOptions(args: Json | undefined): ExecOptions {
     ...(typeof record["cwd"] === "string" ? { cwd: record["cwd"] } : {}),
     ...(typeof record["timeoutMs"] === "number" ? { timeoutMs: record["timeoutMs"] } : {}),
   };
+}
+
+/**
+ * A `FileStat` as the guest should see it: its path in sandbox terms.
+ *
+ * Without this, `fs.readdirSync("/data")` returns workspace paths and the
+ * very next `readFileSync` on one of them resolves somewhere else.
+ */
+function toGuestStat(stat: FileStat): FileStat {
+  return { ...stat, path: inSandbox(stat.path) };
 }

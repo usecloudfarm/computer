@@ -8,15 +8,13 @@ gets typed signatures back, and writes code that runs in an isolate.
 
 ```ts
 import { Computer } from "@cloudfarm/core";
-import { JustBash } from "@cloudfarm/bash-sandbox";
-import { quickjs } from "@cloudfarm/qjs-engine";
 import { slack } from "@cloudfarm/slack";
 import { AISDKToolset } from "@cloudfarm/ai-sdk-toolset";
 
+// The shell and code mode are not options: install
+// @cloudfarm/bash-sandbox and @cloudfarm/qjs-engine and they are there.
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  provider: new JustBash(), // the default shell
-  codeEngine: quickjs(), // code mode, in WebAssembly
   apps: [slack({ apiKey: process.env.SLACK_TOKEN })],
 });
 
@@ -25,28 +23,42 @@ const workspace = await computer.createWorkspace("user_id");
 const result = await generateText({
   model,
   tools: await workspace.tools(),
-  prompt: "Summarise #eng and save it to /notes/eng.md",
+  // `/data` is the workspace inside the shell; `/notes/eng.md` to the host.
+  prompt: "Summarise #eng and save it to /data/notes/eng.md",
 });
 ```
 
-## Defaults
+## The shell and code mode are not configurable
 
-`provider` and `codeEngine` are optional. With `@cloudfarm/bash-sandbox` and
-`@cloudfarm/qjs-engine` installed, `new Computer()` already has a shell and code
-mode — they are found at runtime rather than imported, because both packages
-depend on core and a dependency back would be a cycle.
+The shell is `just-bash` and code mode is QuickJS. There is no option to pass
+either one, and nothing else to pass instead.
 
 ```ts
-new Computer(); // bash + QuickJS
-new Computer({ provider: new E2B({ apiKey }) }); // swap the shell
-new Computer({ provider: null }); // still a shell — null falls back
-new Computer({ codeEngine: null }); // still code mode — null falls back
+new Computer(); // bash + QuickJS, nothing to decide
 ```
 
-There is no way to turn the shell or code mode off. `null` and `undefined`
-both resolve the default: chaining several actions in one pass is why the tool surface stays
-small, so a Computer without it is a different product rather than a
-configuration of this one. A shell, by contrast, is genuinely optional.
+Both are found at runtime rather than imported, because both packages depend on
+core and a dependency back would be a cycle. Install
+`@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` and the `run` and `code`
+tools exist; leave one out and that tool is absent rather than broken.
+
+Remote sandboxes — E2B, Vercel, and two others — used to be pluggable here.
+They are gone. What they cost was not the code to talk to them but everything
+underneath: two filesystems to reconcile, a copy sync around every command, an
+engine that ran inside the sandbox, bucket credentials handed to a machine
+running model-written code, and a second code-mode dialect to keep in step
+with the first. What they bought was `npm` and `python`. `just-bash` in this
+process starts in a millisecond and shares one filesystem with the workspace;
+the microVM took a second to boot and 1.6s per `code()` call, with a tail into
+the tens of seconds.
+
+On Workers, pass `wasmModule` — not a choice of engine, but the one thing only
+your bundler can do:
+
+```ts
+import wasmModule from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
+new Computer({ wasmModule });
+```
 
 On Cloudflare Workers, configure the engine explicitly:
 `codeEngine: quickjsForWorkers(wasmModule)`. The wasm has to be a static

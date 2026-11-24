@@ -1,4 +1,5 @@
 import { Bash } from "just-bash";
+import { WORKSPACE_ROOT } from "@cloudfarm/core";
 import type {
   ComputerHost,
   ExecHandle,
@@ -9,7 +10,7 @@ import type {
 import type { ExecEvent, ExecOptions, ExecResult, Json } from "@cloudfarm/core";
 
 export interface JustBashOptions {
-  /** Working directory inside the sandbox. Defaults to `/`. */
+  /** Working directory inside the sandbox. Defaults to the workspace root. */
   readonly cwd?: string;
   readonly env?: Record<string, string>;
   /**
@@ -62,7 +63,7 @@ class JustBashSandbox implements Sandbox {
 
   exec(command: string, options: ExecOptions = {}): ExecHandle {
     const started = Date.now();
-    const cwd = options.cwd ?? this.#options.cwd ?? "/";
+    const cwd = options.cwd ?? this.#options.cwd ?? WORKSPACE_ROOT;
 
     const run = (async (): Promise<ExecResult> => {
       // The workspace is the source of truth: mount it, run, write back what
@@ -103,7 +104,14 @@ class JustBashSandbox implements Sandbox {
   async close(): Promise<void> {}
 }
 
-/** Reads the workspace into the shape just-bash wants for its initial files. */
+/**
+ * Reads the workspace into the shape just-bash wants for its initial files.
+ *
+ * Keyed by sandbox path, so the workspace appears under `WORKSPACE_ROOT` just
+ * as it does in a real sandbox — mounted or copied. This shell could have put
+ * it at `/`, since it owns the whole virtual filesystem, but then
+ * `/data/sales.csv` would name a file here and nothing there.
+ */
 async function snapshot(fs: FileSystem): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
   for await (const entry of fs.list("/")) {
@@ -111,12 +119,23 @@ async function snapshot(fs: FileSystem): Promise<Record<string, string>> {
     // Skip the runtime's own bookkeeping so it never shows up in `ls`.
     if (entry.path.startsWith("/.cloudfarm/")) continue;
     try {
-      files[entry.path] = await fs.readText(entry.path);
+      files[inSandbox(entry.path)] = await fs.readText(entry.path);
     } catch {
       // Not valid UTF-8: the text-only shell cannot represent it.
     }
   }
   return files;
+}
+
+/** Workspace path → sandbox path. */
+function inSandbox(path: string): string {
+  return `${WORKSPACE_ROOT}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+/** Sandbox path → workspace path, or undefined if it is not ours. */
+function inWorkspace(path: string): string | undefined {
+  if (!path.startsWith(`${WORKSPACE_ROOT}/`)) return undefined;
+  return path.slice(WORKSPACE_ROOT.length);
 }
 
 /** Writes back anything the command created or changed. */
@@ -145,18 +164,25 @@ async function writeBack(
           continue;
         }
         seen.add(path);
+        const workspacePath = inWorkspace(path);
+        if (workspacePath === undefined) continue;
         const contents = await shell.fs.readFile(path);
-        if (before[path] !== contents) await fs.write(path, contents);
+        if (before[path] !== contents) await fs.write(workspacePath, contents);
       } catch {
         // Unreadable or binary; leave the workspace copy alone.
       }
     }
   };
 
-  await walk("/");
+  // Only the workspace's own directory. Anything the command leaves elsewhere
+  // is scratch that dies with the shell, which is what a mounted sandbox does
+  // too — there, only the mount is the bucket.
+  await walk(WORKSPACE_ROOT);
 
   for (const path of Object.keys(before)) {
-    if (!seen.has(path)) await fs.remove(path).catch(() => {});
+    if (seen.has(path)) continue;
+    const workspacePath = inWorkspace(path);
+    if (workspacePath !== undefined) await fs.remove(workspacePath).catch(() => {});
   }
 }
 

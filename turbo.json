@@ -20,12 +20,16 @@
       "persistent": true
     },
     "test": {
-      "dependsOn": ["^build"],
+      // `build` as well as `^build`: core discovers the shell and the engine
+      // with a runtime import of their built `dist`, so a test asserting that
+      // needs its own package built, not only its dependencies'. Without it
+      // tsup's clean races the test that depends on the output.
+      "dependsOn": ["^build", "build"],
       "inputs": ["src/**", "vitest.config.*", "package.json"],
       "outputs": []
     },
     "test:workers": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "build"],
       "inputs": ["src/**", "vitest.workers.config.*", "wrangler.jsonc", "package.json"],
       "outputs": []
     },

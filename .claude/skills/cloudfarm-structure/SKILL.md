@@ -14,24 +14,31 @@ path tells you the contract:
 ```
 packages/
 ├── core/                    @cloudfarm/core — the Computer, and every interface below
-├── sandboxes/               SandboxProvider — where bash runs
-│   ├── bash/                @cloudfarm/bash-sandbox   (default: just-bash, no infrastructure)
-│   └── e2b/                 @cloudfarm/e2b-sandbox    (planned)
+├── sandboxes/               where bash runs — closed, exactly one
+│   └── bash-sandbox/        @cloudfarm/bash-sandbox   (just-bash, in-process)
+├── engines/                 where code mode executes — closed, exactly one
+│   └── qjs-engine/          @cloudfarm/qjs-engine     (QuickJS, in WebAssembly)
 ├── integrations/            App — third-party actions
 │   └── slack/               @cloudfarm/slack
-├── engines/                 CodeEngine — where code mode executes
-│   └── quickjs/             @cloudfarm/qjs-engine
 ├── toolsets/                Toolset — adapters for agent frameworks
-│   └── ai/                  @cloudfarm/ai-sdk-toolset     (Vercel AI SDK)
-├── storage/                 StorageProvider — where workspace files live  (empty)
+│   └── ai-sdk-toolset/      @cloudfarm/ai-sdk-toolset     (Vercel AI SDK)
+├── storage/                 StorageProvider — where workspace files live
+│   └── s3-storage/          @cloudfarm/s3-storage     (any S3-compatible bucket)
 └── memory/                  MemoryStore — searchable agent memory         (empty)
 
 examples/
 └── node-agent/              the brief's snippet, typechecked in CI, plus a runnable demo
 ```
 
-`storage/` and `memory/` have no packages yet; create the directory when you
-add the first one rather than leaving an empty placeholder.
+**`sandboxes/` and `engines/` are closed.** `new Computer()` takes no provider
+and no engine; the shell is `just-bash` and code mode is QuickJS, both found
+at runtime. The folders stay plural because the interfaces still name the
+seam, not because a second one is coming — E2B, Vercel and two other remote
+sandboxes lived there and were removed. Adding a third package to either is a
+decision to reopen that, not a routine addition.
+
+`memory/` has no packages yet; create the directory when you add the first one
+rather than leaving an empty placeholder.
 
 This mapping is worth preserving because it answers "where does this go?"
 without anyone having to ask. If you are about to add a package that does not
@@ -40,12 +47,13 @@ fit one of these kinds, that is a signal worth raising — either it belongs in
 
 ## Adding a package
 
-1. **Pick the folder from the interface you implement.** A thing that runs
-   shell commands is a `SandboxProvider`, so it goes in `packages/sandboxes/`.
-   A thing that exposes third-party actions is an `App` → `integrations/`.
-2. **Copy the nearest sibling.** `packages/sandboxes/bash-sandbox` is the best template
-   for a provider; `packages/integrations/slack` for an app. Both are small and
-   already have the right config.
+1. **Pick the folder from the interface you implement.** A thing that exposes
+   third-party actions is an `App` → `integrations/`. A place for workspace
+   files is a `StorageProvider` → `storage/`. If you reach for `sandboxes/` or
+   `engines/`, stop and read the note above.
+2. **Copy the nearest sibling.** `packages/integrations/slack` is the best
+   template for an app; `packages/storage/s3-storage` for storage. Both are
+   small and already have the right config.
 3. **Fix the relative paths** — grouped packages sit one level deeper than
    `core`:
 

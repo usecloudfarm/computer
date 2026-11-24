@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { Computer } from "@cloudfarm/core";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
 import type { App, ActionDefinition } from "@cloudfarm/core";
 import { quickjs } from "./node.js";
 
@@ -38,10 +38,20 @@ function app(calls: unknown[] = []): App {
   };
 }
 
+/**
+ * `new Computer()` takes no engine, so these tests put this build behind the
+ * same lookup core uses. Without it core would find the published `dist`.
+ */
+function useThisBuild(): void {
+  setTestDefaults({ codeEngine: quickjs() });
+}
+
+afterEach(resetDefaults);
+
 async function workspace(options: { calls?: unknown[]; secrets?: string[] } = {}) {
+  useThisBuild();
   const computer = new Computer({
     apps: [app(options.calls ?? [])],
-    codeEngine: quickjs(),
     ...(options.secrets ? { secrets: options.secrets } : {}),
   });
   return computer.createWorkspace("coder");
@@ -49,6 +59,7 @@ async function workspace(options: { calls?: unknown[]; secrets?: string[] } = {}
 
 describe("QuickJSEngine", () => {
   it("reaches apps.list from code mode without searching first", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     // Validation rejects unknown refs before anything executes, so this
@@ -67,6 +78,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("runs code and returns its value", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code("return 6 * 7;");
@@ -111,6 +123,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("captures console output", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`console.log("one"); console.warn("two"); return null;`);
@@ -119,6 +132,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("reports a guest exception without throwing", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`throw new Error("deliberate");`);
@@ -127,6 +141,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("hands the guest the same envelope the run tool returns", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`
@@ -140,6 +155,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("stops a runaway loop at the deadline and still reports logs", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const started = Date.now();
@@ -176,6 +192,7 @@ describe("QuickJSEngine", () => {
   }, 20_000);
 
   it("gives the guest no network and no filesystem", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`
@@ -200,6 +217,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("rejects a network call during validation, before it can run", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`fetch("https://example.com");`);
@@ -212,6 +230,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("rejects source larger than the limit before running anything", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`return "${"x".repeat(2000)}";`, {
@@ -223,6 +242,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("redacts secrets that reach a result", async () => {
+    useThisBuild();
     const ws = await workspace({ secrets: ["xoxb-not-a-real-token-value"] });
 
     const result = await ws.code(`return "leaked xoxb-not-a-real-token-value";`);
@@ -233,6 +253,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("accepts await, which models write by habit", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`const x = await run("slack.listChannels", {}); return x.status;`);
@@ -241,6 +262,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("returns the same value with or without await", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const awaited = await ws.code(`return (await run("slack.listChannels", {})).status;`);
@@ -250,6 +272,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("serialises host calls even inside Promise.all", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     // Asyncify unwinds the whole wasm stack per host call and cannot be
@@ -265,9 +288,10 @@ describe("QuickJSEngine", () => {
   });
 
   it("reads and writes the workspace filesystem from inside a run", async () => {
-    const computer = new Computer({ apps: [app()], codeEngine: quickjs() });
+    useThisBuild();
+    const computer = new Computer({ apps: [app()] });
     const ws = await computer.createWorkspace("coder");
-    await ws.fs.write("/data/input.txt", "alpha\nbeta\ngamma\n");
+    await ws.fs.write("/input.txt", "alpha\nbeta\ngamma\n");
 
     const result = await ws.code(`
       const text = run("bash", { cmd: "cat /data/input.txt" }).value.stdout;
@@ -277,7 +301,9 @@ describe("QuickJSEngine", () => {
     `);
 
     expect(result).toMatchObject({ outcome: "ok", value: 3 });
-    expect(await ws.fs.readText("/data/output.txt")).toBe("ALPHA\nBETA\nGAMMA\n");
+    // Written at `/data/output.txt` by the shell, which is `/output.txt` here:
+    // `/data` is where the workspace appears inside a sandbox.
+    expect(await ws.fs.readText("/output.txt")).toBe("ALPHA\nBETA\nGAMMA\n");
   });
 
   it("rejects a run() for an action that does not exist, without executing", async () => {
@@ -301,6 +327,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("rejects a syntax error with the line, before executing", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     const result = await ws.code(`const a = 1;\nconst b = ;\nreturn a;`);
@@ -310,6 +337,7 @@ describe("QuickJSEngine", () => {
   });
 
   it("starts each run with a fresh context", async () => {
+    useThisBuild();
     const ws = await workspace();
 
     await ws.code(`globalThis.leaked = "from the first run"; return 1;`);
@@ -319,25 +347,27 @@ describe("QuickJSEngine", () => {
   });
 
   it("puts fs and path in scope without a require line", async () => {
-    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    useThisBuild();
+    const ws = await new Computer({}).createWorkspace("coder");
     await ws.fs.write("/a.csv", "x,1");
 
     // What a model writes unprompted. A missing `require` line is a silly
     // way to fail, so the modules are globals too.
-    const result = await ws.code(`return fs.readFileSync(path.join("/", "a.csv"), "utf8");`);
+    const result = await ws.code(`return fs.readFileSync(path.join("/data", "a.csv"), "utf8");`);
 
     expect(result).toMatchObject({ outcome: "ok", value: "x,1" });
   });
 
   it("lets a script shadow a module name with its own variable", async () => {
-    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    useThisBuild();
+    const ws = await new Computer({}).createWorkspace("coder");
     await ws.fs.write("/a.csv", "x,1");
 
     // The globals are assigned, not declared, so `const path = …` shadows
     // the module rather than colliding with a const in the same scope —
     // which would be a syntax error before anything ran.
     const result = await ws.code(`
-      const path = "/a.csv";
+      const path = "/data/a.csv";
       return fs.readFileSync(path, "utf8");
     `);
 
@@ -345,8 +375,9 @@ describe("QuickJSEngine", () => {
   });
 
   it("gives a script require, with fs over the bridge", async () => {
-    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
-    await ws.fs.write("/data/in.txt", "alpha");
+    useThisBuild();
+    const ws = await new Computer({}).createWorkspace("coder");
+    await ws.fs.write("/in.txt", "alpha");
 
     const result = await ws.code(`
       const fs = require("fs");
@@ -357,20 +388,21 @@ describe("QuickJSEngine", () => {
     `);
 
     expect(result).toMatchObject({ outcome: "ok", value: "in.txt,out.txt" });
-    expect(await ws.fs.readText("/data/out.txt")).toBe("ALPHA");
+    expect(await ws.fs.readText("/out.txt")).toBe("ALPHA");
     // Over the bridge, so unlike a native fs these are in the audit trail and
     // counted against maxHostCalls.
     expect(result.calls.map((call) => call.action)).toEqual(["fs.read", "fs.write", "fs.list"]);
   });
 
   it("throws ENOENT for a missing file rather than returning an envelope", async () => {
-    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    useThisBuild();
+    const ws = await new Computer({}).createWorkspace("coder");
 
     // `fs` pretends to be Node, so it throws; `run` keeps the envelope. A
     // script checks e.code, not the host's taxonomy, which files a missing
     // file under "internal" for want of a better bucket.
     const result = await ws.code(`
-      try { require("fs").readFileSync("/nope"); } catch (error) { return error.code; }
+      try { require("fs").readFileSync("/data/nope"); } catch (error) { return error.code; }
       return "did not throw";
     `);
 
@@ -378,7 +410,8 @@ describe("QuickJSEngine", () => {
   });
 
   it("refuses a module it does not have, naming the ones it does", async () => {
-    const ws = await new Computer({ codeEngine: quickjs() }).createWorkspace("coder");
+    useThisBuild();
+    const ws = await new Computer({}).createWorkspace("coder");
 
     const result = await ws.code(`
       try { require("http"); } catch (error) { return error.message; }

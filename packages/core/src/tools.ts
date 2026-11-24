@@ -1,3 +1,4 @@
+import { WORKSPACE_ROOT } from "./paths.js";
 import { z } from "zod";
 import { toJsonSchema } from "./typegen.js";
 import type { Invoke, Toolset } from "./ports.js";
@@ -163,7 +164,10 @@ function describeFiles(has: (ref: string) => boolean, hasCode: boolean): string 
     ? " `cat`, `ls` and `>` are fine here for a single file. For several, or for anything you want as data rather than text, the `code` tool has fs.readFileSync / writeFileSync / readdirSync and does the lot in one call."
     : "";
 
+  // Where the files are is worth the tokens: the workspace is one directory,
+  // and a model that assumes `/` writes somewhere that does not survive.
   return (
+    ` The workspace is ${WORKSPACE_ROOT}: files there persist, anything written elsewhere is scratch that is lost when the command ends.` +
     files +
     " Shell output is truncated when long, so prefer a command that returns what you need" +
     " over one that returns everything."
@@ -197,6 +201,12 @@ function describeCode(options: ToolContext): string {
     // the one a model writes unprompted. `require` works too, but naming it
     // first made the description read as though the import were required.
     "- Files: fs.readFileSync(path, 'utf8'), fs.writeFileSync(path, text), fs.readdirSync(dir), fs.existsSync(path) — already in scope, no import. Also path, os, util, and require() for the same four.",
+  );
+
+  // The same sentence `run` gets, because it is the same filesystem and a
+  // script that writes outside the workspace loses the file just as quietly.
+  lines.push(
+    `- The workspace is ${WORKSPACE_ROOT}: files there persist, anything written elsewhere is scratch.`,
   );
 
   return lines.join("\n");

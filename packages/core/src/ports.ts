@@ -50,41 +50,6 @@ export interface FileSystem {
 export interface StorageProvider extends Described {
   /** One filesystem per workspace. Called once, lazily, per workspace. */
   open(scope: { userId: string; workspaceId: string }): Promise<FileSystem>;
-  /**
-   * How a sandbox could attach this storage directly, or `null` when it
-   * cannot.
-   *
-   * `open()` returns an API view — read, write, list — which is what code
-   * mode and the `fs.*` refs use, and what you cannot mount: FUSE needs a
-   * bucket and credentials, not a JavaScript object. This is the same storage
-   * described as a thing to attach.
-   */
-  attachment?(scope: { userId: string; workspaceId: string }): Promise<Attachment | null>;
-}
-
-/**
- * An S3-compatible bucket a sandbox can mount.
- *
- * The credentials here are handed to a machine that runs model-written code,
- * so they should be scoped to `prefix` and short-lived — an STS session
- * policy or an R2 scoped token, never the account's long-lived pair. A
- * prompt-injected script reaching the whole bucket is the failure this field
- * invites if it is filled in carelessly.
- */
-export interface Attachment {
-  readonly kind: "s3";
-  readonly endpoint: string;
-  readonly bucket: string;
-  /** This workspace's subtree. Credentials should not reach outside it. */
-  readonly prefix: string;
-  readonly region?: string;
-  /** MinIO and some gateways need path-style addressing rather than host-style. */
-  readonly pathStyle?: boolean;
-  readonly credentials: {
-    readonly accessKeyId: string;
-    readonly secretAccessKey: string;
-    readonly sessionToken?: string;
-  };
 }
 
 // --- sandbox ----------------------------------------------------------------
@@ -96,59 +61,28 @@ export interface ExecHandle extends ReadableStream<ExecEvent> {
   kill(): Promise<void>;
 }
 
-/**
- * Moving files in and out without going through the shell.
- *
- * Optional, because a provider may not have it — and because the shell is a
- * bad transport for a file: a heredoc has to be escaped, binary has to be
- * base64'd, and both are bounded by the command length the provider accepts.
- *
- * A provider that implements this gets its sandbox kept in step with the
- * workspace: core pushes before a command runs and pulls after. Without it
- * the sandbox has a filesystem of its own that nothing else can see, which is
- * what every remote provider did — a file written with `>` was invisible to
- * `fs.readFileSync`, and the reverse.
- */
-export interface SandboxFiles {
-  read(path: string): Promise<string>;
-  write(path: string, content: string): Promise<void>;
-  /** Absolute paths of every file under `prefix`, recursively. */
-  list(prefix: string): Promise<string[]>;
-  /**
-   * Immediate children of one directory, files and directories alike.
-   *
-   * Separate from `list` because the only caller is the baseline of the
-   * sandbox root, and recursing there means reading the whole image — /usr
-   * and /lib included. The first attempt did exactly that and never
-   * returned.
-   */
-  entries(path: string): Promise<string[]>;
-  remove(path: string): Promise<void>;
-}
-
 export interface Sandbox {
   exec(command: string, options?: ExecOptions): ExecHandle;
-  /** Present when the provider can move files without the shell. */
-  readonly files?: SandboxFiles;
   /** Everything needed to re-attach after a process or Durable Object restart. */
   serialize(): Json;
   close(): Promise<void>;
 }
 
 /**
- * What a sandbox or engine *can do* — a feature flag, deliberately not an
- * "action". An app's actions are the units an agent calls; these answer
- * "does this provider support bash?" and are never exposed to a model.
+ * What the shell *can do* — a feature flag, deliberately not an "action". An
+ * app's actions are the units an agent calls; this answers "is there a shell
+ * at all?" and is never exposed to a model.
  */
-/**
- * `code` means the sandbox can host code mode itself: a JavaScript runtime in
- * the image, and a `files` API to put a script there. It is what lets a
- * Computer pick the engine that runs inside the sandbox without connecting
- * first — the in-process shell declares `bash` and not this, because it has
- * no `node` and nowhere to put a file.
- */
-export type SandboxCapability = "bash" | "ports" | "mount" | "code";
+export type SandboxCapability = "bash" | "ports";
 
+/**
+ * Internal: the seam between core and `@cloudfarm/bash-sandbox`.
+ *
+ * Not an extension point. `new Computer()` takes no provider — the shell is
+ * `just-bash` and only `just-bash` — and this interface exists because the
+ * two packages are separate, not because a third could take its place. It
+ * once accepted E2B, Vercel and others; see the changeset for why that went.
+ */
 export interface SandboxProvider extends Described {
   readonly capabilities: ReadonlySet<SandboxCapability>;
   connect(host: ComputerHost, resume?: Json): Promise<Sandbox>;
@@ -165,12 +99,6 @@ export interface ComputerHost {
   /** The only network path, so egress stays observable and allowlistable. */
   readonly fetch: typeof globalThis.fetch;
   readonly fs: FileSystem;
-  /**
-   * The same storage, described so a sandbox can mount it. `null` when the
-   * storage cannot be attached — a provider should then fall back to copying
-   * through `fs` rather than leaving the sandbox with an empty disk.
-   */
-  readonly attachment: Attachment | null;
   readonly signal: AbortSignal;
 }
 
@@ -247,15 +175,6 @@ export interface CodeEngineCapabilities {
   /** Can stop a non-yielding loop without killing the host thread. */
   readonly interruptible: boolean;
   readonly memoryCap: boolean;
-  /**
-   * Whether the guest runs inside the sandbox rather than in this process.
-   *
-   * An engine that does gets `CodeJob.sandbox`, and with it a real runtime: a
-   * genuine `fs` with no size or encoding limit, real CPU, and whatever the
-   * image has installed. What it gives up is running without a sandbox at
-   * all, so it can never be the only engine.
-   */
-  readonly sandboxed: boolean;
 }
 
 /** The host side of the bridge. Must never throw: it returns error frames. */
@@ -270,14 +189,6 @@ export interface CodeJob {
   readonly prelude: string;
   readonly limits: CodeLimits;
   readonly runId: string;
-  /**
-   * The connected sandbox, for an engine that runs the guest inside it.
-   *
-   * Present only when one is connected and the engine declares `sandboxed`,
-   * because handing a sandbox to an engine that does not want one is how an
-   * isolate quietly stops being an isolate.
-   */
-  readonly sandbox?: Sandbox;
 }
 
 export interface CodeEngine extends Described {

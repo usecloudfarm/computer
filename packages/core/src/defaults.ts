@@ -1,24 +1,25 @@
 import type { CodeEngine, SandboxProvider } from "./ports.js";
 
 /**
- * The batteries, found rather than imported.
+ * The shell and the engine, found rather than imported.
  *
- * `@cloudfarm/bash-sandbox` and `@cloudfarm/qjs-engine` both depend on core, so core
- * cannot depend on them back without a cycle. Instead it looks for them at
- * runtime: install them and they become the defaults, so `new Computer()`
- * with no options has a shell and code mode. Leave them out and the
- * corresponding tools are simply absent, which is what a consumer who passes
- * their own provider wants anyway.
+ * There is one of each and no way to substitute either: the shell is
+ * `just-bash` and code mode is QuickJS. `new Computer()` takes no provider and
+ * no engine, so this is lookup rather than selection.
+ *
+ * Found rather than imported because both packages depend on core, so core
+ * cannot depend on them back without a cycle. Install them and the `run` and
+ * `code` tools exist; leave one out and that tool is absent rather than
+ * broken.
  *
  * The specifiers are variables on purpose. A literal would invite a bundler to
  * pull the Node build of the QuickJS engine into a Workers bundle, where it
- * cannot work — Workers needs the wasm module passed in explicitly, so a
- * Worker should configure `codeEngine` itself.
+ * cannot work — hence `wasmModule` below.
  */
 
 const BASH = "@cloudfarm/bash-sandbox";
 const QUICKJS = "@cloudfarm/qjs-engine";
-const NODE_ENGINE = "@cloudfarm/node-engine";
+const QUICKJS_WORKERS = "@cloudfarm/qjs-engine/workers";
 
 let provider: Promise<SandboxProvider | undefined> | undefined;
 let engine: Promise<CodeEngine | undefined> | undefined;
@@ -37,33 +38,25 @@ export function defaultProvider(): Promise<SandboxProvider | undefined> {
   return provider;
 }
 
-let sandboxEngine: Promise<CodeEngine | undefined> | undefined;
-
 /**
- * The engine for a sandbox that can host one.
+ * QuickJS, from whichever entry point this runtime can use.
  *
- * Preferred over the isolate when the provider declares `code`, because the
- * sandbox already has a real runtime: node's own filesystem, real CPU, and
- * whatever the image installed. Absent the package, the isolate still works,
- * so this is an upgrade rather than a requirement.
+ * With a `wasmModule` the Workers entry takes it, because Workers refuses
+ * `WebAssembly.compile` on bytes and the module has to come from the caller's
+ * own static import. Without one, the Node entry loads the `.wasm` from disk.
+ * That is the whole of the difference — same engine either way.
  */
-export function defaultSandboxEngine(): Promise<CodeEngine | undefined> {
-  sandboxEngine ??= (async () => {
-    try {
-      const module = (await import(/* @vite-ignore */ NODE_ENGINE)) as {
-        nodeEngine: () => CodeEngine;
-      };
-      return module.nodeEngine();
-    } catch {
-      return undefined;
-    }
-  })();
-  return sandboxEngine;
-}
-
-export function defaultCodeEngine(): Promise<CodeEngine | undefined> {
+export function defaultCodeEngine(
+  wasmModule?: WebAssembly.Module,
+): Promise<CodeEngine | undefined> {
   engine ??= (async () => {
     try {
+      if (wasmModule) {
+        const module = (await import(/* @vite-ignore */ QUICKJS_WORKERS)) as {
+          quickjsForWorkers: (wasm: WebAssembly.Module) => CodeEngine;
+        };
+        return module.quickjsForWorkers(wasmModule);
+      }
       const module = (await import(/* @vite-ignore */ QUICKJS)) as {
         quickjs: () => CodeEngine;
       };
@@ -79,5 +72,21 @@ export function defaultCodeEngine(): Promise<CodeEngine | undefined> {
 export function resetDefaults(): void {
   provider = undefined;
   engine = undefined;
-  sandboxEngine = undefined;
+}
+
+/**
+ * Puts a scripted shell or engine in place of the real one. Tests only.
+ *
+ * This is the seam `ComputerOptions.provider` used to be, kept deliberately
+ * out of the public options: a test needs to assert what reached the shell
+ * and what came back, which is not a reason to let a consumer swap it. Call
+ * `resetDefaults()` afterwards, or the next Computer in the process inherits
+ * the double.
+ */
+export function setTestDefaults(doubles: {
+  provider?: SandboxProvider;
+  codeEngine?: CodeEngine;
+}): void {
+  if (doubles.provider) provider = Promise.resolve(doubles.provider);
+  if (doubles.codeEngine) engine = Promise.resolve(doubles.codeEngine);
 }

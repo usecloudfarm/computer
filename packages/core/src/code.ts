@@ -58,20 +58,7 @@ type HostCallErrorCode = HostCallError["code"];
  * file by writing shell, quoted inside a JS string, inside JSON —
  * `run("bash", { cmd: "cat " + path })` — to do what one line of JS does.
  */
-export interface PreludeOptions {
-  /**
-   * Whether the guest already has real `require`, `fs`, `path` and friends.
-   *
-   * True for an engine that runs the script inside the sandbox, where node's
-   * own modules are right there — and where installing the shims would
-   * shadow them, turning a local 5 MB write into a host call and a Buffer
-   * into a string. That is not a small regression: it is the whole reason
-   * for running in the sandbox, quietly undone.
-   */
-  readonly nativeModules?: boolean;
-}
-
-export function buildPrelude(options: PreludeOptions = {}): string {
+export function buildPrelude(): string {
   return `"use strict";
 const console = {
   log: (...args) => __log("log", args),
@@ -81,7 +68,7 @@ const console = {
 };
 const run = (ref, input) => __host(ref, input);
 const fetch = () => { throw new Error('there is no network in code mode; use an action or run("bash", { cmd })'); };
-${options.nativeModules ? "" : MODULES}`;
+${MODULES}`;
 }
 
 /**

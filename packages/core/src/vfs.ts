@@ -70,8 +70,7 @@ export class MemoryFileSystem implements FileSystem {
   }
 
   async *list(prefix = "/"): AsyncIterable<FileStat> {
-    const root = normalizePath(prefix);
-    const scope = root === "/" ? "/" : `${root}/`;
+    const scope = childScope(normalizePath(prefix));
 
     const files: FileStat[] = [];
     const directories = new Map<string, number>();
@@ -104,7 +103,7 @@ export class MemoryFileSystem implements FileSystem {
     if (entry) {
       return { path: normalized, size: entry.data.byteLength, mtime: entry.mtime, type: "file" };
     }
-    const scope = normalized === "/" ? "/" : `${normalized}/`;
+    const scope = childScope(normalized);
     for (const candidate of this.#files.keys()) {
       if (candidate.startsWith(scope)) {
         return { path: normalized, size: 0, mtime: this.#now(), type: "directory" };
@@ -117,7 +116,9 @@ export class MemoryFileSystem implements FileSystem {
     const normalized = normalizePath(path);
     if (this.#files.delete(normalized)) return;
 
-    const scope = `${normalized}/`;
+    // `/` is its own scope. Spelling it `${normalized}/` gives "//", which no
+    // path starts with, so clearing the workspace reported a missing file.
+    const scope = childScope(normalized);
     const children = [...this.#files.keys()].filter((candidate) => candidate.startsWith(scope));
     if (children.length === 0) throw new FileNotFoundError(normalized);
     if (!options.recursive) {
@@ -134,7 +135,7 @@ export class MemoryFileSystem implements FileSystem {
       this.#files.set(normalizePath(to), entry);
       return;
     }
-    const scope = `${source}/`;
+    const scope = childScope(source);
     const children = [...this.#files.keys()].filter((candidate) => candidate.startsWith(scope));
     if (children.length === 0) throw new FileNotFoundError(source);
     for (const child of children) {
@@ -143,6 +144,11 @@ export class MemoryFileSystem implements FileSystem {
       this.#files.set(normalizePath(to) + child.slice(source.length), moved);
     }
   }
+}
+
+/** The prefix every path under a directory shares, root included. */
+function childScope(path: string): string {
+  return path === "/" ? "/" : `${path}/`;
 }
 
 export class FileNotFoundError extends Error {

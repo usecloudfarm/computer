@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { Computer } from "@cloudfarm/core";
-import { JustBash } from "@cloudfarm/bash-sandbox";
 
 /**
  * The zero-config path. These assertions only mean something where both
@@ -8,11 +7,11 @@ import { JustBash } from "@cloudfarm/bash-sandbox";
  * core — core cannot depend on the packages that depend on it.
  */
 describe("Computer defaults", () => {
-  it("cannot be talked out of code mode", async () => {
-    // `codeEngine: null` used to turn it off. It now resolves the default,
-    // because chaining actions in one pass is why the tool surface stays
+  it("cannot be handed a different engine", async () => {
+    // There is no `codeEngine` option to pass. Code mode is QuickJS, found at
+    // runtime, and chaining actions in one pass is why the tool surface stays
     // small — a Computer without it is a different product.
-    const workspace = await new Computer({ codeEngine: null }).createWorkspace("u");
+    const workspace = await new Computer().createWorkspace("u");
 
     expect(workspace.toolSpecs().map((spec) => spec.name)).toContain("code");
     expect(await workspace.code("return 6 * 7;")).toMatchObject({ outcome: "ok", value: 42 });
@@ -32,8 +31,8 @@ describe("Computer defaults", () => {
     const workspace = await new Computer().createWorkspace("u");
 
     const result = await workspace.code(`
-      run("bash", { cmd: "printf 'from the default engine' > /note.txt" });
-      return run("bash", { cmd: "cat /note.txt" }).value.stdout;
+      run("bash", { cmd: "printf 'from the default engine' > /data/note.txt" });
+      return run("bash", { cmd: "cat /data/note.txt" }).value.stdout;
     `);
 
     expect(result).toMatchObject({ outcome: "ok", value: "from the default engine" });
@@ -51,24 +50,6 @@ describe("Computer defaults", () => {
     ).toMatchObject({ outcome: "ok", value: "ok" });
   });
 
-  it("lets an explicit provider win over the default", async () => {
-    const explicit = new JustBash({ cwd: "/work" });
-    const workspace = await new Computer({ provider: explicit }).createWorkspace("u");
-
-    await workspace.exec("pwd > /where.txt");
-
-    expect((await workspace.fs.readText("/where.txt")).trim()).toBe("/work");
-  });
-
-  it("ignores a null provider rather than turning the shell off", async () => {
-    const workspace = await new Computer({ provider: null }).createWorkspace("u");
-
-    expect(await workspace.run("bash", { cmd: "echo hi" })).toMatchObject({
-      status: "ok",
-      value: { stdout: "hi\n" },
-    });
-  });
-
   it("refuses a script that tries to re-enter code mode", async () => {
     const workspace = await new Computer().createWorkspace("u");
 
@@ -78,11 +59,5 @@ describe("Computer defaults", () => {
     const result = await workspace.code(`run("code", { source: "return 1;" });`);
 
     expect(result.outcome).toBe("invalid");
-  });
-
-  it("ignores a null codeEngine rather than turning code mode off", async () => {
-    const workspace = await new Computer({ codeEngine: null }).createWorkspace("u");
-
-    expect(await workspace.code("return 1;")).toMatchObject({ outcome: "ok", value: 1 });
   });
 });

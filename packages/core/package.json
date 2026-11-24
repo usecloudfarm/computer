@@ -45,17 +45,13 @@
   },
   "peerDependencies": {
     "@cloudfarm/bash-sandbox": "workspace:^",
-    "@cloudfarm/qjs-engine": "workspace:^",
-    "@cloudfarm/node-engine": "workspace:^"
+    "@cloudfarm/qjs-engine": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@cloudfarm/bash-sandbox": {
       "optional": true
     },
     "@cloudfarm/qjs-engine": {
-      "optional": true
-    },
-    "@cloudfarm/node-engine": {
       "optional": true
     }
   },

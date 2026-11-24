@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Computer } from "@cloudfarm/core";
+import { Computer, resetDefaults, setTestDefaults } from "@cloudfarm/core";
 import { quickjs } from "@cloudfarm/qjs-engine";
 import { s3 } from "./index.js";
 
@@ -80,6 +80,8 @@ const open = () => s3(OPTIONS).open({ userId: "ada", workspaceId: "default" });
 
 afterEach(() => vi.unstubAllGlobals());
 
+afterEach(resetDefaults);
+
 describe("s3 storage", () => {
   it("refuses to construct without a bucket or credentials", () => {
     expect(() => s3({ ...OPTIONS, bucket: "" })).toThrow(/needs a bucket/);
@@ -95,7 +97,7 @@ describe("s3 storage", () => {
     expect(await fs.readText("/data/notes.txt")).toBe("hello");
   });
 
-  it("keeps each workspace in its own prefix", async () => {
+  it("keeps each user in their own prefix", async () => {
     const { objects } = fakeBucket();
 
     await (await s3(OPTIONS).open({ userId: "ada", workspaceId: "default" })).write("/a.txt", "1");
@@ -104,9 +106,32 @@ describe("s3 storage", () => {
     // Two tenants, one bucket, no collision — and the prefix is the boundary
     // a scoped credential should be pinned to.
     expect([...objects.keys()].toSorted()).toEqual([
-      "cloudfarm/ada/default/a.txt",
-      "cloudfarm/bob/default/a.txt",
+      "cloudfarm/ada/workspaces/default/a.txt",
+      "cloudfarm/bob/workspaces/default/a.txt",
     ]);
+  });
+
+  it("keeps each workspace of a user in its own folder, under theirs", async () => {
+    const { objects } = fakeBucket();
+
+    await (await s3(OPTIONS).open({ userId: "ada", workspaceId: "monday" })).write("/a.txt", "1");
+    await (await s3(OPTIONS).open({ userId: "ada", workspaceId: "tuesday" })).write("/a.txt", "2");
+
+    // `workspaces/` is a literal segment: the user's folder stays open for
+    // whatever of theirs outlives a single session.
+    expect([...objects.keys()].toSorted()).toEqual([
+      "cloudfarm/ada/workspaces/monday/a.txt",
+      "cloudfarm/ada/workspaces/tuesday/a.txt",
+    ]);
+  });
+
+  it("drops the leading folder when the bucket is dedicated to this", async () => {
+    const { objects } = fakeBucket();
+
+    const fs = await s3({ ...OPTIONS, prefix: "" }).open({ userId: "ada", workspaceId: "monday" });
+    await fs.write("/a.txt", "1");
+
+    expect([...objects.keys()]).toEqual(["ada/workspaces/monday/a.txt"]);
   });
 
   it("signs every request", async () => {
@@ -183,7 +208,7 @@ describe("s3 storage", () => {
       const name = token ? pages[1] : pages[0];
       const more = token ? "" : "<NextContinuationToken>tok</NextContinuationToken>";
       return new Response(
-        `<ListBucketResult><Contents><Key>cloudfarm/ada/default/${name}.txt</Key>` +
+        `<ListBucketResult><Contents><Key>cloudfarm/ada/workspaces/default/${name}.txt</Key>` +
           `<Size>1</Size><LastModified>2026-01-01T00:00:00Z</LastModified></Contents>${more}</ListBucketResult>`,
       );
     });
@@ -203,7 +228,7 @@ describe("s3 storage", () => {
 
     await fs.move("/a.txt", "/b.txt");
 
-    expect([...objects.keys()]).toEqual(["cloudfarm/ada/default/b.txt"]);
+    expect([...objects.keys()]).toEqual(["cloudfarm/ada/workspaces/default/b.txt"]);
     expect(await fs.readText("/b.txt")).toBe("payload");
   });
 
@@ -216,26 +241,7 @@ describe("s3 storage", () => {
 
     await fs.remove("/tmp", { recursive: true });
 
-    expect([...objects.keys()]).toEqual(["cloudfarm/ada/default/keep.txt"]);
-  });
-
-  it("offers no attachment unless separate credentials were given for it", async () => {
-    const scope = { userId: "ada", workspaceId: "default" };
-
-    // The signing credentials are never handed to a sandbox: model-written
-    // code would then reach the whole bucket.
-    expect(await s3(OPTIONS).attachment(scope)).toBeNull();
-
-    const attachable = s3({
-      ...OPTIONS,
-      attachCredentials: { accessKeyId: "SCOPED", secretAccessKey: "scoped-secret" },
-    });
-    expect(await attachable.attachment(scope)).toMatchObject({
-      kind: "s3",
-      bucket: "my-bucket",
-      prefix: "cloudfarm/ada/default/",
-      credentials: { accessKeyId: "SCOPED" },
-    });
+    expect([...objects.keys()]).toEqual(["cloudfarm/ada/workspaces/default/keep.txt"]);
   });
 
   it("gives a Computer real storage, reachable from the shell", async () => {
@@ -244,29 +250,31 @@ describe("s3 storage", () => {
 
     // What the agent writes with `>` lands in the bucket, and reading it back
     // through the shell returns it: the storage provider is behind both.
-    await workspace.run("bash", { cmd: "mkdir -p /out && printf '# Done' > /out/summary.md" });
+    await workspace.run("bash", {
+      cmd: "mkdir -p /data/out && printf '# Done' > /data/out/summary.md",
+    });
 
-    expect(await workspace.run("bash", { cmd: "cat /out/summary.md" })).toMatchObject({
+    expect(await workspace.run("bash", { cmd: "cat /data/out/summary.md" })).toMatchObject({
       status: "ok",
       value: { stdout: "# Done", exitCode: 0 },
     });
+    // `/data/out/summary.md` to the shell is `/out/summary.md` in storage:
+    // `/data` is the workspace's root inside a sandbox, not part of the key.
     expect(await workspace.fs.readText("/out/summary.md")).toBe("# Done");
   });
 
   it("is the filesystem a script reads and writes in code mode", async () => {
     const { objects } = fakeBucket();
-    const workspace = await new Computer({
-      storage: s3(OPTIONS),
-      codeEngine: quickjs(),
-    }).createWorkspace("ada");
+    setTestDefaults({ codeEngine: quickjs() });
+    const workspace = await new Computer({ storage: s3(OPTIONS) }).createWorkspace("ada");
 
     // Nothing in the isolate knows about S3. The `fs` shim calls the host,
     // the host calls the workspace filesystem, and that is whatever storage
     // provider was configured — so attaching a bucket is the whole of it.
     const result = await workspace.code(`
       const fs = require("fs");
-      fs.writeFileSync("/notes/plan.md", "# from the isolate");
-      return fs.readFileSync("/notes/plan.md", "utf8");
+      fs.writeFileSync("/data/notes/plan.md", "# from the isolate");
+      return fs.readFileSync("/data/notes/plan.md", "utf8");
     `);
 
     expect(result).toMatchObject({ outcome: "ok", value: "# from the isolate" });

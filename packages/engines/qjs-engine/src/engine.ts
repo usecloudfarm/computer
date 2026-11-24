@@ -46,7 +46,6 @@ export class QuickJSEngine implements CodeEngine {
     guestAwait: true,
     // The guest is a wasm isolate in this process, which is the point: it
     // runs with no sandbox at all.
-    sandboxed: false,
     interruptible: true,
     memoryCap: true,
   };

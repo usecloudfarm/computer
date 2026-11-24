@@ -1,8 +1,15 @@
 export { Computer, Workspace } from "./computer.js";
 export type { ComputerOptions, CreateWorkspaceOptions } from "./computer.js";
 
-export { defaultProvider, defaultCodeEngine, resetDefaults } from "./defaults.js";
-export { MemoryStorage, MemoryFileSystem, normalizePath, dirname, basename } from "./vfs.js";
+export { defaultProvider, defaultCodeEngine, resetDefaults, setTestDefaults } from "./defaults.js";
+export {
+  MemoryStorage,
+  MemoryFileSystem,
+  FileNotFoundError,
+  normalizePath,
+  dirname,
+  basename,
+} from "./vfs.js";
 export { ActionRegistry, RESERVED_NAMESPACES } from "./registry.js";
 export { Bm25ActionIndex, tokenize } from "./search.js";
 export type { ActionIndex, IndexedAction, SearchHit } from "./search.js";
@@ -20,6 +27,7 @@ export type {
   OAuthOptions,
 } from "./auth.js";
 export { execHandle, toExecResult } from "./exec.js";
+export { WORKSPACE_ROOT, inSandbox, inWorkspace, fromGuestPath } from "./paths.js";
 export { createHttpClient } from "./http.js";
 export type { HttpClient, HttpConfig, HttpOptions } from "./http.js";
 export type { AppDefinition, ActionSpec, DefinedAction } from "./define.js";
@@ -45,7 +53,6 @@ export {
 
 export type {
   App,
-  Attachment,
   AuthorizedFetch,
   ActionContext,
   ActionDefinition,
@@ -59,7 +66,6 @@ export type {
   HostBridge,
   Invoke,
   Sandbox,
-  SandboxFiles,
   SandboxCapability,
   SandboxProvider,
   StorageProvider,

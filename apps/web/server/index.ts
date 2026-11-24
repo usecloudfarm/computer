@@ -12,7 +12,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
-import { e2b } from "@cloudfarm/e2b-sandbox";
+import { s3 } from "@cloudfarm/s3-storage";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
@@ -53,24 +53,28 @@ const search = process.env["FIRECRAWL_API_KEY"]
   : [];
 
 /**
- * A real microVM when there is a key for one, the in-process shell otherwise.
+ * R2 as the workspace filesystem, when the keys are there.
  *
- * The difference is visible to the agent: just-bash cannot run npm, node or
- * python, and E2B can. It is also the configuration that exercises the
- * filesystem sync — the shell and the workspace are one filesystem here only
- * because core pushes and pulls around every command.
- *
- * `timeoutMs` is generous because the playground holds one sandbox for the
- * life of the process, and E2B kills an idle one; the default would expire
- * part-way through a conversation.
+ * Without it the workspace is in memory and every file dies with the process,
+ * which makes the playground feel like a demo. With it, `sales.csv` is an
+ * object in a bucket and is still there after a restart.
  */
-const provider = process.env["E2B_API_KEY"]
-  ? e2b({ apiKey: process.env["E2B_API_KEY"], timeoutMs: 30 * 60 * 1000 })
-  : undefined;
+const storage =
+  process.env["R2_ACCOUNT_ID"] && process.env["R2_ACCESS_KEY_ID"]
+    ? s3({
+        bucket: process.env["R2_BUCKET"] ?? "cloudfarm",
+        endpoint: `https://${process.env["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com`,
+        accessKeyId: process.env["R2_ACCESS_KEY_ID"],
+        secretAccessKey: process.env["R2_SECRET_ACCESS_KEY"] ?? "",
+        // The bucket is already called cloudfarm; a `cloudfarm/` folder inside
+        // it would only say so twice.
+        prefix: "",
+      })
+    : undefined;
 
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  ...(provider ? { provider } : {}),
+  ...(storage ? { storage } : {}),
   apps: [reports, hackernews({}), ...browser, ...search],
 });
 
@@ -83,17 +87,22 @@ const computer = new Computer({
  */
 const workspace = await computer.createWorkspace("playground");
 
-await workspace.fs.write(
-  "/data/sales.csv",
-  [
-    "region,rep,amount",
-    "emea,ada,1200",
-    "emea,grace,800",
-    "amer,alan,4300",
-    "amer,katherine,2200",
-    "apac,joan,150",
-  ].join("\n") + "\n",
-);
+// Seeded only when absent. With R2 behind the workspace the file survives a
+// restart, and overwriting it every boot would throw away whatever the agent
+// did to it last time.
+if (!(await workspace.fs.stat("/sales.csv"))) {
+  await workspace.fs.write(
+    "/sales.csv",
+    [
+      "region,rep,amount",
+      "emea,ada,1200",
+      "emea,grace,800",
+      "amer,alan,4300",
+      "amer,katherine,2200",
+      "apac,joan,150",
+    ].join("\n") + "\n",
+  );
+}
 
 const SYSTEM = [
   "You drive a computer: a workspace with a filesystem, a shell, and actions",
