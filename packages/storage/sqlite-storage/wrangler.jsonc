@@ -1,0 +1,10 @@
+{
+  "name": "cloudfarm-sqlite-storage-tests",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // A real D1 binding, served locally by miniflare. The point is to run the
+  // driver against Cloudflare's own client rather than a hand-written double:
+  // `bind`, `all` and `batch` behave as they do in production, including what
+  // they will and will not accept as a blob.
+  "d1_databases": [{ "binding": "DB", "database_name": "cloudfarm-test", "database_id": "test" }],
+}
