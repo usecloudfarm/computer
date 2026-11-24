@@ -50,8 +50,14 @@ export function placeholders(text) {
 function normalize(spec) {
   const where = `spec ${spec.id}`;
   if (!APP_ID.test(spec.id ?? "")) fail(`${where}: id must match ${APP_ID}.`);
-  for (const key of ["name", "description", "npmDescription", "baseUrl", "credentials"]) {
+  for (const key of ["name", "description", "npmDescription", "baseUrl", "credentials", "icon"]) {
     if (!spec[key]) fail(`${where}: "${key}" is required.`);
+  }
+  // The catalogue renders this from its own origin, so a relative path would
+  // resolve against the wrong host. Core rejects it too; failing here names
+  // the spec file instead of a generated line.
+  if (!/^https:\/\//.test(spec.icon)) {
+    fail(`${where}: "icon" must be an absolute https: URL, not "${spec.icon}".`);
   }
   if (!Array.isArray(spec.actions) || spec.actions.length === 0) {
     fail(`${where}: at least one action is required — an app with none is unreachable.`);

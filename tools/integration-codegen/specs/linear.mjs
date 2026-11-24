@@ -5,6 +5,7 @@ export default {
   description:
     "Issue tracking. Create issues, search them, comment on one, list teams, and read what is assigned to you.",
   npmDescription: "Linear as a Computer app: create, search and comment on issues",
+  icon: "https://cdn.simpleicons.org/linear",
   docsUrl: "https://developers.linear.app/docs/graphql/working-with-the-graphql-api",
   credentials:
     "Create a personal API key in Linear under Settings → Security & access → Personal API keys.",

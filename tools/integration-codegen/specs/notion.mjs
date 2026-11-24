@@ -5,6 +5,7 @@ export default {
   description:
     "Notes and docs. Search the workspace, read a page, create pages, append paragraphs, and query a database.",
   npmDescription: "Notion as a Computer app: search, read, create and append to pages",
+  icon: "https://cdn.simpleicons.org/notion",
   docsUrl: "https://developers.notion.com/reference/intro",
   credentials:
     "Create an internal integration at notion.so/my-integrations and copy its secret, then share the pages or databases it should reach with that integration — Notion grants nothing by default, so an unshared page is invisible even with a valid token.",

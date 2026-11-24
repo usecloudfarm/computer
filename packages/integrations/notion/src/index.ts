@@ -24,6 +24,7 @@ export const notion = createApp({
   name: "Notion",
   description:
     "Notes and docs. Search the workspace, read a page, create pages, append paragraphs, and query a database.",
+  icon: "https://cdn.simpleicons.org/notion",
   auth: apiKey({ describe: "A Notion internal integration token (ntn_… or secret_…)." }),
   options: z.object({
     baseUrl: z

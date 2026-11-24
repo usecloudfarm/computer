@@ -23,6 +23,7 @@ export const linear = createApp({
   name: "Linear",
   description:
     "Issue tracking. Create issues, search them, comment on one, list teams, and read what is assigned to you.",
+  icon: "https://cdn.simpleicons.org/linear",
   auth: apiKey({ prefix: "", describe: "A Linear personal API key (lin_api_…)." }),
   options: z.object({
     baseUrl: z

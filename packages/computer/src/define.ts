@@ -92,6 +92,16 @@ export interface AppDefinition<C, AuthInput = unknown, Options = unknown> {
   /** Prompt text. The model reads this to decide whether the app is relevant. */
   readonly description: string;
   /**
+   * An absolute `https:` URL to the app's icon, for catalogues and UIs.
+   *
+   * A URL rather than bundled bytes: an icon is the one part of an app that a
+   * terminal, a docs page and a chat UI all want at different sizes, and none
+   * of them want it inlined into a module that also ships to a Worker. It is
+   * never sent to the model — a logo is for the human choosing the app, and
+   * the model has the description.
+   */
+  readonly icon?: string;
+  /**
    * Hosts this app may call. A prompt-injected URL argument cannot redirect a
    * credentialed request off this list. Required once `authorize` is given:
    * applying a credential with no allowlist is how a token leaks.
@@ -175,7 +185,7 @@ export function createApp<AuthInput, Options = unknown>(
 export function createApp<AuthInput, Options>(
   definition: AppDefinition<Record<string, Branded>, AuthInput, Options>,
 ): App | ((input: AuthInput & Options) => App) {
-  const { id, description } = definition;
+  const { id, description, icon } = definition;
   if (!APP_ID.test(id)) {
     throw new Error(
       `App id "${id}" must be lowercase and start with a letter: it is the first half of every ref, as in "${id}.doSomething".`,
@@ -183,6 +193,11 @@ export function createApp<AuthInput, Options>(
   }
   if (!description.trim()) {
     throw new Error(`App "${id}" needs a description: the model reads it to decide relevance.`);
+  }
+  if (icon !== undefined && !isHttpsUrl(icon)) {
+    throw new Error(
+      `App "${id}" has an icon that is not an absolute https: URL: "${icon}". A catalogue renders it from anywhere, so a relative path has nothing to resolve against.`,
+    );
   }
   if (definition.auth && definition.authorize) {
     throw new Error(
@@ -274,11 +289,21 @@ function assemble<AuthInput, Options>(
     id: definition.id,
     name: definition.name ?? definition.id,
     description: definition.description,
+    ...(definition.icon ? { icon: definition.icon } : {}),
     ...(http ? { http } : {}),
     allowedHosts,
     authorize: authorize ?? definition.authorize ?? ((request) => request),
     actions: () => actions,
   };
+}
+
+/** `new URL()` rather than a regex: it is the parser every consumer will use. */
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 /**

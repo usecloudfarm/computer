@@ -24,6 +24,7 @@ export const web = createApp({
   name: "Web",
   description:
     "Read pages from the open web. Renders JavaScript, returns markdown, extracts elements by CSS selector, lists links, and captures screenshots.",
+  icon: "https://cdn.simpleicons.org/cloudflare",
   auth: apiKey({
     describe: "A Cloudflare API token with the 'Browser Run - Edit' permission.",
   }),

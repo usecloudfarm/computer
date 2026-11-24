@@ -23,9 +23,19 @@ const apps = (await getCollection("docs", (entry) => entry.data.app !== undefine
   {
     apps.map((entry) => (
       <a class="app-card" href={`/${entry.id}/`}>
-        <span class="app-mark" aria-hidden="true">
-          {entry.app.mark}
-        </span>
+        {
+          entry.app.icon ? (
+            // A brand logo in its own colours, on a light tile so it reads on
+            // either theme. Lazy, because a catalogue is a wall of them.
+            <span class="app-mark has-icon" aria-hidden="true">
+              <img src={entry.app.icon} alt="" width="18" height="18" loading="lazy" />
+            </span>
+          ) : (
+            <span class="app-mark" aria-hidden="true">
+              {entry.app.mark}
+            </span>
+          )
+        }
         <span class="app-name">{entry.data.title}</span>
         <span class="app-desc">{entry.data.description}</span>
         <span class="app-meta">
@@ -131,6 +141,19 @@ const apps = (await getCollection("docs", (entry) => entry.data.app !== undefine
     border-radius: 0.3rem;
     color: var(--sl-color-gray-2);
     background-color: color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);
+  }
+
+  /* Brand marks arrive in their own colours — GitHub's is near-black — so
+     they sit on a light tile rather than the card's background. */
+  .app-mark.has-icon {
+    background: #ffffff;
+    border: 1px solid var(--sl-color-gray-5);
+  }
+
+  .app-mark.has-icon img {
+    width: 1.125rem;
+    height: 1.125rem;
+    object-fit: contain;
   }
 
   /* An app that needs nothing is the one worth spotting in a catalogue. */

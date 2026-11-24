@@ -61,6 +61,7 @@ export default {
   description:
     "Error tracking. List, read and triage issues, inspect the events behind one, assign and resolve them, and read releases, projects and teams.",
   npmDescription: "Sentry as a Computer app: read, triage and resolve issues",
+  icon: "https://cdn.simpleicons.org/sentry",
   docsUrl: "https://docs.sentry.io/api/",
   credentials:
     "Create an organization auth token in Sentry under Settings → Auth Tokens with the `project:read`, `event:read` and (for triage) `event:write` scopes.",

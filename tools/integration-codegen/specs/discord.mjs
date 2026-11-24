@@ -5,6 +5,7 @@ export default {
   description:
     "Community chat. Post messages to a channel, read recent messages, and list a server's channels.",
   npmDescription: "Discord as a Computer app: post and read channel messages",
+  icon: "https://cdn.simpleicons.org/discord",
   docsUrl: "https://discord.com/developers/docs/reference",
   credentials:
     "Create an application at discord.com/developers/applications, add a bot, copy its token, and invite the bot to the server with the `View Channels`, `Send Messages` and `Read Message History` permissions. Reading history needs the bot to be in the channel; no OAuth flow is involved.",

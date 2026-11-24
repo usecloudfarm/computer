@@ -5,6 +5,7 @@ export default {
   description:
     "Issue tracking. Search issues with JQL, read one, create issues, comment on them, and list projects.",
   npmDescription: "Jira Cloud as a Computer app: search, create and comment on issues",
+  icon: "https://cdn.simpleicons.org/jira",
   docsUrl: "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
   credentials:
     "Create an API token at id.atlassian.com/manage-profile/security/api-tokens, and pass it with the Atlassian account email as `username`. Jira Cloud authenticates the pair over HTTP Basic.",

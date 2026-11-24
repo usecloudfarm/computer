@@ -22,6 +22,7 @@ export const discord = createApp({
   name: "Discord",
   description:
     "Community chat. Post messages to a channel, read recent messages, and list a server's channels.",
+  icon: "https://cdn.simpleicons.org/discord",
   auth: apiKey({ prefix: "Bot", describe: "A Discord bot token, from the application's Bot tab." }),
   options: z.object({
     baseUrl: z

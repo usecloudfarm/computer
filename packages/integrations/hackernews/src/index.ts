@@ -24,6 +24,7 @@ export const hackernews = createApp({
   name: "Hacker News",
   description:
     "Hacker News: read the front page, open a story's comments, search the archive, look up a user.",
+  icon: "https://cdn.simpleicons.org/ycombinator",
   auth: noAuth(),
   // Firebase is the base; Algolia is reached by absolute URL, so its host has
   // to be declared or the egress guard blocks it.

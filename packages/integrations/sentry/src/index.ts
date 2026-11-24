@@ -30,6 +30,7 @@ export const sentry = createApp({
   name: "Sentry",
   description:
     "Error tracking. List, read and triage issues, inspect the events behind one, assign and resolve them, and read releases, projects and teams.",
+  icon: "https://cdn.simpleicons.org/sentry",
   auth: apiKey({ describe: "A Sentry auth token (sntrys_… or a user token)." }),
   options: z.object({
     baseUrl: z

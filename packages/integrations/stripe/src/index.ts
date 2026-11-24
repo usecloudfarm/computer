@@ -23,6 +23,7 @@ export const stripe = createApp({
   name: "Stripe",
   description:
     "Payments. Look up and create customers, list charges, read the account balance, and refund a charge.",
+  icon: "https://cdn.simpleicons.org/stripe",
   auth: apiKey({ describe: "A Stripe secret or restricted key (sk_… / rk_…)." }),
   options: z.object({
     baseUrl: z

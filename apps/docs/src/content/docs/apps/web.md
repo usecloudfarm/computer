@@ -3,6 +3,7 @@ title: Web
 description: Read pages from the open web — markdown, elements by CSS selector, links, and screenshots.
 app:
   package: "@cloudfarm/cloudflare-browser"
+  icon: "https://cdn.simpleicons.org/cloudflare"
   credential: api-token
   mark: Wb
   order: 40

@@ -3,6 +3,7 @@ title: Hacker News
 description: Read the front page, open a story's comments, search the archive, look up a user.
 app:
   package: "@cloudfarm/hackernews"
+  icon: "https://cdn.simpleicons.org/ycombinator"
   credential: none
   mark: HN
   order: 20

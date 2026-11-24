@@ -5,6 +5,7 @@ export default {
   description:
     "Code hosting. Read and open issues, comment on them, list pull requests and commits, and search issues across GitHub.",
   npmDescription: "GitHub as a Computer app: issues, pull requests, commits and search",
+  icon: "https://cdn.simpleicons.org/github",
   docsUrl: "https://docs.github.com/en/rest",
   credentials:
     "Create a fine-grained personal access token at github.com/settings/tokens with read access to the repositories you want, plus write access to issues if an agent should open them.",

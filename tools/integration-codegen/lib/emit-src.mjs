@@ -44,6 +44,7 @@ export function emitSource(spec) {
     `  id: ${lit(spec.id)},`,
     `  name: ${lit(spec.name)},`,
     `  description: ${lit(spec.description)},`,
+    `  icon: ${lit(spec.icon)},`,
     `  auth: ${renderAuth(spec)},`,
     `  options: ${renderOptions(spec)},`,
     `  allowedHosts: ${renderHosts(spec)},`,

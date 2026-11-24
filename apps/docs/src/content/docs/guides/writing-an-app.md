@@ -29,6 +29,7 @@ export function linear(options: { apiKey: string }) {
     id: "linear",
     name: "Linear",
     description: "Issues and projects.",
+    icon: "https://cdn.simpleicons.org/linear",
     allowedHosts: ["api.linear.app"],
     auth: apiKey({ value: options.apiKey, header: "authorization" }),
     actions: {/* … */},
@@ -38,6 +39,12 @@ export function linear(options: { apiKey: string }) {
 
 `allowedHosts` is enforced: a prompt-injected URL cannot redirect a
 credentialed request somewhere else.
+
+`icon` is an absolute `https:` URL, and the only optional field here. It is
+what a catalogue renders — the [Apps](/apps/) page builds its cards from it —
+and it is never shown to the model, which has the description instead. A
+relative path is rejected at construction rather than rendering as a broken
+image on someone else's origin.
 
 ## 3. Write the action
 

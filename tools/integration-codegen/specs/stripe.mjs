@@ -5,6 +5,7 @@ export default {
   description:
     "Payments. Look up and create customers, list charges, read the account balance, and refund a charge.",
   npmDescription: "Stripe as a Computer app: customers, charges, balance and refunds",
+  icon: "https://cdn.simpleicons.org/stripe",
   docsUrl: "https://docs.stripe.com/api",
   credentials:
     "Use a restricted key from the Stripe dashboard under Developers → API keys. Give it read access to customers and charges, and write access only if an agent should create customers or issue refunds — a restricted key is the whole reason an agent does not need the secret key.",

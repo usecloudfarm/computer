@@ -121,6 +121,31 @@ describe("createApp rejects authoring mistakes at construction", () => {
     ).toThrow(/unreachable by search/);
   });
 
+  it("carries an icon through to the app", () => {
+    const app = createApp({
+      ...base,
+      id: "reports",
+      icon: "https://cdn.example.com/reports.svg",
+    });
+
+    expect(app.icon).toBe("https://cdn.example.com/reports.svg");
+  });
+
+  it("leaves icon absent when none is given, rather than inventing one", () => {
+    expect(reports().icon).toBeUndefined();
+  });
+
+  it("rejects an icon that is not an absolute https URL", () => {
+    // A catalogue renders the URL from its own origin, so a relative path
+    // resolves against the wrong host or nothing at all.
+    expect(() => createApp({ ...base, id: "reports", icon: "/icons/reports.svg" })).toThrow(
+      /absolute https: URL/,
+    );
+    expect(() =>
+      createApp({ ...base, id: "reports", icon: "http://cdn.example.com/reports.svg" }),
+    ).toThrow(/absolute https: URL/);
+  });
+
   it("rejects an empty example", () => {
     expect(() =>
       createApp({

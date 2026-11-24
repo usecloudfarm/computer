@@ -25,7 +25,12 @@ export const collections = {
             package: z.string(),
             /** What a developer passes to construct it. */
             credential: z.enum(["none", "api-key", "api-token"]),
-            /** Two initials or a short mark, in place of a logo we cannot ship. */
+            /**
+             * The app's icon, matching the `icon` on its `createApp` call.
+             * Absolute https: so the catalogue can render it from any origin.
+             */
+            icon: z.string().url().startsWith("https://").optional(),
+            /** Two initials, shown when an app has no icon of its own. */
             mark: z.string().max(2),
             /** Ordering within the catalogue; lowest first. */
             order: z.number().default(50),

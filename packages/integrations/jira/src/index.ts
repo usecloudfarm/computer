@@ -21,6 +21,7 @@ export const jira = createApp({
   name: "Jira",
   description:
     "Issue tracking. Search issues with JQL, read one, create issues, comment on them, and list projects.",
+  icon: "https://cdn.simpleicons.org/jira",
   auth: basic(),
   options: z.object({
     site: z.string().describe('Atlassian site name — the "acme" in acme.atlassian.net.'),

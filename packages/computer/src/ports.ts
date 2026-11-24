@@ -136,6 +136,11 @@ export interface ActionDefinition<I = unknown, O = unknown> {
 
 export interface App extends Described {
   readonly name: string;
+  /**
+   * Absolute `https:` URL to the app's icon, when it has one. For catalogues
+   * and UIs; it is never shown to the model.
+   */
+  readonly icon?: string | undefined;
   /** Shared HTTP configuration handed to every action's `context.http`. */
   readonly http?: HttpConfig | undefined;
   /**

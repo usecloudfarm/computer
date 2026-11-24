@@ -22,6 +22,7 @@ export const github = createApp({
   name: "GitHub",
   description:
     "Code hosting. Read and open issues, comment on them, list pull requests and commits, and search issues across GitHub.",
+  icon: "https://cdn.simpleicons.org/github",
   auth: apiKey({ describe: "A GitHub personal access token (github_pat_… or ghp_…)." }),
   options: z.object({
     baseUrl: z
