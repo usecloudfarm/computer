@@ -30,9 +30,11 @@ export function Message({
     );
   }
 
+  const blocks = group(message.parts);
+
   return (
     <div className="space-y-4">
-      {group(message.parts).map((block, blockIndex) => {
+      {blocks.map((block, blockIndex) => {
         if (block.kind === "text") {
           return (
             <Markdown
@@ -55,7 +57,18 @@ export function Message({
         // readable; the gaps between separate boxes read as pauses that did
         // not happen anyway.
         return (
-          <ToolGroup key={blockIndex} messageId={message.id} calls={block.calls} reveal={reveal} />
+          <ToolGroup
+            key={blockIndex}
+            messageId={message.id}
+            calls={block.calls}
+            reveal={reveal}
+            // The model has started talking again after this run, which is the
+            // cue to fold it away. Only this component knows — a group cannot
+            // see what came after it.
+            superseded={blocks
+              .slice(blockIndex + 1)
+              .some((later) => later.kind === "text" && later.text.trim() !== "")}
+          />
         );
       })}
     </div>

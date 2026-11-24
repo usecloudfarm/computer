@@ -30,25 +30,37 @@ export function ToolGroup({
   messageId,
   calls,
   reveal,
+  superseded,
 }: {
   messageId: string;
   calls: GroupedCall[];
   reveal: Reveal | null;
+  /** The model has produced prose after this run, so it is no longer the
+   * live thing. */
+  superseded: boolean;
 }) {
   const pending = calls.some(({ part }) => isPending(part));
   const failed = calls.filter(({ part }) => hasFailed(part)).length;
 
-  const [open, setOpen] = useState(pending);
+  const [open, setOpen] = useState(() => pending || !superseded);
   // Once you have taken a position on this group, it keeps it. Otherwise the
-  // auto-collapse below would shut a group you had deliberately opened.
+  // rule below would shut a group you had deliberately opened.
   const touched = useRef(false);
   const elapsed = useElapsed(pending);
 
-  // Open while the model is working, closed once it is done — the live view
-  // is worth seeing and the finished one is worth getting out of the way.
+  // Open when the run starts, and stay open until the model starts talking
+  // again.
+  //
+  // This used to track `pending` directly, which closed a group the instant
+  // its last call settled. A turn that uses the shell four times is four
+  // groups, so the panel opened and shut four times in a row while the model
+  // was still mid-thought and nothing had been read. Prose arriving is the
+  // real signal that the run is over and finished with.
   useEffect(() => {
-    if (!touched.current) setOpen(pending);
-  }, [pending]);
+    if (touched.current) return;
+    if (pending) setOpen(true);
+    else if (superseded) setOpen(false);
+  }, [pending, superseded]);
 
   // A history row points at one call, which is inside this group and may be
   // hidden. Opening first and scrolling after is the only order that works:
