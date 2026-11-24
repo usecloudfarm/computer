@@ -117,6 +117,19 @@ calls made  0
 | `@cloudfarm/qjs-engine`     | code mode in a WebAssembly isolate                                           | Node and Workers     |
 | `@cloudfarm/ai-sdk-toolset` | tools for the Vercel AI SDK                                                  | Node and Workers     |
 | `@cloudfarm/slack`          | Slack as an app plugin                                                       | Node and Workers     |
+| `@cloudfarm/linear`         | Linear: issues, teams, comments                                              | Node and Workers     |
+| `@cloudfarm/github`         | GitHub: issues, pull requests, commits, search                               | Node and Workers     |
+| `@cloudfarm/notion`         | Notion: search, read, create and append to pages                             | Node and Workers     |
+| `@cloudfarm/jira`           | Jira Cloud: JQL search, issues, comments                                     | Node and Workers     |
+| `@cloudfarm/stripe`         | Stripe: customers, charges, balance, refunds                                 | Node and Workers     |
+| `@cloudfarm/sentry`         | Sentry: read, triage and resolve issues                                      | Node and Workers     |
+| `@cloudfarm/discord`        | Discord: post and read channel messages                                      | Node and Workers     |
+
+The seven integrations after `slack` are generated from one declarative spec
+each. `pnpm gen:integrations` rebuilds them, `pnpm check` fails if a committed
+package has drifted from its spec, and
+[`tools/integration-codegen`](tools/integration-codegen#readme) is the three-step
+recipe for adding another.
 
 `@cloudfarm/core` is isomorphic by construction, not by discipline: it has no
 `@types/node`, oxlint refuses `node:*` imports inside it, and **its entire test

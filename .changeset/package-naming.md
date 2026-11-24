@@ -10,15 +10,15 @@
 
 Renamed so a package name says what it is.
 
-| was | is |
-| --- | --- |
-| `@cloudfarm/qjs` | `@cloudfarm/qjs-engine` |
-| `@cloudfarm/bash` | `@cloudfarm/bash-sandbox` |
-| `@cloudfarm/e2b` | `@cloudfarm/e2b-sandbox` |
-| `@cloudfarm/boat` | `@cloudfarm/boat-sandbox` |
+| was                  | is                           |
+| -------------------- | ---------------------------- |
+| `@cloudfarm/qjs`     | `@cloudfarm/qjs-engine`      |
+| `@cloudfarm/bash`    | `@cloudfarm/bash-sandbox`    |
+| `@cloudfarm/e2b`     | `@cloudfarm/e2b-sandbox`     |
+| `@cloudfarm/boat`    | `@cloudfarm/boat-sandbox`    |
 | `@cloudfarm/agent37` | `@cloudfarm/agent37-sandbox` |
-| `@cloudfarm/s3` | `@cloudfarm/s3-storage` |
-| `@cloudfarm/ai` | `@cloudfarm/ai-sdk-toolset` |
+| `@cloudfarm/s3`      | `@cloudfarm/s3-storage`      |
+| `@cloudfarm/ai`      | `@cloudfarm/ai-sdk-toolset`  |
 
 The convention: anything passed to `new Computer()` is `<what>-<role>`, where
 the role is the option it fills — `-sandbox` for `provider`, `-engine` for
