@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Computer, MemoryStorage, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
-import { JustBash } from "./index.js";
+import { JustBash, type JustBashOptions } from "./index.js";
 
 /**
  * `new Computer()` takes no provider, so these tests install this build of the
  * shell through the same seam core's own lookup uses. Without it core would
  * find the published `dist` rather than the source under test.
  */
-async function workspace(seed: Record<string, string> = {}) {
-  setTestDefaults({ provider: new JustBash() });
+async function workspace(seed: Record<string, string> = {}, options: JustBashOptions = {}) {
+  setTestDefaults({ provider: new JustBash(options) });
   const computer = new Computer({ storage: new MemoryStorage({ seed }) });
   return computer.createWorkspace("tester");
 }
@@ -95,12 +95,17 @@ describe("JustBash", () => {
   });
 
   it("bounds a runaway loop instead of hanging", async () => {
-    const ws = await workspace();
+    // A low cap rather than the 200k default: what is being asserted is that
+    // the loop stops itself, and at the default this test spends most of a
+    // second burning iterations on a laptop — and, on a loaded CI runner
+    // sharing two cores with every other package's suite, past 30 seconds.
+    // The bound is the behaviour; the size of it is not.
+    const ws = await workspace({}, { maxLoopIterations: 1_000, maxCommandCount: 1_000 });
 
     const result = await ws.exec("i=0; while true; do i=$((i+1)); done");
 
     expect(result.status).toBe("failed");
-  }, 30_000);
+  });
 
   it("keeps the runtime's own bookkeeping out of the shell's view", async () => {
     const ws = await workspace();
