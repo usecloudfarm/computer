@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/notion",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Notion as a Computer app: search, read, create and append to pages",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/s3-storage",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "StorageProvider over any S3-compatible bucket: bring your own storage",
   "license": "MIT",
   "type": "module",

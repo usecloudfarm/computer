@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/sentry",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Sentry as a Computer app: read, triage and resolve issues",
   "license": "MIT",
   "type": "module",

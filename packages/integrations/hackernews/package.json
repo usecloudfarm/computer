@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/hackernews",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Hacker News as a Computer app: top stories, comments, search \u2014 no credentials",
   "license": "MIT",
   "type": "module",

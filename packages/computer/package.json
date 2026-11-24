@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/computer",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Computer: a workspace, a filesystem, bash, apps and code mode for an agent",
   "license": "MIT",
   "type": "module",

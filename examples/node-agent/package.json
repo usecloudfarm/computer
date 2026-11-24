@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/example-node-agent",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "description": "The brief's snippet, typechecked in CI and runnable against real services",

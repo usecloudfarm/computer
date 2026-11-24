@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/discord",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Discord as a Computer app: post and read channel messages",
   "license": "MIT",
   "type": "module",
