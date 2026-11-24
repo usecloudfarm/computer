@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/sqlite-storage",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "StorageProvider over SQLite: a local file on Node, a Durable Object's own storage on Workers",
   "license": "MIT",
   "type": "module",

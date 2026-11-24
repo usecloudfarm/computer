@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/qjs-engine",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Code mode for Computer: a QuickJS isolate that runs on Node and on Cloudflare Workers",
   "license": "MIT",
   "type": "module",

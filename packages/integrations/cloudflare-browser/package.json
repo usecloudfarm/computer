@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/cloudflare-browser",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The open web as a Computer app, via Cloudflare Browser Run: read, scrape, links, screenshot",
   "license": "MIT",
   "type": "module",

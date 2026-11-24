@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/web",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "description": "A chat UI for driving a Computer, with every tool call visible",

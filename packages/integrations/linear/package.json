@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/linear",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Linear as a Computer app: create, search and comment on issues",
   "license": "MIT",
   "type": "module",

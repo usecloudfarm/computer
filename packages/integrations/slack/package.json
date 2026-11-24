@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/slack",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Slack as a Computer app: post messages, read channels, search history",
   "license": "MIT",
   "type": "module",

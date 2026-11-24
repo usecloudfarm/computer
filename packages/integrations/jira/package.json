@@ -1,6 +1,6 @@
 {
   "name": "@cloudfarm/jira",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Jira Cloud as a Computer app: search, create and comment on issues",
   "license": "MIT",
   "type": "module",
