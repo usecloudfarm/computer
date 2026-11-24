@@ -21,6 +21,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      # An integration package and its docs page are generated from one spec.
+      # Without this, a hand-edit to either survives review and the next
+      # `pnpm gen:integrations` silently reverts it.
+      - run: pnpm gen:integrations:check
       - run: pnpm lint
       - run: pnpm build
       - run: pnpm typecheck
