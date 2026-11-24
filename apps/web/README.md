@@ -82,8 +82,10 @@ The workspace appears at `/data`, so `/data/sales.csv` to the agent is
 with `>` appears there, and a file seeded here is readable with `cat` — one
 filesystem, not two kept in step.
 
-With `R2_*` set those files are objects in a bucket and survive a restart;
-without it the workspace is in memory and dies with the process.
+Files live in a local SQLite database at `.cloudfarm/playground.db`, so they
+survive a restart with nothing to configure. `CLOUDFARM_DB` points it
+elsewhere. `@cloudfarm/s3-storage` is the answer for a bucket and
+`@cloudfarm/sqlite-storage/d1` for D1; neither is wired up here.
 
 ## Notes
 

@@ -12,7 +12,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { Computer } from "@cloudfarm/core";
-import { s3 } from "@cloudfarm/s3-storage";
+import { sqliteStorage } from "@cloudfarm/sqlite-storage";
 import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
@@ -53,28 +53,25 @@ const search = process.env["FIRECRAWL_API_KEY"]
   : [];
 
 /**
- * R2 as the workspace filesystem, when the keys are there.
+ * A local SQLite file, and nothing to configure.
  *
- * Without it the workspace is in memory and every file dies with the process,
- * which makes the playground feel like a demo. With it, `sales.csv` is an
- * object in a bucket and is still there after a restart.
+ * Durable, so a file the agent writes is still there after a restart — which
+ * is the difference between a playground and a demo. No bucket, no endpoint
+ * and no credentials, so there is also nothing here that could reach
+ * model-written code.
+ *
+ * `@cloudfarm/s3-storage` is still the answer for a bucket, and
+ * `@cloudfarm/sqlite-storage/d1` for D1; the playground does not need either
+ * and used to pick between them on the presence of keys, which meant the thing
+ * being exercised depended on what happened to be in `.env`.
  */
-const storage =
-  process.env["R2_ACCOUNT_ID"] && process.env["R2_ACCESS_KEY_ID"]
-    ? s3({
-        bucket: process.env["R2_BUCKET"] ?? "cloudfarm",
-        endpoint: `https://${process.env["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com`,
-        accessKeyId: process.env["R2_ACCESS_KEY_ID"],
-        secretAccessKey: process.env["R2_SECRET_ACCESS_KEY"] ?? "",
-        // The bucket is already called cloudfarm; a `cloudfarm/` folder inside
-        // it would only say so twice.
-        prefix: "",
-      })
-    : undefined;
+const storage = sqliteStorage({
+  path: process.env["CLOUDFARM_DB"] ?? ".cloudfarm/playground.db",
+});
 
 const computer = new Computer({
   toolset: new AISDKToolset(),
-  ...(storage ? { storage } : {}),
+  storage,
   apps: [reports, hackernews({}), ...browser, ...search],
 });
 
