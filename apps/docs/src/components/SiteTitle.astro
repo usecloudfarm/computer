@@ -10,6 +10,9 @@
  * and the mobile menu exactly as Starlight ships them.
  */
 import type { Props } from "@astrojs/starlight/props";
+// Inlined rather than an <img>: the mark is drawn in `currentColor`, so it
+// follows the title's colour on either theme and costs no extra request.
+import Mark from "../assets/logo.svg?raw";
 
 const { siteTitle, siteTitleHref } = Astro.props;
 const here = Astro.url.pathname;
@@ -27,7 +30,7 @@ const isCurrent = (href: string) =>
 
 <div class="site-title-group">
   <a href={siteTitleHref} class="site-title">
-    <span class="mark" aria-hidden="true"></span>
+    <span class="mark" aria-hidden="true" set:html={Mark} />
     <span>{siteTitle}</span>
   </a>
 
@@ -64,11 +67,17 @@ const isCurrent = (href: string) =>
     white-space: nowrap;
   }
 
+  /* The artwork is taller than it is wide, so the height is fixed and the
+     width follows — a square box would letterbox it. */
   .mark {
-    width: 0.9rem;
-    height: 0.9rem;
-    border-radius: 0.25rem;
-    background: linear-gradient(140deg, var(--sl-color-accent), var(--sl-color-accent-high));
+    display: flex;
+    align-items: center;
+    color: var(--sl-color-white);
+  }
+
+  .mark :global(svg) {
+    height: 1.15rem;
+    width: auto;
   }
 
   .top-nav {
