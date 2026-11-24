@@ -24,7 +24,7 @@ static import only your bundler can emit.
 
 ```ts
 import engine from "@jitl/quickjs-wasmfile-release-asyncify/wasm";
-import shell from "@cloudfarm/rbash-sandbox/wasm";
+import shell from "@cloudfarm/rbash/wasm";
 
 new Computer({ wasm: { engine, shell } });
 ```

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    // DOM for `WebAssembly`, which the Workers entry point names.
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    // The wasm-bindgen glue is JavaScript with a hand-written .d.ts beside it.
+    "allowJs": true,
+    "tsBuildInfoFile": ".tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "vendor/*.d.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

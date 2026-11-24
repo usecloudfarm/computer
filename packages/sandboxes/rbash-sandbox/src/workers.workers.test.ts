@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Computer, MemoryStorage, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
 // Statically imported, which is the whole point: Workers refuses
 // `WebAssembly.compile` on bytes, so only the bundler can produce the module.
-import wasmModule from "../vendor/rust_bash_bg.wasm";
+import wasmModule from "../../../rbash/vendor/rust_bash_bg.wasm";
 import { rbashForWorkers } from "./workers.js";
 
 const workspace = async (seed: Record<string, string> = {}) => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Computer, MemoryStorage, resetDefaults, setTestDefaults } from "@cloudfarm/computer";
-import wasmModule from "../vendor/rust_bash_bg.wasm";
+import wasmModule from "../../../rbash/vendor/rust_bash_bg.wasm";
 import { rbashForWorkers } from "./workers.js";
 
 /**

@@ -17,6 +17,12 @@ your process over the workspace.
 pnpm add @cloudfarm/rbash-sandbox
 ```
 
+The interpreter itself is a separate package,
+[`@cloudfarm/rbash`](https://www.npmjs.com/package/@cloudfarm/rbash), and
+works on its own — a sandboxed shell with an in-memory filesystem and no
+Computer involved. This package is the adapter that makes it a
+`SandboxProvider`; it pulls the interpreter in for you.
+
 All 72 of `just-bash`'s commands, and faster on every shape measured — 1.3× to
 5.4× through a whole `exec`, which includes the workspace copy both pay.
 
@@ -39,7 +45,7 @@ indexes or transactions.
 On Workers it needs its module handed in:
 
 ```ts
-import shell from "@cloudfarm/rbash-sandbox/wasm";
+import shell from "@cloudfarm/rbash/wasm";
 new Computer({ wasm: { shell } });
 ```
 
