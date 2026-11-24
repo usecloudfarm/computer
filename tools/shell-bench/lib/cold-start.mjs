@@ -55,7 +55,7 @@ const PROBES = {
 /** Runs each probe `runs` times in a fresh process and returns the medians. */
 export function coldStart({ runs = 5 } = {}) {
   const require = createRequire(new URL("packages/sandboxes/bash-sandbox/package.json", ROOT));
-  const vendor = new URL("packages/sandboxes/rbash-sandbox/vendor/", ROOT);
+  const vendor = new URL("packages/rbash/vendor/", ROOT);
   const sources = {
     "just-bash": PROBES["just-bash"](pathToFileURL(require.resolve("just-bash")).href),
     rbash: PROBES.rbash(

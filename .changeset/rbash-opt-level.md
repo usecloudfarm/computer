@@ -1,10 +1,11 @@
 ---
+"@cloudfarm/rbash": patch
 "@cloudfarm/rbash-sandbox": patch
 ---
 
 Compile the wasm for speed, not size.
 
-`vendor/Cargo.toml` built at `opt-level = "z"`, which compiled the interpreter
+`packages/rbash/vendor/Cargo.toml` built at `opt-level = "z"`, which compiled the interpreter
 loop for size and cost more than it saved. The same source at `opt-level = 3`
 runs `jq` 1.8x faster, glob matching — `${v##*/}` and `case` — 9x faster, `sed`
 2.3x, `base64` 2.9x, `awk` 2.1x. The two glob paths were the only places this

@@ -56,7 +56,7 @@ async function loadJustBash() {
 let rustBash;
 async function loadRustBash() {
   if (rustBash) return rustBash;
-  const vendor = new URL("packages/sandboxes/rbash-sandbox/vendor/", ROOT);
+  const vendor = new URL("packages/rbash/vendor/", ROOT);
   const module = await import(new URL("rust_bash.js", vendor).href);
   module.initSync({ module: readFileSync(new URL("rust_bash_bg.wasm", vendor)) });
   rustBash = module;

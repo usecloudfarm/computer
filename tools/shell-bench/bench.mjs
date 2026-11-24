@@ -225,7 +225,9 @@ function meta(options) {
     arch: process.arch,
     cpu: os.cpus()[0]?.model ?? "unknown",
     justBashVersion: json(justBash).version,
-    rbashVersion: json(new URL("packages/sandboxes/rbash-sandbox/package.json", ROOT)).version,
+    // The interpreter's own package, not the provider wrapped around it:
+    // the wasm is what these timings are of.
+    rbashVersion: json(new URL("packages/rbash/package.json", ROOT)).version,
     iterations: options.iterations,
     warmup: options.warmup,
     budget: options.budget,

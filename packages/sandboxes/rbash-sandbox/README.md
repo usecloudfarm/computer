@@ -43,26 +43,27 @@ includes the push/pull both shells pay.
 
 | case                          | just-bash | rbash   | rbash is     |
 | ----------------------------- | --------- | ------- | ------------ |
-| `echo` (round trip)           | 0.689ms   | 0.037ms | 18.8x faster |
-| `sed s///` over 782 KB        | 209ms     | 17.0ms  | 12.3x faster |
-| 100 file writes               | 11.5ms    | 0.713ms | 16.1x faster |
-| 1000-iteration loop           | 9.59ms    | 0.951ms | 10.1x faster |
-| `grep -c` over 78 KB          | 1.73ms    | 0.844ms | 2.0x faster  |
-| `jq` group + count over 5k    | 14.2ms    | 10.8ms  | 1.3x faster  |
-| `sort \| uniq -c \| sort -rn` | 13.2ms    | 16.9ms  | 1.3x slower  |
+| `echo` (round trip)           | 0.567ms   | 0.038ms | 15.0x faster |
+| `sed s///` over 782 KB        | 223ms     | 17.0ms  | 13.1x faster |
+| `awk` group-by, 10k rows      | 146ms     | 11.7ms  | 12.5x faster |
+| 1000-iteration loop           | 9.81ms    | 0.878ms | 11.2x faster |
+| `grep -c` over 78 KB          | 1.96ms    | 0.814ms | 2.4x faster  |
+| `jq` group + count over 5k    | 14.5ms    | 10.8ms  | 1.3x faster  |
+| `sort \| uniq -c \| sort -rn` | 13.2ms    | 16.8ms  | 1.3x slower  |
 
-Geometric mean across the suite: **4.3x** through `Workspace.exec` and
-**6.3x** against the bare interpreters, ahead on 46 of 49 cases. The three it
+Geometric mean across the suite: **4.4x** through `Workspace.exec` and
+**6.4x** against the bare interpreters, ahead on 46 of 49 cases. The three it
 loses are `sort`-dominated pipelines and `base64`.
 
 Cold start, in a process that has never seen either shell: 8.6ms against
-just-bash's 108ms, because loading 3.1 MB of wasm costs less than parsing
+just-bash's 109ms, because loading 3.1 MB of wasm costs less than parsing
 517 KB of JavaScript.
 
-Those numbers depend on the build profile. `vendor/Cargo.toml` compiles at
-`opt-level = 3`, not `"z"`: at `"z"` the same source ran `jq` 1.8x slower and
-glob matching (`${v##*/}`, `case`) 9x slower, losing to the TypeScript shell
-on both. `wasm-opt -Oz` in `build.sh` takes the size back afterwards without
+Those numbers depend on the build profile. The interpreter's
+`vendor/Cargo.toml`, over in `@cloudfarm/rbash`, compiles at `opt-level = 3`
+rather than `"z"`: at `"z"` the same source ran `jq` 1.8x slower and glob
+matching (`${v##*/}`, `case`) 9x slower, losing to the TypeScript shell on
+both. `wasm-opt -Oz` in `build.sh` takes the size back afterwards without
 giving up the speed.
 
 Upstream also reports 102/102 against GNU bash where just-bash scores 98, and
