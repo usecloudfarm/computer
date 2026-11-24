@@ -20,6 +20,7 @@
     "format:check": "prettier --check .",
     "clean": "turbo run clean && rm -rf node_modules",
     "changeset": "changeset",
+    "bench": "turbo run build --filter=@cloudfarm/computer --filter=@cloudfarm/bash-sandbox --filter=@cloudfarm/rbash-sandbox && node tools/shell-bench/bench.mjs",
     "gen:integrations": "node tools/integration-codegen/generate.mjs",
     "gen:integrations:check": "node tools/integration-codegen/generate.mjs --check",
     "lint:fix": "oxlint --fix",
