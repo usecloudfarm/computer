@@ -1,0 +1,141 @@
+---
+/**
+ * Every app, as a grid of cards.
+ *
+ * Built from the pages themselves rather than a hand-kept list: an app page
+ * carries an `app` block in its frontmatter, so the card and the page it
+ * opens cannot describe different things.
+ */
+import { getCollection } from "astro:content";
+
+const CREDENTIAL = {
+  none: "No credential",
+  "api-key": "API key",
+  "api-token": "API token",
+} as const;
+
+const apps = (await getCollection("docs", (entry) => entry.data.app !== undefined))
+  .map((entry) => ({ ...entry, app: entry.data.app! }))
+  .sort((a, b) => a.app.order - b.app.order);
+---
+
+<div class="app-grid not-content">
+  {
+    apps.map((entry) => (
+      <a class="app-card" href={`/${entry.id}/`}>
+        <span class="app-mark" aria-hidden="true">
+          {entry.app.mark}
+        </span>
+        <span class="app-name">{entry.data.title}</span>
+        <span class="app-desc">{entry.data.description}</span>
+        <span class="app-meta">
+          {/* Every package shares the scope, so printing it on each card
+              spends the row's width on the part that never differs — and then
+              truncates the part that does. */}
+          <code>{entry.app.package.replace("@cloudfarm/", "")}</code>
+          <span class:list={["app-badge", entry.app.credential === "none" && "is-open"]}>
+            {CREDENTIAL[entry.app.credential]}
+          </span>
+        </span>
+      </a>
+    ))
+  }
+</div>
+
+<style>
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.875rem;
+    margin-top: 1.5rem;
+  }
+
+  .app-card {
+    display: grid;
+    /* The meta row is pinned to the bottom, so cards whose descriptions run
+       to different lengths still line their badges up. */
+    grid-template-rows: auto auto 1fr auto;
+    gap: 0.3rem;
+    padding: 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    background-color: var(--sl-color-black);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s,
+      transform 0.15s;
+  }
+
+  .app-card:hover {
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 1px 12px color-mix(in srgb, var(--sl-color-accent) 14%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .app-mark {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.35rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(140deg, var(--sl-color-accent), var(--sl-color-accent-high));
+    color: var(--sl-color-white);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .app-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .app-desc {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--sl-color-gray-3);
+  }
+
+  .app-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--sl-color-gray-6);
+  }
+
+  .app-meta code {
+    font-size: 0.6875rem;
+    color: var(--sl-color-gray-3);
+    background: none;
+    border: none;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-badge {
+    flex-shrink: 0;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.3rem;
+    color: var(--sl-color-gray-2);
+    background-color: color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);
+  }
+
+  /* An app that needs nothing is the one worth spotting in a catalogue. */
+  .app-badge.is-open {
+    color: var(--sl-color-accent-high);
+    background-color: color-mix(in srgb, var(--sl-color-accent) 16%, transparent);
+  }
+</style>

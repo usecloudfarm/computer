@@ -68,7 +68,9 @@ export default defineConfig({
             { label: "Engine", slug: "configuration/engines" },
             { label: "Storage", slug: "configuration/storage" },
             { label: "Toolsets", slug: "configuration/toolsets" },
-            { label: "Apps and integrations", slug: "configuration/integrations" },
+            // A link, not a slug: the catalogue is its own section, and this
+            // is the pointer to it from where you configure everything else.
+            { label: "Apps and integrations", link: "/apps/" },
           ],
         },
         {

@@ -1,0 +1,32 @@
+---
+title: Apps
+description: Every app a Computer can be given, and what each one lets an agent do.
+tableOfContents: false
+---
+
+import AppCatalog from "../../../components/AppCatalog.astro";
+
+An app contributes **actions**, not tools. An agent finds them with `search`
+and calls them with `run`, so installing one costs nothing in the prompt —
+the tool list is the same with four apps as with none.
+
+Construct the app and pass it. Credentials go here, in your code, and never
+reach the model:
+
+```ts
+import { Computer } from "cloudfarm";
+import { slack } from "@cloudfarm/slack";
+import { hackernews } from "@cloudfarm/hackernews";
+
+const computer = new Computer({
+  apps: [slack({ apiKey: process.env.SLACK_TOKEN }), hackernews({})],
+});
+```
+
+Every app declares the hosts it may reach, so a URL arriving in a model's
+arguments cannot redirect a credentialed request somewhere else. See
+[Writing an app](/guides/writing-an-app/) to add your own.
+
+## All apps
+
+<AppCatalog />
