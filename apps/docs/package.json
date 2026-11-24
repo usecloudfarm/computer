@@ -8,7 +8,8 @@
     "preview": "astro preview",
     "lint": "astro check --minimumSeverity error",
     "typecheck": "astro check --minimumSeverity error",
-    "clean": "rm -rf dist .turbo .astro"
+    "clean": "rm -rf dist .turbo .astro",
+    "deploy": "astro build && cf deploy ./dist"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.43.1",
@@ -20,5 +21,8 @@
   },
   "engines": {
     "node": ">=22.22.0"
+  },
+  "devDependencies": {
+    "cf": "1.0.0-rc.4"
   }
 }

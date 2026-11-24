@@ -10,3 +10,6 @@ packages/sandboxes/rbash-sandbox/vendor/
 # Built docs, and Astro's generated types.
 apps/docs/dist/
 apps/docs/.astro/
+
+# Build Output the cf CLI writes next to a project before uploading.
+.cloudflare/
