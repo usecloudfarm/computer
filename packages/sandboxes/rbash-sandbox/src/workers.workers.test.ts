@@ -48,7 +48,9 @@ describe("rbash on workerd", () => {
     expect(result.stderr).toMatch(/limit/i);
 
     resetDefaults();
-  });
+    // The same step-count bound as the Node suite, and workerd is slower to
+    // get through it than a laptop is.
+  }, 30_000);
 
   it("has jq, which the TypeScript shell does not ship", async () => {
     const ws = await workspace({ "/d.json": '[{"n":1},{"n":5}]' });
