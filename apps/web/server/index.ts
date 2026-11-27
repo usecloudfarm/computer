@@ -17,6 +17,7 @@ import { AISDKToolset, repairToRun } from "@cloudfarm/ai-sdk-toolset";
 import { hackernews } from "@cloudfarm/hackernews";
 import { web } from "@cloudfarm/cloudflare-browser";
 import { firecrawl } from "@cloudfarm/firecrawl";
+import { github } from "@cloudfarm/github";
 import { reports } from "./reports.ts";
 
 const MODEL = process.env["CLOUDFARM_MODEL"] ?? "claude-sonnet-5-5";
@@ -53,6 +54,18 @@ const search = process.env["FIRECRAWL_API_KEY"]
   : [];
 
 /**
+ * Issues, pull requests, commits and code search, when a token is configured.
+ *
+ * `GITHUB_API_KEY` rather than borrowing the `gh` CLI's own credential: that one
+ * is an OAuth token carrying every scope the CLI was granted, and the agent
+ * here only needs what the task needs. Mint a fine-grained PAT for the
+ * repositories you want it to see.
+ */
+const code = process.env["GITHUB_API_KEY"]
+  ? [github({ apiKey: process.env["GITHUB_API_KEY"] })]
+  : [];
+
+/**
  * A local SQLite file, and nothing to configure.
  *
  * Durable, so a file the agent writes is still there after a restart — which
@@ -71,7 +84,7 @@ const storage = sqliteStorage({ path: databasePath });
 const computer = new Computer({
   toolset: new AISDKToolset(),
   storage,
-  apps: [reports, hackernews({}), ...browser, ...search],
+  apps: [reports, hackernews({}), ...browser, ...search, ...code],
 });
 
 /**

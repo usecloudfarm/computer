@@ -22,6 +22,7 @@
     "@cloudfarm/cloudflare-browser": "workspace:^",
     "@cloudfarm/computer": "workspace:^",
     "@cloudfarm/firecrawl": "workspace:^",
+    "@cloudfarm/github": "^0.1.0",
     "@cloudfarm/hackernews": "workspace:^",
     "@cloudfarm/qjs-engine": "workspace:^",
     "@cloudfarm/rbash-sandbox": "workspace:^",

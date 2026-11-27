@@ -81,6 +81,9 @@ importers:
       '@cloudfarm/firecrawl':
         specifier: workspace:^
         version: link:../../packages/integrations/firecrawl
+      '@cloudfarm/github':
+        specifier: ^0.1.0
+        version: 0.1.0(@cloudfarm/bash-sandbox@packages+sandboxes+bash-sandbox)(@cloudfarm/qjs-engine@packages+engines+qjs-engine)(@cloudfarm/rbash-sandbox@packages+sandboxes+rbash-sandbox)
       '@cloudfarm/hackernews':
         specifier: workspace:^
         version: link:../../packages/integrations/hackernews
@@ -1060,6 +1063,23 @@ packages:
   '@clack/prompts@1.9.0':
     resolution: {integrity: sha512-tEj8X2No2A1c9NDnZECxiiJ8TP3vmFlN9tLlLeSaMqVW4tUmVG2R4qpv/eP4zymWxnymYLkLcIYVV0VcWj3RCQ==}
     engines: {node: '>= 20.12.0'}
+
+  '@cloudfarm/computer@1.0.0':
+    resolution: {integrity: sha512-S1X33muyCXCzk6RXIm8wdkr6qdWy9VgHjZuJbYphv+gUJ3Nlxl3b7w+ZYoy1NShNlUVvF7oolzA++hIbRI36mw==}
+    peerDependencies:
+      '@cloudfarm/bash-sandbox': ^1.0.0
+      '@cloudfarm/qjs-engine': ^1.0.0
+      '@cloudfarm/rbash-sandbox': ^0.1.1
+    peerDependenciesMeta:
+      '@cloudfarm/bash-sandbox':
+        optional: true
+      '@cloudfarm/qjs-engine':
+        optional: true
+      '@cloudfarm/rbash-sandbox':
+        optional: true
+
+  '@cloudfarm/github@0.1.0':
+    resolution: {integrity: sha512-heaZShvTGi6qrfg015EUI+LN3P1HeteFY/X8J0Npc+SfeKgSgjTqMSZOBYAn5Qs5QDFerUF01/ebi/y1WM63fg==}
 
   '@cloudflare/build-output-utils@1.0.0-rc.3':
     resolution: {integrity: sha512-eOBdKjGzwMZXvrBGhL3VAS6fEE41pSlg8gYCydL4ao/6kHy7dUKpoxFfJ5PS9pcgP1Y7T/uu0hO+n+MtbA/X+Q==}
@@ -5678,6 +5698,23 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 2.0.0
+
+  '@cloudfarm/computer@1.0.0(@cloudfarm/bash-sandbox@packages+sandboxes+bash-sandbox)(@cloudfarm/qjs-engine@packages+engines+qjs-engine)(@cloudfarm/rbash-sandbox@packages+sandboxes+rbash-sandbox)':
+    dependencies:
+      zod: 4.6.7
+    optionalDependencies:
+      '@cloudfarm/bash-sandbox': link:packages/sandboxes/bash-sandbox
+      '@cloudfarm/qjs-engine': link:packages/engines/qjs-engine
+      '@cloudfarm/rbash-sandbox': link:packages/sandboxes/rbash-sandbox
+
+  '@cloudfarm/github@0.1.0(@cloudfarm/bash-sandbox@packages+sandboxes+bash-sandbox)(@cloudfarm/qjs-engine@packages+engines+qjs-engine)(@cloudfarm/rbash-sandbox@packages+sandboxes+rbash-sandbox)':
+    dependencies:
+      '@cloudfarm/computer': 1.0.0(@cloudfarm/bash-sandbox@packages+sandboxes+bash-sandbox)(@cloudfarm/qjs-engine@packages+engines+qjs-engine)(@cloudfarm/rbash-sandbox@packages+sandboxes+rbash-sandbox)
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - '@cloudfarm/bash-sandbox'
+      - '@cloudfarm/qjs-engine'
+      - '@cloudfarm/rbash-sandbox'
 
   '@cloudflare/build-output-utils@1.0.0-rc.3':
     dependencies:
